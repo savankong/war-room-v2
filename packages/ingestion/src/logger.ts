@@ -1,4 +1,4 @@
-import sql from '../db';
+import sql from './db';
 
 export async function startRun(source: 'sam_gov' | 'usaspending'): Promise<string> {
   const rows = await sql`
