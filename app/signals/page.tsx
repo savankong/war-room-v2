@@ -9,15 +9,17 @@ async function getSignalsData() {
   const [contracts, orgs, stats] = await Promise.all([
     db`
       SELECT
-        c.id, c.external_id, c.title, c.value, c.status, c.signal_type,
+        c.id, c.external_id, c.title, c.value, c.set_aside AS status, c.signal_type,
         c.award_date, c.source, c.set_aside, c.deadline, c.org_id,
-        o.name AS org_name, o.slug AS org_slug, o.badge_color
+        o.full_name AS org_name, o.id AS org_slug,
+        o.organization_type AS badge_text, NULL::text AS badge_color
       FROM contracts c
-      LEFT JOIN organizations o ON o.id = c.org_id
+      LEFT JOIN orgs o ON o.id = c.org_id
+      WHERE c.signal_type IS NOT NULL
       ORDER BY c.award_date DESC NULLS LAST, c.created_at DESC
       LIMIT 200
     `,
-    db`SELECT id, name, slug, badge_color, badge_text FROM organizations ORDER BY name`,
+    db`SELECT id, full_name AS name, id AS slug, NULL::text AS badge_color, organization_type AS badge_text FROM orgs WHERE is_active = true ORDER BY full_name`,
     db`
       SELECT
         COUNT(*)::int AS total,
@@ -25,6 +27,7 @@ async function getSignalsData() {
         COUNT(*) FILTER (WHERE signal_type = 'Award')::int AS awards,
         COALESCE(SUM(value) FILTER (WHERE signal_type = 'Award'), 0)::bigint AS total_value
       FROM contracts
+      WHERE signal_type IS NOT NULL
     `,
   ]);
 
