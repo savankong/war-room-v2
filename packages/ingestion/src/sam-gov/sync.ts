@@ -18,7 +18,7 @@ export async function syncSamGov(): Promise<void> {
 
     for (const row of rows) {
       await sql`
-        INSERT INTO contracts (external_id, source, title, value, status, signal_type, award_date, raw_payload, org_id)
+        INSERT INTO contracts (external_id, source, title, value, set_aside, signal_type, award_date, raw_payload, org_id)
         VALUES (
           ${row.external_id}, ${row.source}, ${row.title}, ${row.value},
           ${row.status}, ${row.signal_type}, ${row.award_date},
@@ -27,7 +27,7 @@ export async function syncSamGov(): Promise<void> {
         ON CONFLICT (external_id)
         DO UPDATE SET
           value       = EXCLUDED.value,
-          status      = EXCLUDED.status,
+          set_aside   = EXCLUDED.set_aside,
           award_date  = EXCLUDED.award_date,
           raw_payload = EXCLUDED.raw_payload,
           org_id      = COALESCE(EXCLUDED.org_id, contracts.org_id)
