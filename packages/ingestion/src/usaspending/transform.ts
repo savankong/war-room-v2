@@ -12,6 +12,7 @@ export function transformAward(award: UsaAward): ContractRow {
     award_date: award['Award Date'],
     raw_payload: award,
     org_id: null,
+    office_code: null,
     awarding_agency: award['Awarding Agency'] ?? null,
   };
 }
