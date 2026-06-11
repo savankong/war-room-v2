@@ -1,3 +1,9 @@
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load .env.local for local CLI runs
+config({ path: resolve(process.cwd(), '.env.local') });
+
 import { syncSamGov } from './sam-gov/sync';
 import { syncUsaSpending } from './usaspending/sync';
 

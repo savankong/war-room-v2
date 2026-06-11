@@ -14,14 +14,13 @@ export async function fetchUsaSpendingAwards(): Promise<UsaAward[]> {
 
   const fmt = (d: Date) => d.toISOString().split('T')[0];
 
-  const res = await fetch('https://api.usaspending.gov/api/v2/awards/', {
+  const res = await fetch('https://api.usaspending.gov/api/v2/search/spending_by_award/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       filters: {
         award_type_codes: ['A', 'B', 'C', 'D'],
-        date_type: 'date_signed',
-        date_range: { start_date: fmt(thirtyDaysAgo), end_date: fmt(today) },
+        time_period: [{ start_date: fmt(thirtyDaysAgo), end_date: fmt(today) }],
       },
       fields: ['Award ID', 'Recipient Name', 'Award Amount', 'Awarding Agency', 'Award Date'],
       limit: 100,
