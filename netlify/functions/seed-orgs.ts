@@ -485,10 +485,16 @@ function parseRows(): Row[] {
   }).filter((r) => r.org && !isNaN(r.level));
 }
 
+// ── bulk insert helper: chunk array into batches ──────────────────────────
+function chunks<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
 // ── handler ────────────────────────────────────────────────────────────────
 
 export default async function handler(req: Request, _ctx: Context) {
-  // Simple secret check — set SEED_SECRET env var in Netlify dashboard
   const secret = process.env.SEED_SECRET;
   if (secret) {
     const auth = req.headers.get('Authorization') ?? '';
@@ -504,7 +510,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const rows = parseRows();
     log.push(`Parsed ${rows.length} rows`);
 
-    // Clear
+    // Clear all tables in dependency order
     await db`DELETE FROM office_members`;
     await db`DELETE FROM team_members`;
     await db`DELETE FROM offices`;
@@ -521,37 +527,51 @@ export default async function handler(req: Request, _ctx: Context) {
     const seen = new Map<string, Row>();
     for (const r of rows) if (!seen.has(r.org)) seen.set(r.org, r);
 
-    // Build unique slugs
+    // Build unique slugs and pre-assign UUIDs (avoids per-row RETURNING round-trips)
     const slugCount = new Map<string, number>();
-    const orgSlugMap = new Map<string, string>();
+    const orgSlugMap = new Map<string, string>();  // name → slug
+    const orgIdMap   = new Map<string, string>();  // slug → uuid
+
     for (const [name] of seen) {
       let slug = slugify(name);
       const n = (slugCount.get(slug) ?? 0) + 1;
       slugCount.set(slug, n);
-      orgSlugMap.set(name, n > 1 ? `${slug}-${n}` : slug);
+      const finalSlug = n > 1 ? `${slug}-${n}` : slug;
+      orgSlugMap.set(name, finalSlug);
+      orgIdMap.set(finalSlug, crypto.randomUUID());
     }
 
-    // Insert orgs
-    const orgIdMap = new Map<string, string>(); // slug → id
-    for (const [name, row] of seen) {
+    // Bulk insert orgs — 80 rows per statement to stay well under query size limits
+    const orgRows = Array.from(seen.entries()).map(([name, row]) => {
       const slug  = orgSlugMap.get(name)!;
+      const id    = orgIdMap.get(slug)!;
       const badge = badgeFromBranch(row.branch);
-      const [r] = await db`
-        INSERT INTO organizations (name, slug, badge_text, badge_color, description, sector, hq_address)
-        VALUES (${name}, ${slug}, ${badge?.text ?? null}, ${badge?.color ?? null},
-                ${row.description || null}, ${sectorFromBranch(row.branch)}, ${row.location || null})
-        RETURNING id
+      return {
+        id,
+        name,
+        slug,
+        badge_text:  badge?.text  ?? null,
+        badge_color: badge?.color ?? null,
+        description: row.description || null,
+        sector:      sectorFromBranch(row.branch),
+        hq_address:  row.location || null,
+      };
+    });
+
+    for (const batch of chunks(orgRows, 80)) {
+      await db`
+        INSERT INTO organizations (id, name, slug, badge_text, badge_color, description, sector, hq_address)
+        SELECT * FROM json_to_recordset(${JSON.stringify(batch)}::json)
+          AS x(id uuid, name text, slug text, badge_text text, badge_color text,
+               description text, sector text, hq_address text)
       `;
-      orgIdMap.set(slug, r.id);
     }
-    log.push(`Orgs inserted: ${orgIdMap.size}`);
+    log.push(`Orgs inserted: ${orgRows.length}`);
 
-    // Insert relationships
-    let relCount = 0;
-    const skipParents = new Set(['Executive Branch', 'White House', 'Congress', 'Department of Homeland Security', 'FFRDC', 'ASD Sustainment', 'ASD ND-CBD', 'USD I&S', 'USD P&R', 'USD A&S', 'USD R&E', 'USD Comptroller', 'OUSD R&E', 'Commandant of the Marine Corps', 'Marine Corps Aviation', 'Direct Reporting to DepSecWar', 'SOCOM Acquisition', 'Coast Guard Headquarters', 'Army Combined Arms Command', 'Army Pathway for Innovation and Technology', 'ASA ALT', 'Army Corps of Engineers', 'I MEF', 'III MEF', 'XVIII Airborne Corps', 'U.S. Army Pacific', 'U.S. Army Europe and Africa', 'U.S. Army Western Hemisphere Command', 'SAF AQ', 'Air Force Life Cycle Management Center', 'Combat Forces Command', 'Space Training and Readiness Command', 'Space Systems Command', 'DEVCOM', 'Army Materiel Command', 'Army Transformation and Training Command', 'Army Fuze', 'Army FUZE', 'Army University', 'Army Special Operations Command', 'U.S. Pacific Fleet', 'U.S. Pacific Fleet USPACFLT', 'U.S. Fleet Forces Command', 'U.S. Fleet Forces Command USFF', 'Naval Rapid Capabilities Office', 'ASN RD&A', 'Office of Naval Research', 'MCCDC', 'Marine Corps Headquarters', 'Chief of Naval Operations', 'Office of the Secretary of the Army', 'Department of the Army', 'Department of the Navy', 'Department of the Air Force', 'United States Space Force', 'Joint Chiefs', 'OSW', 'Combatant Commands', 'U.S. Central Command', 'U.S. Africa Command', 'U.S. European Command', 'U.S. Indo-Pacific Command', 'U.S. Northern Command', 'U.S. Southern Command', 'U.S. Space Command', 'U.S. Special Operations Command', 'U.S. Transportation Command', 'U.S. Strategic Command', 'U.S. Cyber Command', 'SOCOM', 'Air Force Chief of Staff', 'Air Force Materiel Command', 'Air Education and Training Command', 'Air Combat Command', 'Air Force Global Strike Command', 'Pacific Air Forces', 'U.S. Air Forces in Europe', 'Chief of Space Operations', 'Coast Guard Systems', 'Army Materiel Command']);
-
+    // Bulk insert relationships
+    const relPairs: Array<{ org_id_1: string; org_id_2: string }> = [];
+    const seenRels = new Set<string>();
     for (const [name, row] of seen) {
-      if (skipParents.has(row.parent)) continue;
       const childSlug  = orgSlugMap.get(name);
       const parentSlug = orgSlugMap.get(row.parent);
       if (!childSlug || !parentSlug) continue;
@@ -559,19 +579,30 @@ export default async function handler(req: Request, _ctx: Context) {
       const pId = orgIdMap.get(parentSlug);
       if (!cId || !pId || cId === pId) continue;
       const [a, b] = [cId, pId].sort();
-      try {
-        await db`INSERT INTO related_organizations (org_id_1, org_id_2) VALUES (${a}, ${b}) ON CONFLICT DO NOTHING`;
-        relCount++;
-      } catch { /* skip */ }
+      const key = `${a}|${b}`;
+      if (seenRels.has(key)) continue;
+      seenRels.add(key);
+      relPairs.push({ org_id_1: a, org_id_2: b });
     }
-    log.push(`Relationships inserted: ${relCount}`);
+    if (relPairs.length > 0) {
+      for (const batch of chunks(relPairs, 100)) {
+        await db`
+          INSERT INTO related_organizations (org_id_1, org_id_2)
+          SELECT * FROM json_to_recordset(${JSON.stringify(batch)}::json)
+            AS x(org_id_1 uuid, org_id_2 uuid)
+          ON CONFLICT DO NOTHING
+        `;
+      }
+    }
+    log.push(`Relationships inserted: ${relPairs.length}`);
 
-    // Insert people
+    // Bulk insert people (deduplicated by name+org)
     const personKeys = new Set<string>();
-    let personCount = 0;
-    const skip = new Set(['Various', 'Varies', 'Vacant', 'Various (Various)']);
+    const skipNames  = new Set(['Various', 'Varies', 'Vacant', 'Various (Various)']);
+    const peopleRows: Array<{ id: string; org_id: string; full_name: string; role_title: string | null; avatar_color: string; location: string | null }> = [];
+
     for (const row of rows) {
-      if (!row.leaderName || skip.has(row.leaderName)) continue;
+      if (!row.leaderName || skipNames.has(row.leaderName)) continue;
       const orgSlug = orgSlugMap.get(row.org);
       if (!orgSlug) continue;
       const orgId = orgIdMap.get(orgSlug);
@@ -579,14 +610,25 @@ export default async function handler(req: Request, _ctx: Context) {
       const key = `${row.leaderName}|${orgSlug}`;
       if (personKeys.has(key)) continue;
       personKeys.add(key);
+      peopleRows.push({
+        id:           crypto.randomUUID(),
+        org_id:       orgId,
+        full_name:    row.leaderName,
+        role_title:   row.leaderTitle || null,
+        avatar_color: avatarColor(row.branch),
+        location:     row.location || null,
+      });
+    }
+
+    for (const batch of chunks(peopleRows, 80)) {
       await db`
-        INSERT INTO people (org_id, full_name, role_title, avatar_color, location)
-        VALUES (${orgId}, ${row.leaderName}, ${row.leaderTitle || null}, ${avatarColor(row.branch)}, ${row.location || null})
+        INSERT INTO people (id, org_id, full_name, role_title, avatar_color, location)
+        SELECT * FROM json_to_recordset(${JSON.stringify(batch)}::json)
+          AS x(id uuid, org_id uuid, full_name text, role_title text, avatar_color text, location text)
         ON CONFLICT DO NOTHING
       `;
-      personCount++;
     }
-    log.push(`People inserted: ${personCount}`);
+    log.push(`People inserted: ${peopleRows.length}`);
 
     return Response.json({ ok: true, log });
   } catch (err) {
