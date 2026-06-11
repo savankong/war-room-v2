@@ -1,4 +1,4 @@
-import sql from '../db';
+import sql from '../../db';
 import { startRun, completeRun, failRun } from '../logger';
 import { fetchSamOpportunities } from './fetch';
 import { transformOpportunity } from './transform';
@@ -11,7 +11,7 @@ export async function syncSamGov(): Promise<void> {
     const rows = await Promise.all(
       opportunities.map(async (opp) => {
         const row = transformOpportunity(opp);
-        row.org_id = await resolveOrgId(row.awarding_agency);
+        row.org_id = await resolveOrgId(row.office_code, row.awarding_agency);
         return row;
       })
     );
@@ -22,7 +22,7 @@ export async function syncSamGov(): Promise<void> {
         VALUES (
           ${row.external_id}, ${row.source}, ${row.title}, ${row.value},
           ${row.status}, ${row.signal_type}, ${row.award_date},
-          ${JSON.stringify(row.raw_payload)}, ${row.org_id}
+          ${sql.json(row.raw_payload)}, ${row.org_id}
         )
         ON CONFLICT (external_id)
         DO UPDATE SET
