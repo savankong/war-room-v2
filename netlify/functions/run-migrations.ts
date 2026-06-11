@@ -130,17 +130,15 @@ export default async function handler(_req: Request, _ctx: Context) {
       )
     `;
 
-    // Indexes (IF NOT EXISTS not supported for indexes — use DO blocks)
-    const indexes = [
-      'CREATE INDEX IF NOT EXISTS idx_people_org_id        ON people(org_id)',
-      'CREATE INDEX IF NOT EXISTS idx_people_manager_id    ON people(manager_id)',
-      'CREATE INDEX IF NOT EXISTS idx_contracts_org_id     ON contracts(org_id)',
-      'CREATE INDEX IF NOT EXISTS idx_contracts_signal     ON contracts(signal_type)',
-      'CREATE INDEX IF NOT EXISTS idx_contracts_source     ON contracts(source)',
-      'CREATE INDEX IF NOT EXISTS idx_contracts_external   ON contracts(external_id)',
-      'CREATE INDEX IF NOT EXISTS idx_ingestion_source     ON ingestion_runs(source)',
-      'CREATE INDEX IF NOT EXISTS idx_ingestion_status     ON ingestion_runs(status)',
-    ];
+    // Idempotent column additions
+    await db`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS naics_code          VARCHAR(10)`;
+    await db`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS psc_code            VARCHAR(10)`;
+    await db`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS description         TEXT`;
+    await db`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS awardee             VARCHAR(500)`;
+    await db`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS solicitation_number VARCHAR(100)`;
+    await db`ALTER TABLE people    ADD COLUMN IF NOT EXISTS email               VARCHAR(255)`;
+    await db`ALTER TABLE people    ADD COLUMN IF NOT EXISTS phone               VARCHAR(50)`;
+    await db`ALTER TABLE people    ADD COLUMN IF NOT EXISTS location            VARCHAR(255)`;
 
     await db`CREATE INDEX IF NOT EXISTS idx_people_org_id     ON people(org_id)`;
     await db`CREATE INDEX IF NOT EXISTS idx_people_manager_id ON people(manager_id)`;
