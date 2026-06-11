@@ -22,7 +22,7 @@ export async function syncSamGov(): Promise<void> {
         VALUES (
           ${row.external_id}, ${row.source}, ${row.title}, ${row.value},
           ${row.status}, ${row.signal_type}, ${row.award_date},
-          ${sql.json(row.raw_payload)}, ${row.org_id}
+          ${sql.json(row.raw_payload as any)}, ${row.org_id}
         )
         ON CONFLICT (external_id)
         DO UPDATE SET

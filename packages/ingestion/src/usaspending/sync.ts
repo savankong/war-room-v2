@@ -22,7 +22,7 @@ export async function syncUsaSpending(): Promise<void> {
         VALUES (
           ${row.external_id}, ${row.source}, ${row.title}, ${row.value},
           ${row.signal_type}, ${row.award_date},
-          ${sql.json(row.raw_payload)}, ${row.org_id}
+          ${sql.json(row.raw_payload as any)}, ${row.org_id}
         )
         ON CONFLICT (external_id)
         DO UPDATE SET
