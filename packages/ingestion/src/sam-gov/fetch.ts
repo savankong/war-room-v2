@@ -3,6 +3,8 @@ export interface SamOpportunity {
   title: string;
   type: string;
   typeOfSetAside?: string;
+  departmentName?: string;
+  agencyName?: string;
   award?: {
     amount?: number;
     date?: string;
