@@ -33,7 +33,7 @@ export function transformOpportunity(opp: SamOpportunity): ContractRow {
     signal_type: opp.type === 'Award' ? 'Award' : 'Opportunity',
     award_date: opp.award?.date ?? null,
     raw_payload: opp,
-    org_id: null, // resolved in sync.ts via org-matcher
+    org_id: null,
     awarding_agency: opp.agencyName ?? opp.departmentName ?? null,
   };
 }
