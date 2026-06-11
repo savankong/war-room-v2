@@ -8,14 +8,14 @@ export async function resolveOrgId(agencyName: string | null): Promise<string | 
   if (cache.has(key)) return cache.get(key)!;
 
   let rows = await sql<{ id: string }[]>`
-    SELECT id FROM orgs WHERE lower(name) = ${key} LIMIT 1
+    SELECT id FROM orgs WHERE lower(full_name) = ${key} LIMIT 1
   `;
   if (!rows.length) {
     rows = await sql<{ id: string }[]>`
       SELECT id FROM orgs
-      WHERE lower(name) ILIKE ${'%' + key + '%'}
-         OR ${key} ILIKE '%' || lower(name) || '%'
-      ORDER BY length(name) DESC
+      WHERE lower(full_name) ILIKE ${'%' + key + '%'}
+         OR ${key} ILIKE '%' || lower(full_name) || '%'
+      ORDER BY length(full_name) DESC
       LIMIT 1
     `;
   }
