@@ -1,17 +1,13 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getOrgProfile, getOrgPeople, getOrgTeams, getOrgOffices, getOrgContracts } from './data';
-import type { Person } from './data';
+import OrgNav from './OrgNav';
+import { getOrgProfile, getNavOrgs, getChildOrgs, getOrgPeople, getOrgContracts } from './data';
 
-interface Props {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ tab?: string }>;
-}
+export const dynamic = 'force-dynamic';
 
 const COLORS = ['#283a6b','#c8502d','#2f8676','#e0a32e','#7c4dbc','#1d6b8a'];
-function colorFor(n: string) { return COLORS[n.charCodeAt(0) % COLORS.length]; }
+function colorFor(n: string) { return COLORS[Math.abs(n.charCodeAt(0) + (n.charCodeAt(1)||0)) % COLORS.length]; }
 function initials(n: string) { return n.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
-
 function fmtMoney(v: number|null) {
   if (!v) return '—';
   if (v>=1e9) return `$${(v/1e9).toFixed(1)}B`;
@@ -20,214 +16,148 @@ function fmtMoney(v: number|null) {
   return `$${v}`;
 }
 
-function buildTree(people: Person[]) {
-  const map = new Map<string, Person & { children: any[] }>();
-  people.forEach(p => map.set(p.id, { ...p, children: [] }));
-  let root: (Person & { children: any[] }) | null = null;
-  map.forEach(node => {
-    if (node.manager_id && map.has(node.manager_id)) {
-      map.get(node.manager_id)!.children.push(node);
-    } else {
-      root = node;
-    }
-  });
-  return root;
-}
-
-function OcCard({ person }: { person: Person & { children: any[] } }) {
-  const color = person.avatar_color ?? colorFor(person.full_name);
-  const ini = initials(person.full_name);
-  return (
-    <div className="oc-col">
-      <div className="oc-card">
-        <div className="oc-av" style={{background:color}}>{ini}</div>
-        <div className="oc-name">{person.full_name}</div>
-        {person.role_title && <div className="oc-role">{person.role_title}</div>}
-        {person.children.length > 0 && (
-          <div className="oc-xbtn">+ {person.children.length} direct{person.children.length!==1?'s':''}</div>
-        )}
-      </div>
-      {person.children.length > 0 && (
-        <>
-          <div className="oc-vline" />
-          <div className="oc-row">
-            {person.children.map((c: any) => (
-              <OcCard key={c.id} person={c} />
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
+interface Props {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }
 
 export default async function OrgPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { tab = 'orgchart' } = await searchParams;
+  const { tab = 'chart' } = await searchParams;
 
-  const org = await getOrgProfile(slug);
-  if (!org) notFound();
-
-  const [people, teams, offices, contracts] = await Promise.all([
-    getOrgPeople(org.id),
-    getOrgTeams(org.id),
-    getOrgOffices(org.id),
-    getOrgContracts(org.id),
+  const [org, navOrgs, childOrgs, contacts, contracts] = await Promise.all([
+    getOrgProfile(slug),
+    getNavOrgs(),
+    getChildOrgs(slug),
+    getOrgPeople(slug),
+    getOrgContracts(slug),
   ]);
 
-  const tree = buildTree(people);
-  const color = org.badge_color ?? colorFor(org.name);
+  if (!org) notFound();
+
+  const color = colorFor(org.name);
   const ini = initials(org.name);
 
   const TABS = [
-    { key: 'orgchart', label: 'Org Chart' },
-    { key: 'teams', label: `Teams (${teams.length})` },
-    { key: 'offices', label: `Offices (${offices.length})` },
+    { key: 'chart', label: 'Chart' },
     { key: 'contracts', label: `Contracts (${contracts.length})` },
   ];
 
   return (
-    <div className="orgd">
-      {/* Subnav */}
-      <div className="orgd-sub">
-        <Link href="/" className="orgd-back">←</Link>
-        <span className="orgd-sname">{org.name}</span>
-        <div className="orgd-acts">
-          <button className="btn-follow">Follow · {org.follower_count}</button>
-          <button className="btn-ic">⋯</button>
-        </div>
-      </div>
+    <div className="org-layout">
+      {/* Left nav */}
+      <OrgNav orgs={navOrgs} currentId={slug} currentBranch={org.branch} />
 
-      <div className="orgd-body">
-        {/* Hero */}
-        <div className="orgd-hero-top">
-          <div style={{width:56,height:56,background:color,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Roboto',fontWeight:800,fontSize:16,color:'#fff',flexShrink:0}}>
-            {ini}
-          </div>
-          <div>
-            <div className="orgd-title">{org.name}</div>
-            <div className="orgd-flw">{org.follower_count.toLocaleString()} followers · {org.contact_count.toLocaleString()} contacts</div>
-          </div>
+      {/* Right detail */}
+      <div className="org-detail">
+        {/* Breadcrumb */}
+        <div className="orgd-sub">
+          <Link href="/" className="orgd-back">←</Link>
+          <span className="orgd-sname">{org.branch ?? 'Organizations'}</span>
+          {org.parent_id && (
+            <>
+              <span className="orgd-sname" style={{color:'var(--tx4)'}}>›</span>
+              <Link href={`/org/${org.parent_id}`} className="orgd-sname" style={{textDecoration:'none'}}>
+                {navOrgs.find(o => o.id === org.parent_id)?.name ?? org.parent_id}
+              </Link>
+            </>
+          )}
         </div>
 
-        {org.description && <p className="orgd-desc">{org.description}</p>}
+        <div className="org-detail-body">
+          {/* Hero */}
+          <div className="orgd-hero-top">
+            <div style={{width:52,height:52,background:color,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Roboto',fontWeight:800,fontSize:15,color:'#fff',flexShrink:0}}>
+              {ini}
+            </div>
+            <div>
+              <div className="orgd-title">{org.name}</div>
+              <div className="orgd-flw">
+                {org.branch && <span style={{marginRight:8}}>{org.branch}</span>}
+                {org.badge_text && <span style={{color:'var(--tx4)'}}>{org.badge_text}</span>}
+              </div>
+            </div>
+          </div>
 
-        {/* Meta grid */}
-        <div className="orgd-metas">
-          <div className="orgd-meta">
-            <div className="mlbl">Sector</div>
-            <div className="mval">{org.sector ?? '—'}</div>
-          </div>
-          <div className="orgd-meta">
-            <div className="mlbl">HQ</div>
-            <div className="mval">{org.hq_address ?? '—'}</div>
-          </div>
-          <div className="orgd-meta">
-            <div className="mlbl">Personnel</div>
-            <div className="mval">{org.personnel_count?.toLocaleString() ?? '—'}</div>
-          </div>
-          <div className="orgd-meta">
-            <div className="mlbl">Contracts</div>
-            <div className="mval">{contracts.length}</div>
-          </div>
-        </div>
+          {org.description && <p className="orgd-desc">{org.description}</p>}
 
-        {/* Tabs */}
-        <div className="orgd-tabs">
-          {TABS.map(t => (
-            <a
-              key={t.key}
-              href={`?tab=${t.key}`}
-              className={`orgd-tab${tab===t.key?' on':''}`}
-            >
-              {t.label}
-            </a>
-          ))}
-        </div>
+          {/* Meta */}
+          <div className="orgd-metas">
+            <div className="orgd-meta"><div className="mlbl">HQ</div><div className="mval">{org.hq_address ?? '—'}</div></div>
+            <div className="orgd-meta"><div className="mlbl">Contacts</div><div className="mval">{org.contact_count}</div></div>
+            <div className="orgd-meta"><div className="mlbl">Child Orgs</div><div className="mval">{childOrgs.length}</div></div>
+            <div className="orgd-meta"><div className="mlbl">Contracts</div><div className="mval">{contracts.length}</div></div>
+          </div>
 
-        <div className="tab-body">
-          {/* Org Chart */}
-          {tab === 'orgchart' && (
-            <div className="oc-wrap">
-              {tree ? (
-                <div className="oc-tree">
-                  <OcCard person={tree} />
-                </div>
-              ) : (
-                <div style={{textAlign:'center',padding:'32px',color:'var(--tx4)',fontFamily:'IBM Plex Mono',fontSize:11}}>
-                  No org chart data yet
+          {/* Tabs */}
+          <div className="orgd-tabs">
+            {TABS.map(t => (
+              <a key={t.key} href={`?tab=${t.key}`} className={`orgd-tab${tab===t.key?' on':''}`}>{t.label}</a>
+            ))}
+          </div>
+
+          {/* Chart tab — top-down hierarchy */}
+          {tab === 'chart' && (
+            <div className="ohier" style={{paddingTop:24}}>
+
+              {/* Current org contacts */}
+              {contacts.length > 0 && (
+                <>
+                  <div style={{fontSize:10,fontFamily:'IBM Plex Mono',color:'var(--tx4)',letterSpacing:'.08em',marginBottom:8}}>
+                    CONTACTS IN THIS ORG ({contacts.length})
+                  </div>
+                  <div className="oc-contact-row" style={{marginBottom:28}}>
+                    {contacts.map(p => {
+                      const c = p.avatar_color ?? colorFor(p.full_name);
+                      return (
+                        <div key={p.id} className="oc-contact-card">
+                          <div className="oc-contact-av" style={{background:c}}>{initials(p.full_name)}</div>
+                          <div>
+                            <div className="oc-contact-name">{p.full_name}</div>
+                            {p.role_title && <div className="oc-contact-role">{p.role_title}</div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              {/* Child orgs + their contacts */}
+              {childOrgs.length > 0 && (
+                <>
+                  <div style={{fontSize:10,fontFamily:'IBM Plex Mono',color:'var(--tx4)',letterSpacing:'.08em',marginBottom:12}}>
+                    SUBORDINATE ORGANIZATIONS ({childOrgs.length})
+                  </div>
+                  <div className="ohier-connector"><div className="ohier-vline" /></div>
+                  <div className="ohier-row">
+                    {childOrgs.map(child => (
+                      <Link key={child.id} href={`/org/${child.id}`} className="child-org-card">
+                        <div className="child-org-card-name">{child.name}</div>
+                        <div className="child-org-card-meta">
+                          {child.contact_count > 0 && <span>{child.contact_count} contacts · </span>}
+                          {child.contract_count > 0 && <span>{child.contract_count} contracts</span>}
+                          {child.contact_count === 0 && child.contract_count === 0 && <span>{child.organization_type ?? '—'}</span>}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {contacts.length === 0 && childOrgs.length === 0 && (
+                <div style={{color:'var(--tx4)',fontFamily:'IBM Plex Mono',fontSize:11,paddingTop:16}}>
+                  No chart data yet for this org
                 </div>
               )}
             </div>
           )}
 
-          {/* Teams */}
-          {tab === 'teams' && (
-            <>
-              <div className="sec-hdr">
-                <span className="sec-hdr-t">Teams</span>
-                <button className="sec-more">View all</button>
-              </div>
-              {teams.length === 0 ? (
-                <div style={{color:'var(--tx4)',fontFamily:'IBM Plex Mono',fontSize:11}}>No teams yet</div>
-              ) : (
-                <div className="teams-grid">
-                  {teams.map(t => (
-                    <div key={t.id} className="team-card">
-                      <div className="team-name">{t.name}</div>
-                      <div className="team-meta">{(t.members??[]).length} members</div>
-                      <div className="team-avs">
-                        {(t.members??[]).slice(0,4).map((m: any) => (
-                          <div key={m.id} className="team-av" style={{background: m.avatar_color ?? colorFor(m.full_name)}}>
-                            {initials(m.full_name)}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Offices */}
-          {tab === 'offices' && (
-            <>
-              <div className="sec-hdr">
-                <span className="sec-hdr-t">Offices</span>
-              </div>
-              {offices.length === 0 ? (
-                <div style={{color:'var(--tx4)',fontFamily:'IBM Plex Mono',fontSize:11}}>No offices yet</div>
-              ) : (
-                <div className="offices-grid">
-                  {offices.map(o => (
-                    <div key={o.id} className="office-card">
-                      <div className="office-map">📍</div>
-                      <div>
-                        <div className="office-name">{o.name ?? 'Office'}</div>
-                        <div className="office-meta">{o.location ?? '—'}</div>
-                        {o.lat != null && (
-                          <div className="office-meta" style={{marginTop:2}}>
-                            {o.lat.toFixed(4)}, {o.lng?.toFixed(4)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Contracts */}
+          {/* Contracts tab */}
           {tab === 'contracts' && (
-            <>
-              <div className="sec-hdr">
-                <span className="sec-hdr-t">Contract Signals</span>
-                <span className="sec-more">{contracts.length} total</span>
-              </div>
+            <div style={{paddingTop:16}}>
               {contracts.length === 0 ? (
-                <div style={{color:'var(--tx4)',fontFamily:'IBM Plex Mono',fontSize:11}}>No contracts yet</div>
+                <div style={{color:'var(--tx4)',fontFamily:'IBM Plex Mono',fontSize:11}}>No contracts linked to this org</div>
               ) : (
                 <div style={{display:'flex',flexDirection:'column',gap:0}}>
                   {contracts.map(c => {
@@ -254,7 +184,7 @@ export default async function OrgPage({ params, searchParams }: Props) {
                   })}
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>
