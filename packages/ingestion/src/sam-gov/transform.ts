@@ -9,6 +9,8 @@ export interface ContractRow {
   signal_type: 'Opportunity' | 'Award' | 'Budget';
   award_date: string | null;
   raw_payload: unknown;
+  org_id: string | null;
+  awarding_agency: string | null;
 }
 
 function mapSetAside(code?: string): string | null {
@@ -31,5 +33,7 @@ export function transformOpportunity(opp: SamOpportunity): ContractRow {
     signal_type: opp.type === 'Award' ? 'Award' : 'Opportunity',
     award_date: opp.award?.date ?? null,
     raw_payload: opp,
+    org_id: null, // resolved in sync.ts via org-matcher
+    awarding_agency: opp.agencyName ?? opp.departmentName ?? null,
   };
 }
