@@ -25,7 +25,7 @@ async function getSignalsData() {
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE signal_type = 'Opportunity')::int AS opps,
         COUNT(*) FILTER (WHERE signal_type = 'Award')::int AS awards,
-        COALESCE(SUM(value) FILTER (WHERE signal_type = 'Award'), 0)::bigint AS total_value
+        COALESCE(SUM(value::numeric) FILTER (WHERE signal_type = 'Award'), 0)::bigint AS total_value
       FROM contracts
       WHERE signal_type IS NOT NULL
     `,

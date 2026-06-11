@@ -24,99 +24,80 @@ export interface Person {
 }
 
 export interface Team {
-  id: string;
-  name: string;
-  description: string | null;
+  id: string; name: string; description: string | null;
   members: { id: string; full_name: string; role_title: string | null; avatar_color: string | null }[];
 }
 
 export interface Office {
-  id: string;
-  name: string | null;
-  location: string | null;
-  lat: number | null;
-  lng: number | null;
+  id: string; name: string | null; location: string | null;
+  lat: number | null; lng: number | null;
   members: { id: string; full_name: string; role_title: string | null }[];
 }
 
 export interface Contract {
-  id: string;
-  title: string;
-  value: number | null;
-  status: string | null;
-  signal_type: string | null;
-  award_date: string | null;
-  source: string;
+  id: string; title: string; value: number | null;
+  status: string | null; signal_type: string | null;
+  award_date: string | null; source: string;
 }
 
 export async function getOrgProfile(slug: string): Promise<OrgProfile | null> {
   const db = getDb();
   const rows = await db`
     SELECT
-      o.*,
-      COUNT(DISTINCT f.user_id)::int   AS follower_count,
-      COUNT(DISTINCT p.id)::int        AS contact_count
-    FROM organizations o
-    LEFT JOIN followers f ON f.org_id = o.id
-    LEFT JOIN people p    ON p.org_id = o.id
-    WHERE o.slug = ${slug}
+      o.id,
+      o.full_name           AS name,
+      o.id                  AS slug,
+      o.organization_type   AS badge_text,
+      NULL::text            AS badge_color,
+      o.description,
+      NULL::text            AS sector,
+      o.loc                 AS hq_address,
+      NULL::int             AS personnel_count,
+      0::int                AS follower_count,
+      COUNT(DISTINCT c.id)::int AS contact_count
+    FROM orgs o
+    LEFT JOIN contacts c ON c.canonical_org_id = o.id
+    WHERE o.id = ${slug}
     GROUP BY o.id
   `;
-  return rows[0] as OrgProfile ?? null;
+  return (rows[0] as OrgProfile) ?? null;
 }
 
 export async function getOrgPeople(orgId: string): Promise<Person[]> {
   const db = getDb();
-  return db`
-    SELECT id, manager_id, full_name, role_title, avatar_url, avatar_color
-    FROM people
-    WHERE org_id = ${orgId}
-    ORDER BY full_name
-  ` as unknown as Person[];
+  const rows = await db`
+    SELECT
+      id,
+      NULL::text  AS manager_id,
+      name        AS full_name,
+      title       AS role_title,
+      photo_url   AS avatar_url,
+      color       AS avatar_color
+    FROM contacts
+    WHERE canonical_org_id = ${orgId}
+    ORDER BY name
+  `;
+  return rows as unknown as Person[];
 }
 
-export async function getOrgTeams(orgId: string): Promise<Team[]> {
-  const db = getDb();
-  const teams = await db`
-    SELECT t.id, t.name, t.description,
-      json_agg(json_build_object(
-        'id', p.id, 'full_name', p.full_name,
-        'role_title', p.role_title, 'avatar_color', p.avatar_color
-      ) ORDER BY p.full_name) FILTER (WHERE p.id IS NOT NULL) AS members
-    FROM teams t
-    LEFT JOIN team_members tm ON tm.team_id = t.id
-    LEFT JOIN people p        ON p.id = tm.person_id
-    WHERE t.org_id = ${orgId}
-    GROUP BY t.id
-    ORDER BY t.name
-  `;
-  return teams as unknown as Team[];
+export async function getOrgTeams(_orgId: string): Promise<Team[]> {
+  return [];
 }
 
-export async function getOrgOffices(orgId: string): Promise<Office[]> {
-  const db = getDb();
-  const offices = await db`
-    SELECT o.id, o.name, o.location, o.lat, o.lng,
-      json_agg(json_build_object(
-        'id', p.id, 'full_name', p.full_name, 'role_title', p.role_title
-      ) ORDER BY p.full_name) FILTER (WHERE p.id IS NOT NULL) AS members
-    FROM offices o
-    LEFT JOIN office_members om ON om.office_id = o.id
-    LEFT JOIN people p          ON p.id = om.person_id
-    WHERE o.org_id = ${orgId}
-    GROUP BY o.id
-    ORDER BY o.name
-  `;
-  return offices as unknown as Office[];
+export async function getOrgOffices(_orgId: string): Promise<Office[]> {
+  return [];
 }
 
 export async function getOrgContracts(orgId: string): Promise<Contract[]> {
   const db = getDb();
-  return db`
-    SELECT id, title, value, status, signal_type, award_date, source
+  const rows = await db`
+    SELECT id, title, value::numeric AS value, set_aside AS status,
+           signal_type, award_date, source
     FROM contracts
     WHERE org_id = ${orgId}
+      AND signal_type IS NOT NULL
     ORDER BY award_date DESC NULLS LAST, created_at DESC
     LIMIT 50
-  ` as unknown as Contract[];
+  `;
+  return rows as unknown as Contract[];
 }
