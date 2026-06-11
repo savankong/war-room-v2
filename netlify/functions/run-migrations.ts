@@ -139,15 +139,18 @@ export default async function handler(_req: Request, _ctx: Context) {
     await db`ALTER TABLE people    ADD COLUMN IF NOT EXISTS email               VARCHAR(255)`;
     await db`ALTER TABLE people    ADD COLUMN IF NOT EXISTS phone               VARCHAR(50)`;
     await db`ALTER TABLE people    ADD COLUMN IF NOT EXISTS location            VARCHAR(255)`;
+    await db`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS parent_org_id UUID REFERENCES organizations(id) ON DELETE SET NULL`;
+    await db`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS level           INTEGER`;
 
-    await db`CREATE INDEX IF NOT EXISTS idx_people_org_id     ON people(org_id)`;
-    await db`CREATE INDEX IF NOT EXISTS idx_people_manager_id ON people(manager_id)`;
-    await db`CREATE INDEX IF NOT EXISTS idx_contracts_org_id  ON contracts(org_id)`;
-    await db`CREATE INDEX IF NOT EXISTS idx_contracts_signal  ON contracts(signal_type)`;
-    await db`CREATE INDEX IF NOT EXISTS idx_contracts_source  ON contracts(source)`;
-    await db`CREATE INDEX IF NOT EXISTS idx_contracts_external ON contracts(external_id)`;
-    await db`CREATE INDEX IF NOT EXISTS idx_ingestion_source  ON ingestion_runs(source)`;
-    await db`CREATE INDEX IF NOT EXISTS idx_ingestion_status  ON ingestion_runs(status)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_people_org_id        ON people(org_id)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_people_manager_id    ON people(manager_id)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_contracts_org_id     ON contracts(org_id)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_contracts_signal     ON contracts(signal_type)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_contracts_source     ON contracts(source)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_contracts_external   ON contracts(external_id)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_ingestion_source     ON ingestion_runs(source)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_ingestion_status     ON ingestion_runs(status)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_orgs_parent          ON organizations(parent_org_id)`;
 
     return Response.json({ ok: true, message: 'Migration complete — all tables and indexes created.' });
   } catch (err) {
