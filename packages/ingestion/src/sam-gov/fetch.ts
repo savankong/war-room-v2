@@ -3,8 +3,8 @@ export interface SamOpportunity {
   title: string;
   type: string;
   typeOfSetAside?: string;
-  departmentName?: string;
-  agencyName?: string;
+  fullParentPathName?: string;  // e.g. "DEPT OF DEFENSE.DEPT OF THE AIR FORCE.ACC.FA4600  55 CONS  PKP"
+  fullParentPathCode?: string;  // e.g. "057.5700.ACC.FA4600"
   award?: { amount?: number; date?: string };
   [key: string]: unknown;
 }
