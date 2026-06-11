@@ -11,6 +11,7 @@ export interface ContractRow {
   raw_payload: unknown;
   org_id: string | null;
   awarding_agency: string | null;
+  office_code: string | null;
 }
 
 function mapSetAside(code?: string): string | null {
@@ -21,6 +22,21 @@ function mapSetAside(code?: string): string | null {
     SBP: 'Sole Source',
   };
   return code ? (map[code] ?? 'Competed') : null;
+}
+
+// Extract FA-code from last path segment: "FA4600  55 CONS  PKP" → "fa4600"
+function extractOfficeCode(fullParentPathCode?: string): string | null {
+  if (!fullParentPathCode) return null;
+  const segments = fullParentPathCode.split('.');
+  const last = segments[segments.length - 1]?.trim().toLowerCase();
+  return last || null;
+}
+
+// Second segment of fullParentPathName is the dept: "DEPT OF DEFENSE.DEPT OF THE AIR FORCE...."
+function extractDepartment(fullParentPathName?: string): string | null {
+  if (!fullParentPathName) return null;
+  const segments = fullParentPathName.split('.');
+  return segments[1]?.trim() ?? segments[0]?.trim() ?? null;
 }
 
 export function transformOpportunity(opp: SamOpportunity): ContractRow {
@@ -34,6 +50,7 @@ export function transformOpportunity(opp: SamOpportunity): ContractRow {
     award_date: opp.award?.date ?? null,
     raw_payload: opp,
     org_id: null,
-    awarding_agency: opp.agencyName ?? opp.departmentName ?? null,
+    office_code: extractOfficeCode(opp.fullParentPathCode),
+    awarding_agency: extractDepartment(opp.fullParentPathName),
   };
 }
