@@ -541,35 +541,25 @@ export default async function handler(req: Request, _ctx: Context) {
       orgIdMap.set(finalSlug, crypto.randomUUID());
     }
 
-    // Bulk insert orgs — 80 rows per statement to stay well under query size limits
-    const orgRows = Array.from(seen.entries()).map(([name, row]) => {
-      const slug  = orgSlugMap.get(name)!;
-      const id    = orgIdMap.get(slug)!;
-      const badge = badgeFromBranch(row.branch);
-      return {
-        id,
-        name,
-        slug,
-        badge_text:  badge?.text  ?? null,
-        badge_color: badge?.color ?? null,
-        description: row.description || null,
-        sector:      sectorFromBranch(row.branch),
-        hq_address:  row.location || null,
-      };
-    });
-
-    for (const batch of chunks(orgRows, 80)) {
-      await db`
-        INSERT INTO organizations (id, name, slug, badge_text, badge_color, description, sector, hq_address)
-        SELECT * FROM json_to_recordset(${JSON.stringify(batch)}::json)
-          AS x(id uuid, name text, slug text, badge_text text, badge_color text,
-               description text, sector text, hq_address text)
-      `;
+    // Insert orgs in parallel batches of 25 (avoids per-row serial round-trips)
+    const orgEntries = Array.from(seen.entries());
+    for (const batch of chunks(orgEntries, 25)) {
+      await Promise.all(batch.map(([name, row]) => {
+        const slug  = orgSlugMap.get(name)!;
+        const id    = orgIdMap.get(slug)!;
+        const badge = badgeFromBranch(row.branch);
+        return db`
+          INSERT INTO organizations (id, name, slug, badge_text, badge_color, description, sector, hq_address)
+          VALUES (${id}::uuid, ${name}, ${slug}, ${badge?.text ?? null}, ${badge?.color ?? null},
+                  ${row.description || null}, ${sectorFromBranch(row.branch)}, ${row.location || null})
+          ON CONFLICT (slug) DO NOTHING
+        `;
+      }));
     }
-    log.push(`Orgs inserted: ${orgRows.length}`);
+    log.push(`Orgs inserted: ${orgEntries.length}`);
 
-    // Bulk insert relationships
-    const relPairs: Array<{ org_id_1: string; org_id_2: string }> = [];
+    // Build and insert relationships in parallel batches
+    const relPairs: Array<[string, string]> = [];
     const seenRels = new Set<string>();
     for (const [name, row] of seen) {
       const childSlug  = orgSlugMap.get(name);
@@ -582,24 +572,20 @@ export default async function handler(req: Request, _ctx: Context) {
       const key = `${a}|${b}`;
       if (seenRels.has(key)) continue;
       seenRels.add(key);
-      relPairs.push({ org_id_1: a, org_id_2: b });
+      relPairs.push([a, b]);
     }
-    if (relPairs.length > 0) {
-      for (const batch of chunks(relPairs, 100)) {
-        await db`
-          INSERT INTO related_organizations (org_id_1, org_id_2)
-          SELECT * FROM json_to_recordset(${JSON.stringify(batch)}::json)
-            AS x(org_id_1 uuid, org_id_2 uuid)
-          ON CONFLICT DO NOTHING
-        `;
-      }
+    for (const batch of chunks(relPairs, 40)) {
+      await Promise.all(batch.map(([a, b]) =>
+        db`INSERT INTO related_organizations (org_id_1, org_id_2)
+           VALUES (${a}::uuid, ${b}::uuid) ON CONFLICT DO NOTHING`
+      ));
     }
     log.push(`Relationships inserted: ${relPairs.length}`);
 
-    // Bulk insert people (deduplicated by name+org)
+    // Build and insert people in parallel batches
     const personKeys = new Set<string>();
     const skipNames  = new Set(['Various', 'Varies', 'Vacant', 'Various (Various)']);
-    const peopleRows: Array<{ id: string; org_id: string; full_name: string; role_title: string | null; avatar_color: string; location: string | null }> = [];
+    const peopleToInsert: Array<{ orgId: string; name: string; title: string | null; color: string; loc: string | null }> = [];
 
     for (const row of rows) {
       if (!row.leaderName || skipNames.has(row.leaderName)) continue;
@@ -610,25 +596,17 @@ export default async function handler(req: Request, _ctx: Context) {
       const key = `${row.leaderName}|${orgSlug}`;
       if (personKeys.has(key)) continue;
       personKeys.add(key);
-      peopleRows.push({
-        id:           crypto.randomUUID(),
-        org_id:       orgId,
-        full_name:    row.leaderName,
-        role_title:   row.leaderTitle || null,
-        avatar_color: avatarColor(row.branch),
-        location:     row.location || null,
-      });
+      peopleToInsert.push({ orgId, name: row.leaderName, title: row.leaderTitle || null, color: avatarColor(row.branch), loc: row.location || null });
     }
 
-    for (const batch of chunks(peopleRows, 80)) {
-      await db`
-        INSERT INTO people (id, org_id, full_name, role_title, avatar_color, location)
-        SELECT * FROM json_to_recordset(${JSON.stringify(batch)}::json)
-          AS x(id uuid, org_id uuid, full_name text, role_title text, avatar_color text, location text)
-        ON CONFLICT DO NOTHING
-      `;
+    for (const batch of chunks(peopleToInsert, 25)) {
+      await Promise.all(batch.map(p =>
+        db`INSERT INTO people (org_id, full_name, role_title, avatar_color, location)
+           VALUES (${p.orgId}::uuid, ${p.name}, ${p.title}, ${p.color}, ${p.loc})
+           ON CONFLICT DO NOTHING`
+      ));
     }
-    log.push(`People inserted: ${peopleRows.length}`);
+    log.push(`People inserted: ${peopleToInsert.length}`);
 
     return Response.json({ ok: true, log });
   } catch (err) {
