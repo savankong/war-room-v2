@@ -2,25 +2,44 @@ import sql from './db';
 
 const cache = new Map<string, string | null>();
 
-export async function resolveOrgId(agencyName: string | null): Promise<string | null> {
-  if (!agencyName) return null;
-  const key = agencyName.toLowerCase().trim();
-  if (cache.has(key)) return cache.get(key)!;
+export async function resolveOrgId(
+  officeCode: string | null,
+  agencyName: string | null
+): Promise<string | null> {
+  const cacheKey = (officeCode ?? '') + '|' + (agencyName ?? '');
+  if (cache.has(cacheKey)) return cache.get(cacheKey)!;
 
-  let rows = await sql<{ id: string }[]>`
-    SELECT id FROM orgs WHERE lower(full_name) = ${key} LIMIT 1
-  `;
-  if (!rows.length) {
-    rows = await sql<{ id: string }[]>`
+  let id: string | null = null;
+
+  // 1. Exact match on org id (office code like "fa4600")
+  if (officeCode) {
+    const rows = await sql<{ id: string }[]>`
+      SELECT id FROM orgs WHERE lower(id) = ${officeCode.toLowerCase()} LIMIT 1
+    `;
+    id = rows[0]?.id ?? null;
+  }
+
+  // 2. Abbreviation match
+  if (!id && officeCode) {
+    const rows = await sql<{ id: string }[]>`
+      SELECT id FROM orgs WHERE lower(abbreviation) = ${officeCode.toLowerCase()} LIMIT 1
+    `;
+    id = rows[0]?.id ?? null;
+  }
+
+  // 3. Fuzzy full_name match on department
+  if (!id && agencyName) {
+    const key = agencyName.toLowerCase().trim();
+    const rows = await sql<{ id: string }[]>`
       SELECT id FROM orgs
       WHERE lower(full_name) ILIKE ${'%' + key + '%'}
          OR ${key} ILIKE '%' || lower(full_name) || '%'
       ORDER BY length(full_name) DESC
       LIMIT 1
     `;
+    id = rows[0]?.id ?? null;
   }
 
-  const id = rows[0]?.id ?? null;
-  cache.set(key, id);
+  cache.set(cacheKey, id);
   return id;
 }
