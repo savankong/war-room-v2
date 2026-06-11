@@ -18,16 +18,15 @@ export async function syncUsaSpending(): Promise<void> {
 
     for (const row of rows) {
       await sql`
-        INSERT INTO contracts (external_id, source, title, value, status, signal_type, award_date, raw_payload, org_id)
+        INSERT INTO contracts (external_id, source, title, value, signal_type, award_date, raw_payload, org_id)
         VALUES (
           ${row.external_id}, ${row.source}, ${row.title}, ${row.value},
-          ${row.status}, ${row.signal_type}, ${row.award_date},
+          ${row.signal_type}, ${row.award_date},
           ${JSON.stringify(row.raw_payload)}, ${row.org_id}
         )
         ON CONFLICT (external_id)
         DO UPDATE SET
           value       = EXCLUDED.value,
-          status      = EXCLUDED.status,
           award_date  = EXCLUDED.award_date,
           raw_payload = EXCLUDED.raw_payload,
           org_id      = COALESCE(EXCLUDED.org_id, contracts.org_id)
