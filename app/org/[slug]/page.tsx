@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { notFound } from 'next/navigation';
 import { getOrgProfile, getOrgPeople, getOrgTeams, getOrgOffices, getOrgContracts } from './data';
 import type { Person } from './data';

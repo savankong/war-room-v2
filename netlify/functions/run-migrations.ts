@@ -130,6 +130,16 @@ export default async function handler(_req: Request, _ctx: Context) {
       )
     `;
 
+    // Idempotent column additions
+    await db`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS naics_code          VARCHAR(10)`;
+    await db`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS psc_code            VARCHAR(10)`;
+    await db`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS description         TEXT`;
+    await db`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS awardee             VARCHAR(500)`;
+    await db`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS solicitation_number VARCHAR(100)`;
+    await db`ALTER TABLE people    ADD COLUMN IF NOT EXISTS email               VARCHAR(255)`;
+    await db`ALTER TABLE people    ADD COLUMN IF NOT EXISTS phone               VARCHAR(50)`;
+    await db`ALTER TABLE people    ADD COLUMN IF NOT EXISTS location            VARCHAR(255)`;
+
     // Indexes (IF NOT EXISTS not supported for indexes — use DO blocks)
     const indexes = [
       'CREATE INDEX IF NOT EXISTS idx_people_org_id        ON people(org_id)',
