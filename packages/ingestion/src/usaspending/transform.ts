@@ -11,5 +11,7 @@ export function transformAward(award: UsaAward): ContractRow {
     signal_type: 'Award',
     award_date: award['Award Date'],
     raw_payload: award,
+    org_id: null, // resolved in sync.ts via org-matcher
+    awarding_agency: award['Awarding Agency'] ?? null,
   };
 }
