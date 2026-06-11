@@ -1,4 +1,4 @@
-import sql from '../../db';
+import sql from '../db';
 import { startRun, completeRun, failRun } from '../logger';
 import { fetchSamOpportunities } from './fetch';
 import { transformOpportunity } from './transform';
