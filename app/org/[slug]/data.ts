@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 
 export interface OrgProfile {
   id: string;
@@ -50,6 +50,7 @@ export interface Contract {
 }
 
 export async function getOrgProfile(slug: string): Promise<OrgProfile | null> {
+  const db = getDb();
   const rows = await db`
     SELECT
       o.*,
@@ -65,6 +66,7 @@ export async function getOrgProfile(slug: string): Promise<OrgProfile | null> {
 }
 
 export async function getOrgPeople(orgId: string): Promise<Person[]> {
+  const db = getDb();
   return db`
     SELECT id, manager_id, full_name, role_title, avatar_url, avatar_color
     FROM people
@@ -74,6 +76,7 @@ export async function getOrgPeople(orgId: string): Promise<Person[]> {
 }
 
 export async function getOrgTeams(orgId: string): Promise<Team[]> {
+  const db = getDb();
   const teams = await db`
     SELECT t.id, t.name, t.description,
       json_agg(json_build_object(
@@ -91,6 +94,7 @@ export async function getOrgTeams(orgId: string): Promise<Team[]> {
 }
 
 export async function getOrgOffices(orgId: string): Promise<Office[]> {
+  const db = getDb();
   const offices = await db`
     SELECT o.id, o.name, o.location, o.lat, o.lng,
       json_agg(json_build_object(
@@ -107,6 +111,7 @@ export async function getOrgOffices(orgId: string): Promise<Office[]> {
 }
 
 export async function getOrgContracts(orgId: string): Promise<Contract[]> {
+  const db = getDb();
   return db`
     SELECT id, title, value, status, signal_type, award_date, source
     FROM contracts

@@ -1,9 +1,10 @@
-import { db } from '../../db';
+import { getDb } from '../../db';
 import { startRun, completeRun, failRun } from '../logger';
 import { fetchUsaSpendingAwards } from './fetch';
 import { transformAward } from './transform';
 
 export async function syncUsaSpending(): Promise<void> {
+  const db = getDb();
   const runId = await startRun('usaspending');
   try {
     const awards = await fetchUsaSpendingAwards();

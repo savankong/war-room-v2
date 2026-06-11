@@ -1,8 +1,8 @@
 import type { Context } from '@netlify/functions';
-import { neon } from '@netlify/database';
+import { getDatabase } from '@netlify/database';
 
 export default async function handler(_req: Request, _ctx: Context) {
-  const db = neon(process.env.DATABASE_URL!);
+  const { sql: db } = getDatabase();
 
   try {
     await db`
@@ -142,9 +142,14 @@ export default async function handler(_req: Request, _ctx: Context) {
       'CREATE INDEX IF NOT EXISTS idx_ingestion_status     ON ingestion_runs(status)',
     ];
 
-    for (const idx of indexes) {
-      await db.unsafe(idx);
-    }
+    await db`CREATE INDEX IF NOT EXISTS idx_people_org_id     ON people(org_id)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_people_manager_id ON people(manager_id)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_contracts_org_id  ON contracts(org_id)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_contracts_signal  ON contracts(signal_type)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_contracts_source  ON contracts(source)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_contracts_external ON contracts(external_id)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_ingestion_source  ON ingestion_runs(source)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_ingestion_status  ON ingestion_runs(status)`;
 
     return Response.json({ ok: true, message: 'Migration complete — all tables and indexes created.' });
   } catch (err) {

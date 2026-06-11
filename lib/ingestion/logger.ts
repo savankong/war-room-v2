@@ -1,6 +1,7 @@
-import { db } from '../db';
+import { getDb } from '../db';
 
 export async function startRun(source: 'sam_gov' | 'usaspending'): Promise<string> {
+  const db = getDb();
   const rows = await db`
     INSERT INTO ingestion_runs (source, status)
     VALUES (${source}, 'running')
@@ -10,6 +11,7 @@ export async function startRun(source: 'sam_gov' | 'usaspending'): Promise<strin
 }
 
 export async function completeRun(id: string, recordsSynced: number): Promise<void> {
+  const db = getDb();
   await db`
     UPDATE ingestion_runs
     SET status = 'success', records_synced = ${recordsSynced}, completed_at = now()
@@ -18,6 +20,7 @@ export async function completeRun(id: string, recordsSynced: number): Promise<vo
 }
 
 export async function failRun(id: string, errorMessage: string): Promise<void> {
+  const db = getDb();
   await db`
     UPDATE ingestion_runs
     SET status = 'failed', error_log = ${errorMessage}, completed_at = now()

@@ -1,9 +1,10 @@
-import { db } from '../../db';
+import { getDb } from '../../db';
 import { startRun, completeRun, failRun } from '../logger';
 import { fetchSamOpportunities } from './fetch';
 import { transformOpportunity } from './transform';
 
 export async function syncSamGov(): Promise<void> {
+  const db = getDb();
   const runId = await startRun('sam_gov');
   try {
     const opportunities = await fetchSamOpportunities();

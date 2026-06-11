@@ -1,7 +1,5 @@
-import { neon } from '@netlify/database';
+import { getDatabase } from '@netlify/database';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is not set');
+export function getDb() {
+  return getDatabase().sql;
 }
-
-export const db = neon(process.env.DATABASE_URL);
