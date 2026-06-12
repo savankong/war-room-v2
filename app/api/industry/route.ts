@@ -27,7 +27,7 @@ export async function GET() {
     WHERE c.recipient IS NOT NULL
       AND c.signal_type = 'Award'
       AND c.award_amt   > 0
-    GROUP BY c.recipient, ic.name, ic.logo_url, ic.ticker, ic.headquarters, ic.website, ic.description
+    GROUP BY c.recipient, ic.name, ic.legal_name, ic.logo_url, ic.ticker, ic.headquarters, ic.website, ic.description
     ORDER BY total_value DESC NULLS LAST
     LIMIT 500
   `;
