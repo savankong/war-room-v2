@@ -4,7 +4,7 @@ import OrgNav from './OrgNav';
 import OrgDetail from './OrgDetail';
 import { getOrgProfile, getNavOrgs, getChildOrgs, getOrgContacts, getOrgContracts } from './data';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 interface Props {
   params: Promise<{ slug: string }>;

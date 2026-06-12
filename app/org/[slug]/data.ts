@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import { getDb } from '@/lib/db';
 
 export interface OrgProfile {
@@ -54,22 +55,26 @@ export async function getOrgProfile(slug: string): Promise<OrgProfile | null> {
   return (rows[0] as OrgProfile) ?? null;
 }
 
-export async function getNavOrgs(): Promise<NavOrg[]> {
-  const db = getDb();
-  const rows = await db`
-    SELECT o.id, o.full_name AS name, o.parent_id,
-      COALESCE(o.hierarchy_level, 2)::int AS hierarchy_level,
-      o.abs_hierarchy_level,
-      o.branch,
-      COUNT(DISTINCT ct.id)::int AS contract_count
-    FROM orgs o
-    LEFT JOIN contracts ct ON ct.org_id = o.id
-    WHERE o.is_active = true
-    GROUP BY o.id
-    ORDER BY o.branch, o.abs_hierarchy_level NULLS LAST, o.hierarchy_level, o.full_name
-  `;
-  return rows as NavOrg[];
-}
+export const getNavOrgs = unstable_cache(
+  async (): Promise<NavOrg[]> => {
+    const db = getDb();
+    const rows = await db`
+      SELECT o.id, o.full_name AS name, o.parent_id,
+        COALESCE(o.hierarchy_level, 2)::int AS hierarchy_level,
+        o.abs_hierarchy_level,
+        o.branch,
+        COUNT(DISTINCT ct.id)::int AS contract_count
+      FROM orgs o
+      LEFT JOIN contracts ct ON ct.org_id = o.id
+      WHERE o.is_active = true
+      GROUP BY o.id
+      ORDER BY o.branch, o.abs_hierarchy_level NULLS LAST, o.hierarchy_level, o.full_name
+    `;
+    return rows as NavOrg[];
+  },
+  ['nav-orgs'],
+  { revalidate: 3600 }
+);
 
 export async function getChildOrgs(orgId: string): Promise<ChildOrg[]> {
   const db = getDb();

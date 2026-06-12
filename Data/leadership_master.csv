@@ -1,0 +1,79 @@
+Organization,Leader,Title,Parent_Organization,Functional_Group
+Department of War,Pete Hegseth,Secretary of War,None,Executive
+Office of the Secretary of War,Pete Hegseth,Secretary of War,Department of War,Executive
+Office of Inspector General,Platte Moring,Inspector General,Office of the Secretary of War,Executive
+Office of Legislative Affairs,Macon Dane Hughes,Assistant Secretary for Legislative Affairs,Office of the Secretary of War,Executive
+Washington Headquarters Services,Regina F. Meiners,Director,Office of the Secretary of War,Executive
+OUSD Acquisition and Sustainment,Michael Duffey,Under Secretary,Office of the Secretary of War,Strategic
+OUSD Research and Engineering,Emil Michael,Under Secretary and CTO,Office of the Secretary of War,Strategic
+OUSD Policy,Elbridge Colby,Under Secretary,Office of the Secretary of War,Strategic
+OUSD Intelligence and Security,Bradley Hansell,Under Secretary,Office of the Secretary of War,Strategic
+OUSD Personnel and Readiness,Anthony Tata,Under Secretary,Office of the Secretary of War,Strategic
+OUSD Comptroller CFO,Jules W. Hurst III,Under Secretary and CFO,Office of the Secretary of War,Strategic
+Cost Assessment and Program Evaluation (CAPE),Michael Payne,Acting Director,Office of the Secretary of War,Strategic
+Department of War CIO,Kirsten Davies,DoW CIO,Office of the Secretary of War,Strategic
+Joint Chiefs of Staff,GEN Dan Caine,Chairman,Office of the Secretary of War,Joint
+Joint Staff J1,MG Paige M. Jennings,Director,Joint Chiefs of Staff,Joint
+Joint Staff J2,VADM Thomas M. Henderschedt,Director,Joint Chiefs of Staff,Joint
+Joint Staff J3,LTG David L. Odom,Director,Joint Chiefs of Staff,Joint
+Joint Staff J4,LTG Keith D. Reventlow,Director,Joint Chiefs of Staff,Joint
+Joint Staff J5,LTG Brett G. Sylvia,Director,Joint Chiefs of Staff,Joint
+Joint Staff J6,LTG David T. Isaacson,Director and CIO,Joint Chiefs of Staff,Joint
+Joint Staff J7,LTG Stephen E. Liszewski,Director,Joint Chiefs of Staff,Joint
+Joint Staff J8,LTG Steven Whitney,Director,Joint Chiefs of Staff,Joint
+EUCOM,Alexus G. Grynkewich,Commander,Department of War,Operational
+CENTCOM,Brad Cooper,Commander,Department of War,Operational
+INDOPACOM,Samuel Paparo,Commander,Department of War,Operational
+NORTHCOM,Gregory M. Guillot,Commander,Department of War,Operational
+SOUTHCOM,Frank Donovan,Commander,Department of War,Operational
+SPACECOM,Stephen N. Whiting,Commander,Department of War,Operational
+SOCOM,Frank Mitch M. Bradley,Commander,Department of War,Operational
+TRANSCOM,Randall Reed,Commander,Department of War,Operational
+STRATCOM,Richard Correll,Commander,Department of War,Operational
+CYBERCOM,Joshua M. Rudd,Commander,Department of War,Operational
+Department of the Army,Daniel P. Driscoll,Secretary of the Army,Office of the Secretary of War,Service
+Department of the Navy,Hung Cao,Acting Secretary of the Navy,Office of the Secretary of War,Service
+Department of the Air Force,Dr. Troy E. Meink,Secretary of the Air Force,Office of the Secretary of War,Service
+United States Coast Guard,Kevin Lunday,Commandant,Office of the Secretary of War,Service
+DARPA,Stephen Winchell,Director,OUSD Research and Engineering,Innovation
+Defense Innovation Unit (DIU),Owen West,Director,OUSD Research and Engineering,Innovation
+Missile Defense Agency (MDA),LTG Heath Collins,Director,OUSD Research and Engineering,Innovation
+Strategic Capabilities Office (SCO),Jay Dryer,Director,OUSD Research and Engineering,Innovation
+Economic Defense Unit,George K. Kollitides II,Head,OUSD Research and Engineering,Innovation
+Office of Strategic Capital,David Lorch,Director,OUSD Research and Engineering,Innovation
+Defense Intelligence Agency (DIA),LTG James H. Adams,Director,OUSD Intelligence and Security,Intelligence
+National Security Agency (NSA),Various,Director,OUSD Intelligence and Security,Intelligence
+National Reconnaissance Office (NRO),Various,Director,OUSD Intelligence and Security,Intelligence
+National Geospatial-Intelligence Agency (NGA),Various,Director,OUSD Intelligence and Security,Intelligence
+Defense Counterintelligence and Security Agency (DCSA),Joseph Tonon,Director,OUSD Intelligence and Security,Intelligence
+Defense Logistics Agency (DLA),LTG Mark Simerly,Director,OUSD Acquisition and Sustainment,Logistics
+Defense Contract Management Agency (DCMA),VADM Stephen Tedford,Director,OUSD Acquisition and Sustainment,Logistics
+Defense Contract Audit Agency (DCAA),Ms. Jennifer L. Desautel,Director,OUSD Acquisition and Sustainment,Logistics
+Army Chief of Staff,Vacant,Chief of Staff,Department of the Army,Service-Army
+Army Vice Chief of Staff,LTG Christopher C. LaNeve,Vice Chief of Staff,Department of the Army,Service-Army
+ASA Acquisition (ALT),Brent Ingraham,Assistant Secretary,Department of the Army,Service-Army
+ASA Financial Management,Marc E. Andersen,Assistant Secretary,Department of the Army,Service-Army
+Army Materiel Command (AMC),LTG Chris Mohan,Commanding General,Department of the Army,Service-Army
+Army Cyber Command (ARCYBER),LTG Christopher Eubank,Commanding General,Department of the Army,Service-Army
+Army Transformation (T2COM),LTG Edmond Miles Brown,Acting Commanding General,Department of the Army,Service-Army
+Army Special Operations Command (ARSOC),LTG Lawrence Gil Ferguson,Commanding General,Department of the Army,Service-Army
+Chief of Naval Operations,ADM Daryl Caudle,CNO,Department of the Navy,Service-Navy
+Navy Vice Chief of Naval Operations,ADM James W. Kilby,Vice CNO,Department of the Navy,Service-Navy
+ASN Research Development and Acquisition,William Mahan,Performing Duties,Department of the Navy,Service-Navy
+Naval Air Systems Command (NAVAIR),VADM John Dougherty IV,Commander,Department of the Navy,Service-Navy
+Naval Sea Systems Command (NAVSEA),VADM James P. Downey,Commander,Department of the Navy,Service-Navy
+Marine Corps HQ,GEN Eric M. Smith,Commandant of the Marine Corps,Department of the Navy,Service-Navy
+Assistant Commandant of the Marine Corps,GEN Bradford Gering,Assistant Commandant,Marine Corps HQ,Service-Navy
+Marine Corps Systems Command,BG Tamara Campbell,Commander,Marine Corps HQ,Service-Navy
+Air Force Chief of Staff,GEN Kenneth S. Wilsbach,Chief of Staff,Department of the Air Force,Service-AirForce
+Air Force Vice Chief of Staff,GEN John D. Lamontagne,Vice Chief of Staff,Department of the Air Force,Service-AirForce
+SAF Acquisition Technology and Logistics,William D. Bailey SES,Performing Duties,Department of the Air Force,Service-AirForce
+Air Force Materiel Command (AFMC),LTG Linda S. Hurry,Commander,Department of the Air Force,Service-AirForce
+Air Combat Command (ACC),GEN Adrian L. Spain,Commander,Department of the Air Force,Service-AirForce
+Chief of Space Operations,GEN B. Chance Saltzman,Chief of Space Operations,Department of the Air Force,Service-SpaceForce
+Space Systems Command (SSC),LTG Philip A. Garrant,Commander,Chief of Space Operations,Service-SpaceForce
+Combat Forces Command (SpOC),LTG Greg Gagnon,Commander,Chief of Space Operations,Service-SpaceForce
+Defense Finance and Accounting Service (DFAS),Mr. Jonathan Witter,Director,Office of the Secretary of War,Support
+Defense Health Agency (DHA),VADM Darin K. Via,Director,Office of the Secretary of War,Support
+Pentagon Force Protection Agency,Various,Director,Office of the Secretary of War,Support
+Defense Media Activity,Various,Director,Office of the Secretary of War,Support

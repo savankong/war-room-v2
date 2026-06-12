@@ -83,6 +83,14 @@ function generateBio(p: Person): string {
   return `${p.full_name} serves as ${t} within ${o}.`;
 }
 
+/* Extract the major agency from a SAM.gov org_full hierarchy path */
+function extractAgency(orgFull: string | null): string | null {
+  if (!orgFull) return null;
+  const parts = orgFull.split('.').map(s => s.trim()).filter(Boolean);
+  const skip = /^DEPT (OF (WAR|DEFENSE|THE)|OF)/i;
+  return parts.find((p, i) => i > 0 && !skip.test(p)) ?? parts[1] ?? null;
+}
+
 const SENIORITY_GROUPS = [
   { label: 'Principal Leadership', min: 1, max: 1 },
   { label: 'Deputy / Senior Staff', min: 2, max: 3 },
@@ -94,10 +102,10 @@ const SENIORITY_GROUPS = [
 interface Person {
   id: string; full_name: string; role_title: string | null;
   avatar_color: string | null; photo_url: string | null;
-  email: string | null; phone: string | null;
+  email: string | null; phone: string | null; linkedin: string | null;
   opps: number | null; awards: string | null;
   hierarchy_order: number | null; tags: string[] | null;
-  org_id: string | null; org_name: string | null; org_slug: string | null;
+  org_id: string | null; org_full: string | null; org_name: string | null; org_slug: string | null;
   org_level: number | null; org_hq: string | null; org_branch: string | null;
   org_contracts: number; org_awards_3yr: number; org_open_opps: number;
 }
@@ -106,7 +114,8 @@ interface Props { people: Person[]; topOrgs: TopOrg[]; }
 
 /* ── SVG icons ──────────────────────────────────────────────────────── */
 const IcSearch = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>;
-const IcGov = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V10m14 11V10M3 10l9-6 9 6M9 21v-6h6v6"/></svg>;
+const IcGov     = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V10m14 11V10M3 10l9-6 9 6M9 21v-6h6v6"/></svg>;
+const IcFactory = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V8l5 3V8l5 3V5l4 2v14"/></svg>;
 const IcSort = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h12M3 12h9M3 18h6M17 5v14m0 0 3-3m-3 3-3-3"/></svg>;
 const IcTick = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2"><path d="M20 6 9 17l-5-5"/></svg>;
 const IcFlag = () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 22V4m0 0 .8-.4a6 6 0 0 1 5.6.2 6 6 0 0 0 5.6.2L20 4v10l-1.5.7a6 6 0 0 1-5.6-.2 6 6 0 0 0-5.6-.2L4 15"/></svg>;
@@ -119,15 +128,26 @@ const IcOrg = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" 
 const IcVf = () => <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4"><path d="M20 6 9 17l-5-5"/></svg>;
 const IcInbox = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M22 12h-6l-2 3H10l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg>;
 const IcContract = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>;
+const IcLI = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>;
 
 /* ── Person card ─────────────────────────────────────────────────────── */
 function PersonCard({ p, onOpen }: { p: Person; onOpen: () => void }) {
   const color = p.avatar_color ?? colorFor(p.full_name);
-  const orgColor = p.org_name ? colorFor(p.org_name) : '#8995A4';
   const focus = inferFocus(p.role_title, p.org_branch);
   const claimed = !!p.email;
   const inbox = isInboxOnly(p.full_name, p.email);
+  const isIndustry = p.tags?.includes('INDUSTRY');
+  const isCO = !isIndustry && (p.tags?.includes('CO') || p.tags?.includes('CS'));
   const hasContracts = p.org_contracts > 0 || p.org_awards_3yr > 0 || p.org_open_opps > 0;
+  /* For industry contacts: title-case the company name */
+  const companyDisplay = isIndustry && p.org_full
+    ? p.org_full
+        .replace(/ CORPORATION$| INCORPORATED$| INC\.$| LLC$| INC$| CORP$/, '')
+        .toLowerCase()
+        .replace(/\b\w/g, c => c.toUpperCase())
+    : null;
+  const displayOrg = p.org_name ?? companyDisplay;
+  const orgColor = displayOrg ? colorFor(displayOrg) : '#8995A4';
 
   return (
     <div className="wr-pcard">
@@ -140,30 +160,39 @@ function PersonCard({ p, onOpen }: { p: Person; onOpen: () => void }) {
         <div className="wr-pc-id">
           <div className="wr-pc-nm">
             <span className="n" title={p.full_name}>{p.full_name}</span>
-            {inbox
-              ? <span className="wr-inbox" title="Shared inbox — not a real person"><IcInbox /> Inbox only</span>
-              : claimed
-                ? <span className="wr-vf" title="Profile active"><IcVf /></span>
-                : <span className="wr-unc">Unclaimed</span>}
+            {isIndustry
+              ? <span className="wr-fchip" style={{ fontSize: 10, padding: '1px 6px', background: 'rgba(47,134,118,.12)', color: '#2f8676' }}>Industry</span>
+              : isCO
+              ? <span className="wr-fchip" style={{ fontSize: 10, padding: '1px 6px', background: 'rgba(37,99,184,.1)', color: 'var(--accent)' }}>CO</span>
+              : inbox
+                ? <span className="wr-inbox" title="Shared inbox — not a real person"><IcInbox /> Inbox only</span>
+                : claimed
+                  ? <span className="wr-vf" title="Profile active"><IcVf /></span>
+                  : <span className="wr-unc">Unclaimed</span>}
           </div>
           <div className="wr-pc-ti">{p.role_title ?? '—'}</div>
-          {p.org_name && (
+          {displayOrg && (
             <div className="wr-pc-org">
-              <span className="mk" style={{ background: orgColor }}>{initials(p.org_name)}</span>
-              <span className="ot">{p.org_name}{p.org_hq ? ` · ${p.org_hq}` : ''}</span>
+              <span className="mk" style={{ background: orgColor }}>{initials(displayOrg)}</span>
+              <span className="ot">{displayOrg}</span>
             </div>
           )}
         </div>
       </div>
 
       <div className="wr-pc-foc">
-        {focus.map(f => (
+        {!isCO && focus.map(f => (
           <span className="wr-fchip" key={f}>
             <span className="dot" style={{ background: FOCUS_COLORS[f] }} />
             {f}
           </span>
         ))}
-        {hasContracts && (
+        {isCO && p.email && (
+          <span className="wr-fchip" style={{ color: 'var(--ink-2)', fontSize: 11 }}>
+            <IcContract /> {p.email}
+          </span>
+        )}
+        {hasContracts && !isCO && (
           <span className="wr-fchip wr-fchip-contract" title="Has SAM.gov / USASpending contract data">
             <IcContract /> SAM.gov
           </span>
@@ -172,8 +201,12 @@ function PersonCard({ p, onOpen }: { p: Person; onOpen: () => void }) {
 
       <div className="wr-pc-ft">
         <span className="wr-pc-meta">
-          {inbox ? 'Shared inbox' : p.hierarchy_order === 1 ? 'Principal Leader' : p.hierarchy_order === 2 ? 'Deputy / Senior Staff' : `Tier ${p.hierarchy_order ?? '—'}`}
-          {hasContracts && ` · ${p.org_contracts} contracts`}
+          {isIndustry
+            ? (p.hierarchy_order === 1 ? 'C-Suite Leadership' : p.hierarchy_order === 2 ? 'Division President' : 'Senior Executive')
+            : isCO
+            ? (p.email ? 'Contact available' : 'SAM.gov contact')
+            : inbox ? 'Shared inbox' : p.hierarchy_order === 1 ? 'Principal Leader' : p.hierarchy_order === 2 ? 'Deputy / Senior Staff' : `Tier ${p.hierarchy_order ?? '—'}`}
+          {hasContracts && !isCO && !isIndustry && ` · ${p.org_contracts} contracts`}
         </span>
         <div className="wr-pc-act">
           <div className="wr-pbtn view" onClick={onOpen}>View profile</div>
@@ -184,13 +217,30 @@ function PersonCard({ p, onOpen }: { p: Person; onOpen: () => void }) {
 }
 
 /* ── Profile panel (slide-over) ────────────────────────────────────────*/
-function ProfilePanel({ p, onClose }: { p: Person; onClose: () => void }) {
+function ProfilePanel({ p, onClose, orgPeers = [] }: { p: Person; onClose: () => void; orgPeers?: Person[] }) {
+  const isIndustry = p.tags?.includes('INDUSTRY');
   const color = p.avatar_color ?? colorFor(p.full_name);
-  const orgColor = p.org_name ? colorFor(p.org_name) : '#8995A4';
+  const displayOrgName = p.org_name ?? (isIndustry && p.org_full
+    ? p.org_full.replace(/ CORPORATION$| INCORPORATED$| INC\.$| LLC$| INC$| CORP$/, '').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+    : null);
+  const orgColor = displayOrgName ? colorFor(displayOrgName) : '#8995A4';
   const focus = inferFocus(p.role_title, p.org_branch);
   const claimed = !!p.email;
   const inbox = isInboxOnly(p.full_name, p.email);
   const hasSam = p.org_contracts > 0 || p.org_awards_3yr > 0 || p.org_open_opps > 0;
+
+  /* Generate appropriate bio for industry vs gov */
+  function getBio() {
+    if (isIndustry) {
+      const t = p.role_title ?? 'executive';
+      const o = displayOrgName ?? 'the company';
+      const tier = p.hierarchy_order ?? 3;
+      if (tier === 1) return `${p.full_name} serves as ${t} of ${o}, holding overall responsibility for strategy, operations, and the company's defense contracting portfolio.`;
+      if (tier === 2) return `${p.full_name} serves as ${t} at ${o}, leading a major division or functional area within one of the nation's premier defense contractors.`;
+      return `${p.full_name} serves as ${t} at ${o}, providing senior leadership across their area of responsibility.`;
+    }
+    return generateBio(p);
+  }
 
   /* Fetch contracts for this person's org */
   const [contracts, setContracts] = useState<any[]>([]);
@@ -228,17 +278,22 @@ function ProfilePanel({ p, onClose }: { p: Person; onClose: () => void }) {
                     : <span className="wr-pf-unc">Unclaimed</span>}
               </div>
               <div className="wr-pf-ti">{p.role_title ?? '—'}</div>
-              {p.org_name && (
+              {displayOrgName && (
                 <div className="wr-pf-sub">
                   <span style={{ display: 'flex' }}><IcPin /></span>
-                  {p.org_name}{p.org_hq ? ` · ${p.org_hq}` : ''}
+                  {displayOrgName}{p.org_hq ? ` · ${p.org_hq}` : ''}
                 </div>
               )}
               <div className="wr-pf-act">
                 <button className="wr-pf-btn pri"><IcPlus /> Follow</button>
-                {(p.email) && (
+                {p.email && (
                   <a href={`mailto:${p.email}`} className="wr-pf-btn gho" style={{ textDecoration: 'none' }}>
                     <IcChat /> Message
+                  </a>
+                )}
+                {p.linkedin && (
+                  <a href={`https://linkedin.com/in/${p.linkedin}`} target="_blank" rel="noopener noreferrer" className="wr-pf-btn gho" style={{ textDecoration: 'none' }}>
+                    <IcLI /> LinkedIn
                   </a>
                 )}
               </div>
@@ -259,7 +314,7 @@ function ProfilePanel({ p, onClose }: { p: Person; onClose: () => void }) {
 
           {/* About */}
           <PfSec title="About">
-            <div className="wr-pf-about">{generateBio(p)}</div>
+            <div className="wr-pf-about">{getBio()}</div>
           </PfSec>
 
           {/* Focus areas */}
@@ -274,27 +329,88 @@ function ProfilePanel({ p, onClose }: { p: Person; onClose: () => void }) {
           </PfSec>
 
           {/* Org / reporting line */}
-          {p.org_name && (
+          {displayOrgName && (
             <PfSec title="Organization">
               <div className="wr-pf-rep">
                 <div className="wr-pf-sup">
-                  <div className="av" style={{ background: orgColor }}>{initials(p.org_name)}</div>
+                  <div className="av" style={{ background: orgColor }}>{initials(displayOrgName)}</div>
                   <div className="tx">
-                    <div className="rl">Member of</div>
-                    <div className="nn">{p.org_name}</div>
+                    <div className="rl">{isIndustry ? 'Executive at' : 'Member of'}</div>
+                    <div className="nn">{displayOrgName}</div>
                     {p.org_hq && <div className="tt">{p.org_hq}</div>}
+                    {isIndustry && <div className="tt">Defense Prime Contractor</div>}
                   </div>
                 </div>
                 <div className="wr-pf-repbar">
                   <span className="m">
-                    {p.hierarchy_order === 1 ? 'Principal leader' : `Tier ${p.hierarchy_order ?? '—'} position`}
-                    {p.org_level != null ? ` · DoD Level L${p.org_level}` : ''}
+                    {isIndustry
+                      ? (p.hierarchy_order === 1 ? 'C-Suite Leadership' : p.hierarchy_order === 2 ? 'Division President' : 'Senior Executive')
+                      : p.hierarchy_order === 1 ? 'Principal leader' : `Tier ${p.hierarchy_order ?? '—'} position`}
+                    {!isIndustry && p.org_level != null ? ` · DoD Level L${p.org_level}` : ''}
                   </span>
-                  <Link href={`/org/${p.org_slug}`} className="lk">
-                    <IcOrg /> Open org chart →
-                  </Link>
+                  {!isIndustry && p.org_slug && (
+                    <Link href={`/org/${p.org_slug}`} className="lk">
+                      <IcOrg /> Open org chart →
+                    </Link>
+                  )}
                 </div>
               </div>
+              {orgPeers.length > 0 && (() => {
+                const tier = p.hierarchy_order ?? 10;
+                const above = orgPeers.filter(x => (x.hierarchy_order ?? 99) === tier - 1).slice(0, 3);
+                const below = orgPeers.filter(x => (x.hierarchy_order ?? 99) === tier + 1).slice(0, 4);
+                return (
+                  <div style={{ marginTop: 12 }}>
+                    <div className="pp-oc-vline" />
+                    {above.length > 0 && (
+                      <>
+                        <div className="pp-oc-row">
+                          {above.map(c => (
+                            <div key={c.id} className="pp-oc-card" style={{ opacity: .65 }}>
+                              <div className="pp-oc-av" style={{ background: c.avatar_color ?? colorFor(c.full_name) }}>
+                                {c.photo_url ? <img src={c.photo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} /> : initials(c.full_name)}
+                              </div>
+                              <div className="pp-oc-name">{c.full_name}</div>
+                              <div className="pp-oc-role">{c.role_title}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="pp-oc-vline" />
+                      </>
+                    )}
+                    <div className="pp-oc-row">
+                      <div className="pp-oc-card active">
+                        <div className="pp-oc-av" style={{ background: color }}>
+                          {p.photo_url ? <img src={p.photo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} /> : initials(p.full_name)}
+                        </div>
+                        <div className="pp-oc-name">{p.full_name}</div>
+                        <div className="pp-oc-role">{p.role_title}</div>
+                      </div>
+                    </div>
+                    {below.length > 0 && (
+                      <>
+                        <div className="pp-oc-vline" />
+                        <div className="pp-oc-row">
+                          {below.map(c => (
+                            <div key={c.id} className="pp-oc-card" style={{ opacity: .65 }}>
+                              <div className="pp-oc-av" style={{ background: c.avatar_color ?? colorFor(c.full_name) }}>
+                                {c.photo_url ? <img src={c.photo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} /> : initials(c.full_name)}
+                              </div>
+                              <div className="pp-oc-name">{c.full_name}</div>
+                              <div className="pp-oc-role">{c.role_title}</div>
+                            </div>
+                          ))}
+                          {below.length === 4 && (
+                            <div className="pp-oc-card" style={{ opacity: .4, justifyContent: 'center' }}>
+                              <span style={{ fontSize: 11, fontFamily: 'IBM Plex Mono', color: 'var(--ink-3)' }}>+more</span>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
             </PfSec>
           )}
 
@@ -398,88 +514,127 @@ export default function PeopleClient({ people, topOrgs }: Props) {
   const [orgFilter, setOrgFilter] = useState<string | null>(null);
   const [seniorityFilter, setSeniorityFilter] = useState<string | null>(null);
   const [contractFilter, setContractFilter] = useState(false);
+  const [agencyFilter, setAgencyFilter] = useState<string | null>(null);
+  const [titleFilter, setTitleFilter] = useState<string | null>(null);
   const [sort, setSort] = useState('Relevance');
   const [openProfile, setOpenProfile] = useState<Person | null>(null);
   const [orgSectionOpen, setOrgSectionOpen] = useState(true);
   const [focusSectionOpen, setFocusSectionOpen] = useState(true);
   const [seniorSectionOpen, setSeniorSectionOpen] = useState(true);
 
+  const govPeople = useMemo(() => people.filter(p => !p.tags?.includes('INDUSTRY')), [people]);
+  const indPeople = useMemo(() => people.filter(p => p.tags?.includes('INDUSTRY')), [people]);
+  const segPeople = seg === 'ind' ? indPeople : govPeople;
+
   const contractCount = useMemo(() =>
-    people.filter(p => p.org_contracts > 0 || p.org_awards_3yr > 0 || p.org_open_opps > 0).length,
-    [people]
+    govPeople.filter(p => p.org_contracts > 0 || p.org_awards_3yr > 0 || p.org_open_opps > 0).length,
+    [govPeople]
   );
 
-  /* Focus area counts across all people */
+  /* Focus area counts */
   const focusCounts = useMemo(() => {
     const m: Record<string, number> = {};
-    for (const p of people) {
+    for (const p of govPeople) {
       for (const f of inferFocus(p.role_title, p.org_branch)) {
         m[f] = (m[f] ?? 0) + 1;
       }
     }
     return m;
-  }, [people]);
+  }, [govPeople]);
 
   /* Orgs in the filter list (top-2-level) that actually have people */
   const filterOrgs = useMemo(() =>
-    topOrgs.filter(o => people.some(p => p.org_id === o.id)),
-    [topOrgs, people]
+    topOrgs.filter(o => govPeople.some(p => p.org_id === o.id)),
+    [topOrgs, govPeople]
   );
 
   /* Seniority counts */
   const seniorityCounts = useMemo(() => {
     const m: Record<string, number> = {};
-    for (const p of people) {
+    for (const p of govPeople) {
       const tier = p.hierarchy_order ?? 99;
       const grp = SENIORITY_GROUPS.find(g => tier >= g.min && tier <= g.max);
       if (grp) m[grp.label] = (m[grp.label] ?? 0) + 1;
     }
     return m;
-  }, [people]);
+  }, [govPeople]);
+
+  /* Industry: unique companies + seniority options */
+  const companyOptions = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of indPeople) {
+      const c = p.org_full;
+      if (c) counts[c] = (counts[c] ?? 0) + 1;
+    }
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [indPeople]);
+
+  const titleOptions = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of indPeople) {
+      const t = p.role_title ?? 'Other';
+      counts[t] = (counts[t] ?? 0) + 1;
+    }
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [indPeople]);
 
   /* Filtered people */
   const filtered = useMemo(() => {
-    let list = people;
+    let list = segPeople;
 
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(p =>
         p.full_name.toLowerCase().includes(q) ||
-        (p.role_title ?? '').toLowerCase().includes(q)
+        (p.role_title ?? '').toLowerCase().includes(q) ||
+        (p.org_full ?? '').toLowerCase().includes(q)
       );
     }
 
-    if (focusFilters.length > 0) {
-      list = list.filter(p => {
-        const foc = inferFocus(p.role_title, p.org_branch);
-        return foc.some(f => focusFilters.includes(f));
-      });
-    }
-
-    if (orgFilter) {
-      list = list.filter(p => p.org_id === orgFilter);
-    }
-
-    if (seniorityFilter) {
-      const grp = SENIORITY_GROUPS.find(g => g.label === seniorityFilter);
-      if (grp) list = list.filter(p => {
-        const t = p.hierarchy_order ?? 99;
-        return t >= grp.min && t <= grp.max;
-      });
-    }
-
-    if (contractFilter) {
-      list = list.filter(p => p.org_contracts > 0 || p.org_awards_3yr > 0 || p.org_open_opps > 0);
+    if (seg === 'gov') {
+      if (focusFilters.length > 0) {
+        list = list.filter(p => {
+          const foc = inferFocus(p.role_title, p.org_branch);
+          return foc.some(f => focusFilters.includes(f));
+        });
+      }
+      if (orgFilter) list = list.filter(p => p.org_id === orgFilter);
+      if (seniorityFilter) {
+        const grp = SENIORITY_GROUPS.find(g => g.label === seniorityFilter);
+        if (grp) list = list.filter(p => { const t = p.hierarchy_order ?? 99; return t >= grp.min && t <= grp.max; });
+      }
+      if (contractFilter) list = list.filter(p => p.org_contracts > 0 || p.org_awards_3yr > 0 || p.org_open_opps > 0);
+    } else {
+      if (agencyFilter) list = list.filter(p => p.org_full === agencyFilter);
+      if (titleFilter) {
+        const matchers: Record<string, (t: string) => boolean> = {
+          'Chief Executive': t => /\bCEO\b|Chairman.*CEO/.test(t),
+          'C-Suite':         t => /\bCFO\b|\bCOO\b|\bCTO\b|\bCIO\b|Chief (?!Executive)/.test(t),
+          'President / EVP': t => /\bPresident\b|\bEVP\b/.test(t),
+          'SVP / VP':        t => /\bSVP\b|\bVP\b/.test(t),
+        };
+        const fn = matchers[titleFilter];
+        if (fn) list = list.filter(p => fn(p.role_title ?? ''));
+      }
     }
 
     if (sort === 'Name A–Z') list = [...list].sort((a, b) => a.full_name.localeCompare(b.full_name));
     if (sort === 'Seniority') list = [...list].sort((a, b) => (a.hierarchy_order ?? 99) - (b.hierarchy_order ?? 99));
 
     return list;
-  }, [people, search, focusFilters, orgFilter, seniorityFilter, contractFilter, sort]);
+  }, [segPeople, seg, search, focusFilters, orgFilter, seniorityFilter, contractFilter, agencyFilter, titleFilter, sort]);
 
   const [page, setPage] = useState(1);
-  useEffect(() => setPage(1), [search, focusFilters, orgFilter, seniorityFilter, contractFilter, sort]);
+  useEffect(() => { setPage(1); }, [search, focusFilters, orgFilter, seniorityFilter, contractFilter, agencyFilter, titleFilter, sort, seg]);
+  /* Reset industry filters when switching to gov and vice versa */
+  useEffect(() => {
+    setAgencyFilter(null);
+    setTitleFilter(null);
+    setFocusFilters([]);
+    setOrgFilter(null);
+    setSeniorityFilter(null);
+    setContractFilter(false);
+  }, [seg]);
 
   const paged = useMemo(
     () => filtered.slice((page - 1) * PEOPLE_PER_PAGE, page * PEOPLE_PER_PAGE),
@@ -500,17 +655,17 @@ export default function PeopleClient({ people, topOrgs }: Props) {
       <div className="wr-phead">
         <div>
           <h1>People</h1>
-          <div className="meta">{filtered.length.toLocaleString()} of {people.length.toLocaleString()} profiles · DoD directory</div>
+          <div className="meta">{filtered.length.toLocaleString()} of {segPeople.length.toLocaleString()} profiles · {seg === 'ind' ? 'Defense Industry executives' : 'Gov directory'}</div>
         </div>
+        <div style={{ marginLeft: 'auto' }} />
         <div className="wr-pseg">
           <button className={'wr-pseg-btn' + (seg === 'gov' ? ' on' : '')} onClick={() => setSeg('gov')}>
             <IcGov /> GOVERNMENT
           </button>
           <button className={'wr-pseg-btn' + (seg === 'ind' ? ' on' : '')} onClick={() => setSeg('ind')}>
-            INDUSTRY
+            <IcFactory /> INDUSTRY
           </button>
         </div>
-        <div style={{ marginLeft: 'auto' }} />
         <button className="wr-psort" onClick={cycleSort}>
           <IcSort /> Sort: <b>{sort}</b>
         </button>
@@ -523,101 +678,131 @@ export default function PeopleClient({ people, topOrgs }: Props) {
           <div className="wr-fsearch">
             <IcSearch />
             <input
-              placeholder="Filter people by name…"
+              placeholder={seg === 'ind' ? 'Filter by name or office…' : 'Filter people by name…'}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
 
-          {/* Focus area */}
-          <div className="wr-fg">
-            <div className="wr-fg-h">
-              <button
-                style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: 'none', cursor: 'pointer', padding: 0, flex: 1 }}
-                onClick={() => setFocusSectionOpen(v => !v)}
-              >
-                <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: 'IBM Plex Mono', letterSpacing: '1.4px', textTransform: 'uppercase', fontWeight: 700 }}>Focus area</span>
-                <span style={{ marginLeft: 4, color: 'var(--ink-3)', transition: 'transform .15s', transform: focusSectionOpen ? 'none' : 'rotate(-90deg)', display: 'flex' }}><IcChevD /></span>
-              </button>
-              {focusFilters.length > 0 && (
-                <span className="clr" onClick={() => setFocusFilters([])}>Clear</span>
-              )}
-            </div>
-            {focusSectionOpen && Object.entries(focusCounts).filter(([, c]) => c > 0).map(([f, c]) => (
-              <div key={f} className={'wr-foc' + (focusFilters.includes(f) ? ' on' : '')} onClick={() => toggleFocus(f)}>
-                <span className="dot" style={{ background: FOCUS_COLORS[f] }} />
-                <span>{f}</span>
-                <span className="c">{c}</span>
-                <span className="tick"><IcTick /></span>
+          {seg === 'ind' ? (<>
+            {/* Industry: Company filter */}
+            <div className="wr-fg">
+              <div className="wr-fg-h">
+                <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: 'IBM Plex Mono', letterSpacing: '1.4px', textTransform: 'uppercase', fontWeight: 700 }}>Company</span>
+                {agencyFilter && <span className="clr" onClick={() => setAgencyFilter(null)}>Clear</span>}
               </div>
-            ))}
-          </div>
-
-          {/* Organization — top 2 levels */}
-          <div className="wr-fg">
-            <div className="wr-fg-h">
-              <button
-                style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: 'none', cursor: 'pointer', padding: 0, flex: 1 }}
-                onClick={() => setOrgSectionOpen(v => !v)}
-              >
-                <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: 'IBM Plex Mono', letterSpacing: '1.4px', textTransform: 'uppercase', fontWeight: 700 }}>Organization</span>
-                <span style={{ marginLeft: 4, color: 'var(--ink-3)', transition: 'transform .15s', transform: orgSectionOpen ? 'none' : 'rotate(-90deg)', display: 'flex' }}><IcChevD /></span>
-              </button>
-              {orgFilter && <span className="clr" onClick={() => setOrgFilter(null)}>Clear</span>}
+              {companyOptions.map(([company, cnt]) => {
+                const label = company.replace(/ CORPORATION$| INCORPORATED$| INC\.$| LLC$| INC$| CORP$/, '').replace(/\b(\w)/g, c => c + c.slice(1).toLowerCase()).replace(/\b\w/g, c => c.toUpperCase());
+                return (
+                  <div key={company} className={'wr-chk' + (agencyFilter === company ? ' on' : '')} onClick={() => setAgencyFilter(agencyFilter === company ? null : company)}>
+                    <span className="box">{agencyFilter === company ? <IcTick /> : null}</span>
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12.5 }}>{label}</span>
+                    <span className="c">{cnt}</span>
+                  </div>
+                );
+              })}
             </div>
-            {orgSectionOpen && filterOrgs.map(o => {
-              const cnt = people.filter(p => p.org_id === o.id).length;
-              return (
-                <div key={o.id} className={'wr-chk' + (orgFilter === o.id ? ' on' : '')} onClick={() => setOrgFilter(orgFilter === o.id ? null : o.id)}>
-                  <span className="box">{orgFilter === o.id ? <IcTick /> : null}</span>
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12.5 }}>{o.name}</span>
-                  <span className="c">{cnt}</span>
+
+            {/* Industry: Role/Seniority filter */}
+            <div className="wr-fg">
+              <div className="wr-fg-h">
+                <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: 'IBM Plex Mono', letterSpacing: '1.4px', textTransform: 'uppercase', fontWeight: 700 }}>Role</span>
+                {titleFilter && <span className="clr" onClick={() => setTitleFilter(null)}>Clear</span>}
+              </div>
+              {[
+                { label: 'Chief Executive', match: (t: string) => /\bCEO\b|Chairman.*CEO/.test(t) },
+                { label: 'C-Suite', match: (t: string) => /\bCFO\b|\bCOO\b|\bCTO\b|\bCIO\b|Chief (?!Executive)/.test(t) },
+                { label: 'President / EVP', match: (t: string) => /\bPresident\b|\bEVP\b/.test(t) },
+                { label: 'SVP / VP', match: (t: string) => /\bSVP\b|\bVP\b/.test(t) },
+              ].map(({ label, match }) => {
+                const cnt = indPeople.filter(p => match(p.role_title ?? '')).length;
+                if (!cnt) return null;
+                return (
+                  <div key={label} className={'wr-chk' + (titleFilter === label ? ' on' : '')} onClick={() => setTitleFilter(titleFilter === label ? null : label)}>
+                    <span className="box">{titleFilter === label ? <IcTick /> : null}</span>
+                    <span style={{ flex: 1, fontSize: 12.5 }}>{label}</span>
+                    <span className="c">{cnt}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </>) : (<>
+            {/* Focus area */}
+            <div className="wr-fg">
+              <div className="wr-fg-h">
+                <button style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: 'none', cursor: 'pointer', padding: 0, flex: 1 }} onClick={() => setFocusSectionOpen(v => !v)}>
+                  <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: 'IBM Plex Mono', letterSpacing: '1.4px', textTransform: 'uppercase', fontWeight: 700 }}>Focus area</span>
+                  <span style={{ marginLeft: 4, color: 'var(--ink-3)', transition: 'transform .15s', transform: focusSectionOpen ? 'none' : 'rotate(-90deg)', display: 'flex' }}><IcChevD /></span>
+                </button>
+                {focusFilters.length > 0 && <span className="clr" onClick={() => setFocusFilters([])}>Clear</span>}
+              </div>
+              {focusSectionOpen && Object.entries(focusCounts).filter(([, c]) => c > 0).map(([f, c]) => (
+                <div key={f} className={'wr-foc' + (focusFilters.includes(f) ? ' on' : '')} onClick={() => toggleFocus(f)}>
+                  <span className="dot" style={{ background: FOCUS_COLORS[f] }} />
+                  <span>{f}</span>
+                  <span className="c">{c}</span>
+                  <span className="tick"><IcTick /></span>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
 
-          {/* Title / Seniority */}
-          <div className="wr-fg">
-            <div className="wr-fg-h">
-              <button
-                style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: 'none', cursor: 'pointer', padding: 0, flex: 1 }}
-                onClick={() => setSeniorSectionOpen(v => !v)}
-              >
-                <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: 'IBM Plex Mono', letterSpacing: '1.4px', textTransform: 'uppercase', fontWeight: 700 }}>Seniority</span>
-                <span style={{ marginLeft: 4, color: 'var(--ink-3)', transition: 'transform .15s', transform: seniorSectionOpen ? 'none' : 'rotate(-90deg)', display: 'flex' }}><IcChevD /></span>
-              </button>
-              {seniorityFilter && <span className="clr" onClick={() => setSeniorityFilter(null)}>Clear</span>}
+            {/* Organization — top 2 levels */}
+            <div className="wr-fg">
+              <div className="wr-fg-h">
+                <button style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: 'none', cursor: 'pointer', padding: 0, flex: 1 }} onClick={() => setOrgSectionOpen(v => !v)}>
+                  <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: 'IBM Plex Mono', letterSpacing: '1.4px', textTransform: 'uppercase', fontWeight: 700 }}>Organization</span>
+                  <span style={{ marginLeft: 4, color: 'var(--ink-3)', transition: 'transform .15s', transform: orgSectionOpen ? 'none' : 'rotate(-90deg)', display: 'flex' }}><IcChevD /></span>
+                </button>
+                {orgFilter && <span className="clr" onClick={() => setOrgFilter(null)}>Clear</span>}
+              </div>
+              {orgSectionOpen && filterOrgs.map(o => {
+                const cnt = govPeople.filter(p => p.org_id === o.id).length;
+                return (
+                  <div key={o.id} className={'wr-chk' + (orgFilter === o.id ? ' on' : '')} onClick={() => setOrgFilter(orgFilter === o.id ? null : o.id)}>
+                    <span className="box">{orgFilter === o.id ? <IcTick /> : null}</span>
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12.5 }}>{o.name}</span>
+                    <span className="c">{cnt}</span>
+                  </div>
+                );
+              })}
             </div>
-            {seniorSectionOpen && SENIORITY_GROUPS.map(g => {
-              const cnt = seniorityCounts[g.label] ?? 0;
-              if (!cnt) return null;
-              return (
-                <div key={g.label} className={'wr-chk' + (seniorityFilter === g.label ? ' on' : '')} onClick={() => setSeniorityFilter(seniorityFilter === g.label ? null : g.label)}>
-                  <span className="box">{seniorityFilter === g.label ? <IcTick /> : null}</span>
-                  <span style={{ flex: 1, fontSize: 12.5 }}>{g.label}</span>
-                  <span className="c">{cnt}</span>
-                </div>
-              );
-            })}
-          </div>
 
-          {/* Contract data filter */}
-          <div className="wr-fg">
-            <div className="wr-fg-h" style={{ marginBottom: 8 }}>
-              <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: 'IBM Plex Mono', letterSpacing: '1.4px', textTransform: 'uppercase', fontWeight: 700 }}>Contracts</span>
+            {/* Seniority */}
+            <div className="wr-fg">
+              <div className="wr-fg-h">
+                <button style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: 'none', cursor: 'pointer', padding: 0, flex: 1 }} onClick={() => setSeniorSectionOpen(v => !v)}>
+                  <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: 'IBM Plex Mono', letterSpacing: '1.4px', textTransform: 'uppercase', fontWeight: 700 }}>Seniority</span>
+                  <span style={{ marginLeft: 4, color: 'var(--ink-3)', transition: 'transform .15s', transform: seniorSectionOpen ? 'none' : 'rotate(-90deg)', display: 'flex' }}><IcChevD /></span>
+                </button>
+                {seniorityFilter && <span className="clr" onClick={() => setSeniorityFilter(null)}>Clear</span>}
+              </div>
+              {seniorSectionOpen && SENIORITY_GROUPS.map(g => {
+                const cnt = seniorityCounts[g.label] ?? 0;
+                if (!cnt) return null;
+                return (
+                  <div key={g.label} className={'wr-chk' + (seniorityFilter === g.label ? ' on' : '')} onClick={() => setSeniorityFilter(seniorityFilter === g.label ? null : g.label)}>
+                    <span className="box">{seniorityFilter === g.label ? <IcTick /> : null}</span>
+                    <span style={{ flex: 1, fontSize: 12.5 }}>{g.label}</span>
+                    <span className="c">{cnt}</span>
+                  </div>
+                );
+              })}
             </div>
-            <div
-              className={'wr-chk' + (contractFilter ? ' on' : '')}
-              onClick={() => setContractFilter(v => !v)}
-            >
-              <span className="box">{contractFilter ? <IcTick /> : null}</span>
-              <span style={{ flex: 1, fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <IcContract /> Has SAM.gov / USASpending data
-              </span>
-              <span className="c">{contractCount}</span>
+
+            {/* Contract data filter */}
+            <div className="wr-fg">
+              <div className="wr-fg-h" style={{ marginBottom: 8 }}>
+                <span style={{ color: 'var(--ink-2)', fontSize: 10, fontFamily: 'IBM Plex Mono', letterSpacing: '1.4px', textTransform: 'uppercase', fontWeight: 700 }}>Contracts</span>
+              </div>
+              <div className={'wr-chk' + (contractFilter ? ' on' : '')} onClick={() => setContractFilter(v => !v)}>
+                <span className="box">{contractFilter ? <IcTick /> : null}</span>
+                <span style={{ flex: 1, fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <IcContract /> Has SAM.gov / USASpending data
+                </span>
+                <span className="c">{contractCount}</span>
+              </div>
             </div>
-          </div>
+          </>)}
         </aside>
 
         {/* ── Main content ── */}
@@ -636,40 +821,55 @@ export default function PeopleClient({ people, topOrgs }: Props) {
           {/* Active filter chips */}
           <div className="wr-ptool">
             <span className="cnt">{filtered.length} {filtered.length === 1 ? 'person' : 'people'}</span>
-            {focusFilters.map(f => (
-              <span className="wr-achip" key={f}>
-                <span className="dot" style={{ background: FOCUS_COLORS[f] }} />{f}
-                <span className="x" onClick={() => toggleFocus(f)}>✕</span>
-              </span>
-            ))}
-            {orgFilter && (
-              <span className="wr-achip">
-                <span className="dot" style={{ background: 'var(--accent)' }} />
-                {topOrgs.find(o => o.id === orgFilter)?.name}
-                <span className="x" onClick={() => setOrgFilter(null)}>✕</span>
-              </span>
-            )}
-            {seniorityFilter && (
-              <span className="wr-achip">
-                <span className="dot" style={{ background: 'var(--ink-3)' }} />
-                {seniorityFilter}
-                <span className="x" onClick={() => setSeniorityFilter(null)}>✕</span>
-              </span>
-            )}
-            {contractFilter && (
-              <span className="wr-achip">
-                <span style={{ display: 'flex', color: '#2f8676' }}><IcContract /></span>
-                SAM.gov / USASpending
-                <span className="x" onClick={() => setContractFilter(false)}>✕</span>
-              </span>
-            )}
+            {seg === 'gov' ? (<>
+              {focusFilters.map(f => (
+                <span className="wr-achip" key={f}>
+                  <span className="dot" style={{ background: FOCUS_COLORS[f] }} />{f}
+                  <span className="x" onClick={() => toggleFocus(f)}>✕</span>
+                </span>
+              ))}
+              {orgFilter && (
+                <span className="wr-achip">
+                  <span className="dot" style={{ background: 'var(--accent)' }} />
+                  {topOrgs.find(o => o.id === orgFilter)?.name}
+                  <span className="x" onClick={() => setOrgFilter(null)}>✕</span>
+                </span>
+              )}
+              {seniorityFilter && (
+                <span className="wr-achip">
+                  <span className="dot" style={{ background: 'var(--ink-3)' }} />
+                  {seniorityFilter}
+                  <span className="x" onClick={() => setSeniorityFilter(null)}>✕</span>
+                </span>
+              )}
+              {contractFilter && (
+                <span className="wr-achip">
+                  <span style={{ display: 'flex', color: '#2f8676' }}><IcContract /></span>
+                  SAM.gov / USASpending
+                  <span className="x" onClick={() => setContractFilter(false)}>✕</span>
+                </span>
+              )}
+            </>) : (<>
+              {agencyFilter && (
+                <span className="wr-achip">
+                  <span className="dot" style={{ background: 'var(--accent)' }} />
+                  {agencyFilter}
+                  <span className="x" onClick={() => setAgencyFilter(null)}>✕</span>
+                </span>
+              )}
+              {titleFilter && (
+                <span className="wr-achip">
+                  <span className="dot" style={{ background: 'var(--ink-3)' }} />
+                  {titleFilter}
+                  <span className="x" onClick={() => setTitleFilter(null)}>✕</span>
+                </span>
+              )}
+            </>)}
           </div>
 
           {/* People grid */}
           <div className="wr-pscroll">
-            {seg === 'ind' ? (
-              <div className="wr-pempty">Industry profiles coming soon.</div>
-            ) : filtered.length === 0 ? (
+            {filtered.length === 0 ? (
               <div className="wr-pempty">No people match these filters.</div>
             ) : (
               <>
@@ -692,7 +892,17 @@ export default function PeopleClient({ people, topOrgs }: Props) {
 
       {/* Profile slide-over */}
       {openProfile && (
-        <ProfilePanel p={openProfile} onClose={() => setOpenProfile(null)} />
+        <ProfilePanel
+          p={openProfile}
+          onClose={() => setOpenProfile(null)}
+          orgPeers={
+            openProfile.org_id
+              ? people.filter(x => x.org_id === openProfile.org_id && x.id !== openProfile.id && !isInboxOnly(x.full_name, x.email))
+              : openProfile.org_full
+                ? people.filter(x => x.org_full === openProfile.org_full && x.id !== openProfile.id)
+                : []
+          }
+        />
       )}
     </div>
   );

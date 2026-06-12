@@ -1,14 +1,14 @@
-functionsDirectory = "/Users/savankong/Desktop/war-room-v2-site/netlify/functions"
+functionsDirectory = "/Users/savankong/Desktop/WarRoom.io/war-room-v2-site/netlify/functions"
 functionsDirectoryOrigin = "default"
 headersOrigin = "inline"
 redirectsOrigin = "inline"
 
 [build]
-publish = "/Users/savankong/Desktop/war-room-v2-site/.next"
+publish = "/Users/savankong/Desktop/WarRoom.io/war-room-v2-site/.next"
 publishOrigin = "config"
 commandOrigin = "config"
 command = "npm run build"
-functions = "/Users/savankong/Desktop/war-room-v2-site/netlify/functions"
+functions = "/Users/savankong/Desktop/WarRoom.io/war-room-v2-site/netlify/functions"
 
 [build.environment]
 

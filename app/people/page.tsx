@@ -1,7 +1,7 @@
 import { getDb } from '@/lib/db';
 import PeopleClient from './PeopleClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 async function getPeopleData() {
   const db = getDb();
@@ -19,7 +19,9 @@ async function getPeopleData() {
         c.awards,
         c.hierarchy_order,
         c.tags,
+        c.linkedin,
         c.org_id,
+        c.org_full,
         o.full_name      AS org_name,
         o.id             AS org_slug,
         o.abs_hierarchy_level AS org_level,

@@ -40,6 +40,50 @@ function generateBio(c: Contact, orgName: string): string {
   return `${c.name} serves as ${t} within the ${o}.`;
 }
 
+/* ── Icons ────────────────────────────────────────────────────────────── */
+const IcX     = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>;
+const IcPlus  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M12 5v14M5 12h14"/></svg>;
+const IcFlag  = () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 22V4m0 0 .8-.4a6 6 0 0 1 5.6.2 6 6 0 0 0 5.6.2L20 4v10l-1.5.7a6 6 0 0 1-5.6-.2 6 6 0 0 0-5.6-.2L4 15"/></svg>;
+const IcTick  = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4"><path d="M20 6 9 17l-5-5"/></svg>;
+const IcPin   = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
+const IcOrg   = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/></svg>;
+const IcChat  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-4-.9L3 21l1.9-4.5A8.4 8.4 0 1 1 21 11.5Z"/></svg>;
+const IcVf    = () => <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4"><path d="M20 6 9 17l-5-5"/></svg>;
+const IcLI2   = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>;
+
+const FOCUS_COLORS3: Record<string, string> = {
+  Operations: '#2563B8', Cyber: '#2E8E8C', Intelligence: '#2E9E6B',
+  Acquisition: '#C98A2B', 'AI/ML': '#5B5BD6', Space: '#7E58C4',
+  Contracting: '#5A6B82', Strategy: '#41618F', Policy: '#B5566B',
+};
+
+function inferFocusOrg(title: string | null, branch: string | null): string[] {
+  const t = ((title ?? '') + ' ' + (branch ?? '')).toLowerCase();
+  const out: string[] = [];
+  if (/cyber|info(rmation)? war/.test(t)) out.push('Cyber');
+  if (/intel|reconnaissance|surveillance/.test(t)) out.push('Intelligence');
+  if (/acqui|peo |program exec|materiel|lifecycle/.test(t)) out.push('Acquisition');
+  if (/contract|sourc|procure|dcaa/.test(t)) out.push('Contracting');
+  if (/space|satellite|orbital|ussf|space force/.test(t)) out.push('Space');
+  if (/research|lab |science|innovation|darpa|arpa/.test(t)) out.push('AI/ML');
+  if (/strateg|plans|j5|j8/.test(t)) out.push('Strategy');
+  if (/polic|legislat|comptroll|financ|budget/.test(t)) out.push('Policy');
+  if (out.length === 0) out.push('Operations');
+  return out.slice(0, 2);
+}
+
+function PfSecOrg({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="wr-pf-sec">
+      <div className="wr-pf-sh">
+        <span className="t" dangerouslySetInnerHTML={{ __html: title }} />
+        <span className="ln" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
 /* ── Person panel ─────────────────────────────────────────────────────── */
 function PersonPanel({ contact, org, allContacts, onClose }: {
   contact: Contact; org: OrgProfile; allContacts: Contact[]; onClose: () => void;
@@ -49,103 +93,172 @@ function PersonPanel({ contact, org, allContacts, onClose }: {
   const tierLabel = TIER_LABELS[tier] ?? `Tier ${tier}`;
   const above = allContacts.filter(c => (c.hierarchy_order ?? 99) === tier - 1).slice(0, 3);
   const below = allContacts.filter(c => (c.hierarchy_order ?? 99) === tier + 1).slice(0, 4);
+  const claimed = !!contact.email;
+  const focus = inferFocusOrg(contact.title ?? null, org.branch ?? null);
+  const orgColor = colorFor(org.name);
 
   return (
-    <>
-      <div className="person-panel-overlay" onClick={onClose} />
-      <div className="person-panel">
-        <div className="pp-header">
-          <div style={{
-            width:52,height:52,borderRadius:'50%',background:bg,flexShrink:0,
-            display:'flex',alignItems:'center',justifyContent:'center',
-            fontSize:17,fontWeight:700,color:'#fff',overflow:'hidden',
-          }}>
-            {contact.photo_url
-              ? <img src={contact.photo_url} alt={contact.name} style={{width:'100%',height:'100%',objectFit:'cover'}} />
-              : initials(contact.name)}
-          </div>
-          <div style={{flex:1,minWidth:0}}>
-            <div className="pp-hname">{contact.name}</div>
-            <div className="pp-httl">{contact.title ?? '—'}</div>
-          </div>
-          <button className="pp-close" onClick={onClose}>✕</button>
-        </div>
+    <div className="wr-pf-back" onClick={onClose}>
+      <div className="wr-pf" onClick={e => e.stopPropagation()}>
 
-        {contact.email ? (
-          <a href={`mailto:${contact.email}`} className="pp-cbtn" style={{textDecoration:'none',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
-            ✉ Contact
-          </a>
-        ) : (
-          <div className="pp-cbtn" style={{cursor:'default',opacity:.45}}>✉ Contact</div>
-        )}
-
-        <p className="pp-bio">{generateBio(contact, org.name)}</p>
-        <div className="pp-div" />
-
-        <div style={{padding:'0 20px'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-            <span className="pp-sec-t">Org chart</span>
-            <Link href={`/org/${contact.org_id}`} className="pp-sec-m">View org →</Link>
-          </div>
-          <div className="pp-oc-org">
-            <div className="pp-oc-orgmark" style={{background:colorFor(org.name)}}>{initials(org.name)}</div>
-            <span className="pp-oc-orgname">{org.name}</span>
-          </div>
-          <div className="pp-oc-vline" />
-          {above.length > 0 && (
-            <>
-              <div className="pp-oc-row">
-                {above.map(c => (
-                  <div key={c.id} className="pp-oc-card" style={{opacity:.65}}>
-                    <div className="pp-oc-av" style={{background:c.avatar_color??colorFor(c.name)}}>{initials(c.name)}</div>
-                    <div className="pp-oc-name">{c.name}</div>
-                    <div className="pp-oc-role">{c.title}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="pp-oc-vline" />
-            </>
-          )}
-          <div className="pp-oc-row">
-            <div className="pp-oc-card active">
-              <div className="pp-oc-av" style={{background:bg}}>{initials(contact.name)}</div>
-              <div className="pp-oc-name">{contact.name}</div>
-              <div className="pp-oc-role">{contact.title}</div>
+        {/* Dark header */}
+        <div className="wr-pf-hd">
+          <button className="wr-pf-x" onClick={onClose}><IcX /></button>
+          <div className="wr-pf-top">
+            <div className="wr-pf-av" style={{background: bg}}>
+              {contact.photo_url
+                ? <img src={contact.photo_url} alt={contact.name} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} />
+                : initials(contact.name)}
             </div>
-          </div>
-          {below.length > 0 && (
-            <>
-              <div className="pp-oc-vline" />
-              <div className="pp-oc-row">
-                {below.map(c => (
-                  <div key={c.id} className="pp-oc-card" style={{opacity:.65}}>
-                    <div className="pp-oc-av" style={{background:c.avatar_color??colorFor(c.name)}}>{initials(c.name)}</div>
-                    <div className="pp-oc-name">{c.name}</div>
-                    <div className="pp-oc-role">{c.title}</div>
-                  </div>
-                ))}
-                {below.length === 4 && (
-                  <div className="pp-oc-card" style={{opacity:.4,justifyContent:'center'}}>
-                    <span style={{fontSize:11,fontFamily:'IBM Plex Mono',color:'var(--ink-3)'}}>+more</span>
-                  </div>
+            <div>
+              <div className="wr-pf-nm">
+                <span className="n">{contact.name}</span>
+                {claimed
+                  ? <span className="wr-pf-vf" title="Profile active"><IcVf /></span>
+                  : <span className="wr-pf-unc">Unclaimed</span>}
+              </div>
+              <div className="wr-pf-ti">{contact.title ?? '—'}</div>
+              <div className="wr-pf-sub">
+                <span style={{display:'flex'}}><IcPin /></span>
+                {org.name}{org.hq_address ? ` · ${org.hq_address}` : ''}
+              </div>
+              <div className="wr-pf-act">
+                <button className="wr-pf-btn pri"><IcPlus /> Follow</button>
+                {contact.email && (
+                  <a href={`mailto:${contact.email}`} className="wr-pf-btn gho" style={{textDecoration:'none'}}>
+                    <IcChat /> Message
+                  </a>
+                )}
+                {contact.linkedin && (
+                  <a href={`https://linkedin.com/in/${contact.linkedin}`} target="_blank" rel="noopener noreferrer" className="wr-pf-btn gho" style={{textDecoration:'none'}}>
+                    <IcLI2 /> LinkedIn
+                  </a>
                 )}
               </div>
-            </>
-          )}
+            </div>
+          </div>
         </div>
 
-        <div className="pp-div" />
-        <div style={{padding:'0 20px 24px'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-            <span className="pp-sec-t">Position</span>
+        {/* Claim strip */}
+        {!claimed && (
+          <div className="wr-pf-claim">
+            <span className="i"><IcFlag /></span>
+            <span className="t">This profile is unclaimed.</span>
+            <span className="b"><IcTick /> Claim this profile</span>
           </div>
-          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-            <span className="pp-tag">{tierLabel}</span>
-            {contact.tags?.map((t,i) => <span key={i} className="pp-tag">{t}</span>)}
-          </div>
+        )}
+
+        <div className="wr-pf-body">
+
+          {/* About */}
+          <PfSecOrg title="About">
+            <div className="wr-pf-about">{generateBio(contact, org.name)}</div>
+          </PfSecOrg>
+
+          {/* Focus areas */}
+          <PfSecOrg title="Focus areas">
+            <div className="wr-pf-foc">
+              {focus.map(f => (
+                <span className="wr-fchip" key={f}>
+                  <span className="dot" style={{background: FOCUS_COLORS3[f]}} />{f}
+                </span>
+              ))}
+            </div>
+          </PfSecOrg>
+
+          {/* Organization with mini org chart */}
+          <PfSecOrg title="Organization">
+            <div className="wr-pf-rep">
+              <div className="wr-pf-sup">
+                <div className="av" style={{background: orgColor}}>{initials(org.name)}</div>
+                <div className="tx">
+                  <div className="rl">Member of</div>
+                  <div className="nn">{org.name}</div>
+                  {org.hq_address && <div className="tt">{org.hq_address}</div>}
+                </div>
+              </div>
+              <div className="wr-pf-repbar">
+                <span className="m">
+                  {tier === 1 ? 'Principal leader' : `Tier ${tier} position`}
+                  {org.abs_hierarchy_level != null ? ` · DoD Level L${org.abs_hierarchy_level}` : ''}
+                </span>
+                <Link href={`/org/${contact.org_id}`} prefetch={false} className="lk">
+                  <IcOrg /> Open org chart →
+                </Link>
+              </div>
+            </div>
+            {/* Mini org chart */}
+            <div style={{marginTop:12}}>
+              <div className="pp-oc-vline" />
+              {above.length > 0 && (
+                <>
+                  <div className="pp-oc-row">
+                    {above.map(c => (
+                      <div key={c.id} className="pp-oc-card" style={{opacity:.65}}>
+                        <div className="pp-oc-av" style={{background:c.avatar_color??colorFor(c.name)}}>
+                          {c.photo_url ? <img src={c.photo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} /> : initials(c.name)}
+                        </div>
+                        <div className="pp-oc-name">{c.name}</div>
+                        <div className="pp-oc-role">{c.title}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="pp-oc-vline" />
+                </>
+              )}
+              <div className="pp-oc-row">
+                <div className="pp-oc-card active">
+                  <div className="pp-oc-av" style={{background:bg}}>
+                    {contact.photo_url ? <img src={contact.photo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} /> : initials(contact.name)}
+                  </div>
+                  <div className="pp-oc-name">{contact.name}</div>
+                  <div className="pp-oc-role">{contact.title}</div>
+                </div>
+              </div>
+              {below.length > 0 && (
+                <>
+                  <div className="pp-oc-vline" />
+                  <div className="pp-oc-row">
+                    {below.map(c => (
+                      <div key={c.id} className="pp-oc-card" style={{opacity:.65}}>
+                        <div className="pp-oc-av" style={{background:c.avatar_color??colorFor(c.name)}}>
+                          {c.photo_url ? <img src={c.photo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} /> : initials(c.name)}
+                        </div>
+                        <div className="pp-oc-name">{c.name}</div>
+                        <div className="pp-oc-role">{c.title}</div>
+                      </div>
+                    ))}
+                    {below.length === 4 && (
+                      <div className="pp-oc-card" style={{opacity:.4,justifyContent:'center'}}>
+                        <span style={{fontSize:11,fontFamily:'IBM Plex Mono',color:'var(--ink-3)'}}>+more</span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </PfSecOrg>
+
+          {/* Position */}
+          <PfSecOrg title="Position">
+            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+              <span className="pp-tag">{tierLabel}</span>
+              {contact.tags?.map((t,i) => <span key={i} className="pp-tag">{t}</span>)}
+            </div>
+          </PfSecOrg>
+
+          {/* LinkedIn section if available */}
+          {contact.linkedin && (
+            <PfSecOrg title="LinkedIn">
+              <a href={`https://linkedin.com/in/${contact.linkedin}`} target="_blank" rel="noopener noreferrer" className="wr-pf-btn gho" style={{textDecoration:'none',display:'inline-flex',marginTop:2}}>
+                <IcLI2 /> linkedin.com/in/{contact.linkedin}
+              </a>
+            </PfSecOrg>
+          )}
+
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -290,7 +403,7 @@ export default function OrgDetail({ org, navOrgs, childOrgs, contacts, contracts
             return crumbs.map(c => (
               <span key={c.id} style={{display:'flex',alignItems:'center',gap:4}}>
                 <span className="orgd-sname" style={{color:'var(--ink-3)'}}>›</span>
-                <Link href={`/org/${c.id}`} className="orgd-sname" style={{textDecoration:'none',maxWidth:140,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                <Link href={`/org/${c.id}`} prefetch={false} className="orgd-sname" style={{textDecoration:'none',maxWidth:140,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                   {c.name}
                 </Link>
               </span>
@@ -299,6 +412,8 @@ export default function OrgDetail({ org, navOrgs, childOrgs, contacts, contracts
           {org.abs_hierarchy_level != null && (
             <span className="orgd-level-badge">L{org.abs_hierarchy_level}</span>
           )}
+          <span className="orgd-sname" style={{color:'var(--ink-3)'}}>›</span>
+          <span className="orgd-sname" style={{color:'var(--ink)',fontWeight:600,maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{org.name}</span>
         </div>
 
         <div className="org-detail-body">
@@ -358,7 +473,7 @@ export default function OrgDetail({ org, navOrgs, childOrgs, contacts, contracts
                   <div className="child-orgs-label">SUBORDINATE ORGANIZATIONS ({childOrgs.length})</div>
                   <div className="ohier-row">
                     {childOrgs.map(child => (
-                      <Link key={child.id} href={`/org/${child.id}`} className="child-org-card">
+                      <Link key={child.id} href={`/org/${child.id}`} prefetch={false} className="child-org-card">
                         <div className="child-org-card-name">{child.name}</div>
                         <div className="child-org-card-meta">
                           {child.contact_count > 0 && <span>{child.contact_count} contacts</span>}

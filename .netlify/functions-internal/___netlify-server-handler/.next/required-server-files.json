@@ -105,7 +105,7 @@
         "transform": "lodash/{{member}}"
       }
     },
-    "outputFileTracingRoot": "/Users/savankong/Desktop/war-room-v2-site",
+    "outputFileTracingRoot": "/Users/savankong/Desktop/WarRoom.io/war-room-v2-site",
     "cacheComponents": false,
     "cacheLife": {
       "default": {
@@ -305,11 +305,11 @@
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.ts",
     "turbopack": {
-      "root": "/Users/savankong/Desktop/war-room-v2-site"
+      "root": "/Users/savankong/Desktop/WarRoom.io/war-room-v2-site"
     },
     "distDirRoot": ".next"
   },
-  "appDir": "/Users/savankong/Desktop/war-room-v2-site",
+  "appDir": "/Users/savankong/Desktop/WarRoom.io/war-room-v2-site",
   "relativeAppDir": "",
   "files": [
     ".next/package.json",

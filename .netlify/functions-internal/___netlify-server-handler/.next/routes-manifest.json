@@ -23,6 +23,38 @@
   },
   "dynamicRoutes": [
     {
+      "page": "/api/admin/contacts/[id]",
+      "regex": "^/api/admin/contacts/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/contacts/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/admin/industry-companies/[id]",
+      "regex": "^/api/admin/industry\\-companies/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/industry\\-companies/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/admin/orgs/[id]",
+      "regex": "^/api/admin/orgs/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/orgs/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/admin/signals/[id]",
+      "regex": "^/api/admin/signals/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/signals/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/org/[slug]",
       "regex": "^/org/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -49,6 +81,72 @@
       "regex": "^/_not\\-found(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/admin",
+      "regex": "^/admin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin(?:/)?$"
+    },
+    {
+      "page": "/api/admin/contacts",
+      "regex": "^/api/admin/contacts(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/contacts(?:/)?$"
+    },
+    {
+      "page": "/api/admin/export",
+      "regex": "^/api/admin/export(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/export(?:/)?$"
+    },
+    {
+      "page": "/api/admin/industry-companies",
+      "regex": "^/api/admin/industry\\-companies(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/industry\\-companies(?:/)?$"
+    },
+    {
+      "page": "/api/admin/industry-people",
+      "regex": "^/api/admin/industry\\-people(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/industry\\-people(?:/)?$"
+    },
+    {
+      "page": "/api/admin/orgs",
+      "regex": "^/api/admin/orgs(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/orgs(?:/)?$"
+    },
+    {
+      "page": "/api/admin/signals",
+      "regex": "^/api/admin/signals(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/signals(?:/)?$"
+    },
+    {
+      "page": "/api/industry",
+      "regex": "^/api/industry(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/industry(?:/)?$"
+    },
+    {
+      "page": "/api/industry/contracts",
+      "regex": "^/api/industry/contracts(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/industry/contracts(?:/)?$"
+    },
+    {
+      "page": "/api/industry/people",
+      "regex": "^/api/industry/people(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/industry/people(?:/)?$"
+    },
+    {
+      "page": "/api/org-contracts",
+      "regex": "^/api/org\\-contracts(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/org\\-contracts(?:/)?$"
     },
     {
       "page": "/favicon.ico",
