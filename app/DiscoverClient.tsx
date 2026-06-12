@@ -714,6 +714,168 @@ function IndustryList({
   );
 }
 
+/* ── SubList ─────────────────────────────────────────────────────────── */
+const SUB_PER_PAGE = 50;
+
+function SubList({ subs, search, page, onPageChange, onSelectSub, loaded }: {
+  subs: any[]; search: string; page: number; loaded: boolean;
+  onPageChange(p: number): void; onSelectSub(s: any): void;
+}) {
+  const filtered = useMemo(() => {
+    if (!search.trim()) return subs;
+    const q = search.toLowerCase();
+    return subs.filter(s => s.name?.toLowerCase().includes(q) || (s.display_name ?? '').toLowerCase().includes(q));
+  }, [subs, search]);
+
+  const paged = filtered.slice((page-1)*SUB_PER_PAGE, page*SUB_PER_PAGE);
+
+  return (
+    <div className="wr-hmain" style={{ display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ padding:'10px 20px', borderBottom:'1px solid var(--card-border)', background:'var(--card)', display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
+        <div style={{ fontFamily:'IBM Plex Mono', fontSize:11, color:'var(--ink-3)' }}>
+          {!loaded ? 'Loading…' : `${filtered.length.toLocaleString()} subcontractors · from USASpending FSRS data`}
+        </div>
+        <div style={{ marginLeft:'auto', fontFamily:'IBM Plex Mono', fontSize:10, color:'var(--ink-3)', letterSpacing:'1px' }}>
+          SOURCE: USASPENDING.GOV
+        </div>
+      </div>
+      <div className="wr-dhead" style={{ gridTemplateColumns:'1fr 70px 130px 80px' }}>
+        <div>Subcontractor</div>
+        <div>Primes</div>
+        <div className="r">Total Value</div>
+        <div className="r">Awards</div>
+      </div>
+      <div className="wr-dscroll">
+        {!loaded && <div style={{ padding:'40px 26px', color:'var(--ink-3)', fontFamily:'IBM Plex Mono', fontSize:11 }}>Loading subcontractors…</div>}
+        {loaded && paged.length === 0 && <div style={{ padding:'40px 26px', color:'var(--ink-3)', fontFamily:'IBM Plex Mono', fontSize:11 }}>No subcontractors match.</div>}
+        {paged.map((s: any) => {
+          const displayName = (s.display_name ?? s.name)
+            .toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())
+            .replace(/\bLlc\b/g,'LLC').replace(/\bInc\b/g,'Inc.').replace(/\bCorp\b/g,'Corp.');
+          const color = colorFor(s.name);
+          const ini   = initials(displayName);
+          return (
+            <div key={s.name} className="wr-drow" onClick={() => onSelectSub(s)} style={{ gridTemplateColumns:'1fr 70px 130px 80px' }}>
+              <div className="wr-org">
+                {s.logo_url
+                  ? <img src={s.logo_url} alt="" style={{ width:32, height:32, borderRadius:4, objectFit:'contain', background:'#fff', border:'1px solid var(--card-border)', flexShrink:0 }} />
+                  : <div className="mk" style={{ background: color }}>{ini}</div>
+                }
+                <div className="tx">
+                  <div className="on">{displayName}</div>
+                  {s.headquarters && <div className="os">{s.headquarters}</div>}
+                </div>
+              </div>
+              <div style={{ fontFamily:'IBM Plex Mono', fontSize:12, color:'var(--ink-3)' }}>{s.prime_count ?? '—'}</div>
+              <div style={{ fontFamily:'IBM Plex Mono', fontSize:12, color:'var(--teal)', fontWeight:600, textAlign:'right' }}>{fmtMoney(s.total_value) ?? '—'}</div>
+              <div style={{ fontFamily:'IBM Plex Mono', fontSize:12, color:'var(--ink-3)', textAlign:'right' }}>{s.award_count?.toLocaleString() ?? '—'}</div>
+            </div>
+          );
+        })}
+      </div>
+      <Pagination total={filtered.length} page={page} perPage={SUB_PER_PAGE} onChange={onPageChange} />
+    </div>
+  );
+}
+
+/* ── SubDetail ───────────────────────────────────────────────────────── */
+function SubDetail({ sub, onBack }: { sub: any; onBack(): void }) {
+  const [primeRels, setPrimeRels] = useState<any[]>([]);
+  const [loadingP, setLoadingP]   = useState(false);
+
+  const displayName = (sub.display_name ?? sub.name)
+    .toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())
+    .replace(/\bLlc\b/g,'LLC').replace(/\bInc\b/g,'Inc.').replace(/\bCorp\b/g,'Corp.');
+  const color = colorFor(sub.name);
+  const ini   = initials(displayName);
+
+  useEffect(() => {
+    setLoadingP(true);
+    fetch(`/api/industry/subawards?sub=${encodeURIComponent(sub.name)}`)
+      .then(r => r.json())
+      .then(d => { setPrimeRels(Array.isArray(d) ? d : []); setLoadingP(false); });
+  }, [sub.name]);
+
+  return (
+    <div className="org-detail">
+      <div className="orgd-sub">
+        <button onClick={onBack} className="orgd-back" style={{background:'none',border:'none',cursor:'pointer',padding:0}}>←</button>
+        <span className="orgd-sname" style={{color:'var(--ink-3)'}}>›</span>
+        <button onClick={onBack} className="orgd-sname" style={{background:'none',border:'none',cursor:'pointer',padding:0,color:'var(--ink-2)'}}>Subcontractors</button>
+        <span className="orgd-sname" style={{color:'var(--ink-3)'}}>›</span>
+        <span className="orgd-sname" style={{color:'var(--ink)',fontWeight:600}}>{displayName}</span>
+      </div>
+      <div className="org-detail-body">
+        {/* Hero */}
+        <div className="orgd-hero-top">
+          {sub.logo_url
+            ? <img src={sub.logo_url} alt="" style={{ width:56, height:56, borderRadius:8, objectFit:'contain', background:'#fff', border:'1px solid var(--card-border)', flexShrink:0 }} />
+            : <div className="orgd-orgmark" style={{background:color}}>{ini}</div>
+          }
+          <div style={{flex:1,minWidth:0}}>
+            <div className="orgd-type">SUBCONTRACTOR</div>
+            <div className="orgd-title">{displayName}</div>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginTop:4,flexWrap:'wrap'}}>
+              <span style={{padding:'2px 8px',borderRadius:4,border:'1px solid #1d6b8a',background:'rgba(29,107,138,.07)',fontFamily:'IBM Plex Mono',fontSize:10,color:'#1d6b8a',fontWeight:600}}>SUB</span>
+              {sub.headquarters && <span style={{fontFamily:'IBM Plex Mono',fontSize:11,color:'var(--ink-3)'}}>{sub.headquarters}</span>}
+              {sub.website && <a href={sub.website} target="_blank" rel="noreferrer" style={{fontFamily:'IBM Plex Mono',fontSize:11,color:'var(--accent)'}}>↗ Website</a>}
+            </div>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="orgd-metas">
+          <div className="orgd-meta">
+            <div className="mlbl">Total Subawards</div>
+            <div className="mval" style={{color:'var(--teal)'}}>{fmtMoney(sub.total_value) ?? '—'}</div>
+          </div>
+          <div className="orgd-meta">
+            <div className="mlbl">Prime Contractors</div>
+            <div className="mval">{sub.prime_count ?? '—'}</div>
+          </div>
+          <div className="orgd-meta">
+            <div className="mlbl">Award Count</div>
+            <div className="mval">{sub.award_count?.toLocaleString() ?? '—'}</div>
+          </div>
+        </div>
+
+        {sub.description && (
+          <div style={{padding:'12px 24px',borderBottom:'1px solid var(--card-border)',fontSize:13,color:'var(--ink-2)',lineHeight:1.6}}>
+            {sub.description}
+          </div>
+        )}
+
+        {/* Prime relationships */}
+        <div style={{padding:'12px 24px 4px',fontFamily:'IBM Plex Mono',fontSize:11,color:'var(--ink-3)',textTransform:'uppercase',letterSpacing:'1px'}}>
+          Prime Contractor Relationships
+        </div>
+        {loadingP ? (
+          <div style={{padding:'20px 24px',fontFamily:'IBM Plex Mono',fontSize:12,color:'var(--ink-3)'}}>Loading…</div>
+        ) : primeRels.length === 0 ? (
+          <div style={{padding:'20px 24px',fontFamily:'IBM Plex Mono',fontSize:12,color:'var(--ink-3)'}}>No relationship data found.</div>
+        ) : (
+          <div style={{flex:1,overflow:'auto'}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 130px 70px',padding:'8px 24px',background:'var(--card)',borderBottom:'1px solid var(--card-border)'}}>
+              {['Prime Contractor','Sub Value','Awards'].map(h => (
+                <div key={h} style={{fontFamily:'IBM Plex Mono',fontSize:10,textTransform:'uppercase',letterSpacing:'1px',color:'var(--ink-3)'}}>{h}</div>
+              ))}
+            </div>
+            {primeRels.map((r: any, i: number) => (
+              <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 130px 70px',padding:'10px 24px',borderBottom:'1px solid rgba(0,0,0,.04)',alignItems:'center'}}>
+                <div style={{fontSize:13,fontWeight:500,color:'var(--ink)'}}>
+                  {r.prime_legal_name.toLowerCase().replace(/\b\w/g,(c:string)=>c.toUpperCase()).replace(/\bLlc\b/g,'LLC').replace(/\bInc\b/g,'Inc.').replace(/\bCorp\b/g,'Corp.')}
+                </div>
+                <div style={{fontFamily:'IBM Plex Mono',fontSize:12,color:'var(--teal)',fontWeight:600}}>{r.total_amount ? fmtMoney(r.total_amount) : '—'}</div>
+                <div style={{fontFamily:'IBM Plex Mono',fontSize:12,color:'var(--ink-3)'}}>{r.award_count ?? '—'}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── Main component ──────────────────────────────────────────────────── */
 export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
   const [seg, setSeg]                 = useState<'gov'|'ind'>('gov');
@@ -728,6 +890,12 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
   const [indPage,       setIndPage]       = useState(1);
   const [selectedCompany, setSelectedCompany] = useState<any|null>(null);
 
+  /* Subcontractor state */
+  const [indRole,        setIndRole]        = useState<'primes'|'subs'>('primes');
+  const [subs,           setSubs]           = useState<any[]>([]);
+  const [subsLoaded,     setSubsLoaded]     = useState(false);
+  const [selectedSub,    setSelectedSub]    = useState<any|null>(null);
+
   /* Load companies lazily when INDUSTRY tab is first clicked */
   useEffect(() => {
     if (seg === 'ind' && !indLoaded) {
@@ -738,8 +906,18 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
     }
   }, [seg, indLoaded]);
 
+  /* Load subs lazily when subs role is first selected */
+  useEffect(() => {
+    if (indRole === 'subs' && !subsLoaded) {
+      fetch('/api/industry/subs').then(r => r.json()).then(data => {
+        setSubs(Array.isArray(data) ? data : []);
+        setSubsLoaded(true);
+      });
+    }
+  }, [indRole, subsLoaded]);
+
   /* Reset page when industry filters change */
-  useEffect(() => { setIndPage(1); setSelectedCompany(null); }, [indSearch, indValueTier]);
+  useEffect(() => { setIndPage(1); setSelectedCompany(null); setSelectedSub(null); }, [indSearch, indValueTier, indRole]);
 
   /* Gov org data */
   const filtered = useMemo(() => {
@@ -848,30 +1026,53 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
 
           {/* INDUSTRY sidebar */}
           {seg === 'ind' && <>
-            <div className="wr-hidx-lab">Companies</div>
-            <div
-              className={'wr-idx'+(indValueTier===null?' on':'')}
-              onClick={() => { setIndValueTier(null); setSelectedCompany(null); }}
-            >
-              <span className="ico"><GridIc /></span>
-              <span>All companies</span>
-              <span className="c">{companies.length}</span>
+            {/* Primes / Subs toggle */}
+            <div style={{ display:'flex', gap:4, margin:'0 0 12px 0' }}>
+              <button
+                onClick={() => { setIndRole('primes'); setSelectedSub(null); }}
+                style={{ flex:1, padding:'5px 0', fontFamily:'IBM Plex Mono', fontSize:11, fontWeight:600, letterSpacing:'0.5px', border:'1px solid var(--card-border)', borderRadius:6, cursor:'pointer', background: indRole==='primes' ? 'var(--navy)' : 'transparent', color: indRole==='primes' ? '#fff' : 'var(--ink-3)' }}
+              >Primes</button>
+              <button
+                onClick={() => { setIndRole('subs'); setSelectedCompany(null); }}
+                style={{ flex:1, padding:'5px 0', fontFamily:'IBM Plex Mono', fontSize:11, fontWeight:600, letterSpacing:'0.5px', border:'1px solid var(--card-border)', borderRadius:6, cursor:'pointer', background: indRole==='subs' ? 'var(--navy)' : 'transparent', color: indRole==='subs' ? '#fff' : 'var(--ink-3)' }}
+              >Subs</button>
             </div>
-            <div className="wr-idx-div" />
-            <div className="wr-hidx-lab" style={{ paddingTop:8 }}>By Contract Value</div>
-            {tierCounts.map(t => (
+
+            {indRole === 'primes' && <>
+              <div className="wr-hidx-lab">Companies</div>
               <div
-                key={t.label}
-                className={'wr-idx'+(indValueTier===t.label?' on':'')}
-                onClick={() => { setIndValueTier(t.label); setSelectedCompany(null); }}
+                className={'wr-idx'+(indValueTier===null?' on':'')}
+                onClick={() => { setIndValueTier(null); setSelectedCompany(null); }}
               >
-                <span className="ico">
-                  <span style={{ width:8, height:8, borderRadius:2, background:'var(--teal)', display:'block', opacity: t.count > 0 ? 1 : 0.3 }} />
-                </span>
-                <span>{t.label}</span>
-                <span className="c">{t.count}</span>
+                <span className="ico"><GridIc /></span>
+                <span>All primes</span>
+                <span className="c">{companies.length}</span>
               </div>
-            ))}
+              <div className="wr-idx-div" />
+              <div className="wr-hidx-lab" style={{ paddingTop:8 }}>By Contract Value</div>
+              {tierCounts.map(t => (
+                <div
+                  key={t.label}
+                  className={'wr-idx'+(indValueTier===t.label?' on':'')}
+                  onClick={() => { setIndValueTier(t.label); setSelectedCompany(null); }}
+                >
+                  <span className="ico">
+                    <span style={{ width:8, height:8, borderRadius:2, background:'var(--teal)', display:'block', opacity: t.count > 0 ? 1 : 0.3 }} />
+                  </span>
+                  <span>{t.label}</span>
+                  <span className="c">{t.count}</span>
+                </div>
+              ))}
+            </>}
+
+            {indRole === 'subs' && <>
+              <div className="wr-hidx-lab">Subcontractors</div>
+              <div className={'wr-idx on'}>
+                <span className="ico"><GridIc /></span>
+                <span>All subs</span>
+                <span className="c">{subs.length}</span>
+              </div>
+            </>}
           </>}
         </aside>
 
@@ -879,7 +1080,18 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
         {seg === 'gov' ? (
           <Directory groups={groups} activeSection={activeSection} />
         ) : selectedCompany ? (
-          <CompanyDetail company={selectedCompany} onBack={() => setSelectedCompany(null)} />
+          <CompanyDetail company={selectedCompany} onBack={() => { setSelectedCompany(null); }} />
+        ) : selectedSub ? (
+          <SubDetail sub={selectedSub} onBack={() => setSelectedSub(null)} />
+        ) : indRole === 'subs' ? (
+          <SubList
+            subs={subs}
+            search={indSearch}
+            page={indPage}
+            onPageChange={setIndPage}
+            onSelectSub={setSelectedSub}
+            loaded={subsLoaded}
+          />
         ) : (
           <IndustryList
             companies={companies}

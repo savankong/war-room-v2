@@ -17,7 +17,7 @@ function fmtMoney(v: string | number | null) {
   return `$${n}`;
 }
 
-type Tab = 'orgs' | 'contacts' | 'contracts' | 'ind-companies' | 'ind-people';
+type Tab = 'orgs' | 'contacts' | 'contracts' | 'ind-companies' | 'ind-people' | 'ind-subs';
 const SIGNAL_TYPES = ['Opportunity','Award','Budget'];
 const SOURCES      = ['sam_gov','usaspending','manual'];
 const BRANCHES     = ['Army','Navy','Air Force','Marine Corps','Space Force','OSD','Joint','DHS','Other'];
@@ -479,11 +479,97 @@ function CompanyEditPanel({ item, isNew, onClose, onSave, onDelete }: {
   );
 }
 
+/* ── SubCompanyEditPanel ──────────────────────────────────────────── */
+function SubCompanyEditPanel({ item, isNew, onClose, onSave, onDelete, allSubs }: {
+  item: any; isNew: boolean; allSubs: any[];
+  onClose(): void; onSave(data: any): void; onDelete(): void;
+}) {
+  const [form, setForm] = useState<Record<string, any>>({ ...item });
+  const [saving, setSaving] = useState(false);
+  const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
+
+  async function save() {
+    setSaving(true);
+    const url = isNew ? '/api/admin/sub-companies' : `/api/admin/sub-companies/${item.id}`;
+    const res = await fetch(url, { method: isNew ? 'POST' : 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    setSaving(false);
+    if (res.ok) {
+      const json = await res.json();
+      onSave({ ...form, id: isNew ? json.id : item.id });
+    } else {
+      alert('Save failed: ' + (await res.text()));
+    }
+  }
+
+  return (
+    <div className="adm-panel-bg" onClick={onClose}>
+      <div className="adm-panel" onClick={e => e.stopPropagation()}>
+        <div className="adm-panel-hd">
+          <div>
+            <div className="adm-panel-type">{isNew ? 'New Subcontractor' : 'Edit Subcontractor'}</div>
+            <div className="adm-panel-name">{form.name || '—'}</div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {!isNew && <button className="adm-btn danger sm" onClick={onDelete}>Delete</button>}
+            <button className="adm-panel-x" onClick={onClose}>✕</button>
+          </div>
+        </div>
+        <div className="adm-panel-body">
+          <PhotoField value={form.logo_url ?? ''} onChange={v => set('logo_url', v)} shape="square" label="Logo URL" />
+          <div className="adm-fg">
+            <label>Display Name *</label>
+            <input className="adm-input" value={form.name ?? ''} onChange={e => set('name', e.target.value)} placeholder="General Atomics" />
+          </div>
+          <div className="adm-fg">
+            <label>Legal Name (matches sub_awards.sub_name)</label>
+            {isNew ? (
+              <select className="adm-input" value={form.legal_name ?? ''} onChange={e => {
+                const v = e.target.value;
+                set('legal_name', v);
+                if (!form.name) set('name', v.toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()).replace(/\bLlc\b/g,'LLC').replace(/\bInc\b/g,'Inc.').replace(/\bCorp\b/g,'Corp.'));
+              }}>
+                <option value="">— pick a sub from awards data —</option>
+                {allSubs.map((s: any) => (
+                  <option key={s.name} value={s.name}>{s.name}</option>
+                ))}
+              </select>
+            ) : (
+              <input className="adm-input" value={form.legal_name ?? ''} onChange={e => set('legal_name', e.target.value)} placeholder="GENERAL ATOMICS AERONAUTICAL SYSTEMS INC." />
+            )}
+          </div>
+          <div className="adm-fg2">
+            <div className="adm-fg">
+              <label>Headquarters</label>
+              <input className="adm-input" value={form.headquarters ?? ''} onChange={e => set('headquarters', e.target.value)} placeholder="San Diego, CA" />
+            </div>
+            <div className="adm-fg">
+              <label>Website</label>
+              <input className="adm-input" value={form.website ?? ''} onChange={e => set('website', e.target.value)} placeholder="https://www.ga.com" />
+            </div>
+          </div>
+          <div className="adm-fg">
+            <label>Description</label>
+            <textarea className="adm-input" rows={4} value={form.description ?? ''} onChange={e => set('description', e.target.value)} />
+          </div>
+        </div>
+        <div className="adm-panel-foot">
+          <button className="adm-btn ghost" onClick={onClose}>Cancel</button>
+          <button className="adm-btn primary" onClick={save} disabled={saving || (!form.name?.trim() || !form.legal_name?.trim())}>
+            {saving ? 'Saving…' : (isNew ? 'Create' : 'Save changes')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Industry data hook ───────────────────────────────────────────── */
 function useIndustryData() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [contractAgg, setContractAgg] = useState<Record<string, any>>({});
   const [people, setPeople] = useState<any[]>([]);
+  const [subCompanies, setSubCompanies] = useState<any[]>([]);
+  const [allSubAwards, setAllSubAwards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -491,17 +577,21 @@ function useIndustryData() {
       fetch('/api/admin/industry-companies').then(r => r.json()),
       fetch('/api/industry').then(r => r.json()),
       fetch('/api/admin/industry-people').then(r => r.json()),
-    ]).then(([comp, agg, ppl]) => {
+      fetch('/api/admin/sub-companies').then(r => r.json()),
+      fetch('/api/industry/subs').then(r => r.json()),
+    ]).then(([comp, agg, ppl, subs, subsAgg]) => {
       setCompanies(Array.isArray(comp) ? comp : []);
       const map: Record<string, any> = {};
       if (Array.isArray(agg)) agg.forEach((a: any) => { map[a.name] = a; });
       setContractAgg(map);
       setPeople(Array.isArray(ppl) ? ppl : []);
+      setSubCompanies(Array.isArray(subs) ? subs : []);
+      setAllSubAwards(Array.isArray(subsAgg) ? subsAgg : []);
       setLoading(false);
     });
   }, []);
 
-  return { companies, setCompanies, contractAgg, people, setPeople, loading };
+  return { companies, setCompanies, contractAgg, people, setPeople, subCompanies, setSubCompanies, allSubAwards, loading };
 }
 
 /* ── Main ─────────────────────────────────────────────────────────── */
@@ -529,13 +619,18 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
   const [isNewCompany,   setIsNewCompany]   = useState(false);
   const [deleteCompany,  setDeleteCompany]  = useState<{ id: string; name: string } | null>(null);
 
+  /* Sub-company edit state */
+  const [editSubCo,     setEditSubCo]     = useState<any | null>(null);
+  const [isNewSubCo,    setIsNewSubCo]    = useState(false);
+  const [deleteSubCo,   setDeleteSubCo]   = useState<{ id: string; name: string } | null>(null);
+
   /* Local mutable copies (optimistic updates) */
   const [localOrgs,      setLocalOrgs]      = useState(orgs);
   const [localContacts,  setLocalContacts]  = useState(contacts);
   const [localContracts, setLocalContracts] = useState(contracts);
 
   /* Industry data */
-  const { companies, setCompanies, contractAgg, people, setPeople, loading: indLoading } = useIndustryData();
+  const { companies, setCompanies, contractAgg, people, setPeople, subCompanies, setSubCompanies, allSubAwards, loading: indLoading } = useIndustryData();
 
   /* Branches for org filter */
   const branches = useMemo(() =>
@@ -579,12 +674,19 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
     );
   }, [people, search]);
 
+  const filteredSubCompanies = useMemo(() => {
+    if (!search.trim()) return subCompanies;
+    const q = search.toLowerCase();
+    return subCompanies.filter(s => s.name?.toLowerCase().includes(q) || s.legal_name?.toLowerCase().includes(q));
+  }, [subCompanies, search]);
+
   /* Paged lists */
-  const pagedOrgs      = filteredOrgs.slice((page-1)*PER_PAGE, page*PER_PAGE);
-  const pagedContacts  = filteredContacts.slice((page-1)*PER_PAGE, page*PER_PAGE);
-  const pagedContracts = filteredContracts.slice((page-1)*PER_PAGE, page*PER_PAGE);
-  const pagedCompanies = filteredCompanies.slice((page-1)*PER_PAGE, page*PER_PAGE);
-  const pagedPeople    = filteredPeople.slice((page-1)*PER_PAGE, page*PER_PAGE);
+  const pagedOrgs         = filteredOrgs.slice((page-1)*PER_PAGE, page*PER_PAGE);
+  const pagedContacts     = filteredContacts.slice((page-1)*PER_PAGE, page*PER_PAGE);
+  const pagedContracts    = filteredContracts.slice((page-1)*PER_PAGE, page*PER_PAGE);
+  const pagedCompanies    = filteredCompanies.slice((page-1)*PER_PAGE, page*PER_PAGE);
+  const pagedPeople       = filteredPeople.slice((page-1)*PER_PAGE, page*PER_PAGE);
+  const pagedSubCompanies = filteredSubCompanies.slice((page-1)*PER_PAGE, page*PER_PAGE);
 
   /* Gov open-edit helpers */
   function openEdit(type: Tab, item: any) { setEditType(type); setEditItem(item); setIsNew(false); }
@@ -645,8 +747,9 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
         {navItem('contracts', 'Contracts',        stats.contractCount, 'var(--amber)')}
 
         <div className="adm-nav-section" style={{ marginTop: 16 }}>INDUSTRY</div>
-        {navItem('ind-companies', 'Companies',   companies.length,  '#7c4dbc')}
-        {navItem('ind-people',    'Executives',  people.length,     '#c8502d')}
+        {navItem('ind-companies', 'Companies',      companies.length,    '#7c4dbc')}
+        {navItem('ind-people',    'Executives',     people.length,       '#c8502d')}
+        {navItem('ind-subs',      'Subcontractors', subCompanies.length, '#1d6b8a')}
 
         <div className="adm-nav-section" style={{ marginTop: 24 }}>EXPORTS</div>
         {(['orgs','contacts','contracts'] as const).map(t => (
@@ -820,7 +923,7 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
         )}
 
         {/* ── INDUSTRY TABS ── */}
-        {(tab === 'ind-companies' || tab === 'ind-people') && (
+        {(tab === 'ind-companies' || tab === 'ind-people' || tab === 'ind-subs') && (
           indLoading ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-3)', fontFamily: 'IBM Plex Mono', fontSize: 12 }}>Loading…</div>
           ) : (
@@ -828,7 +931,7 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
               <div className="adm-toolbar">
                 <input
                   className="adm-search"
-                  placeholder={tab === 'ind-companies' ? 'Search companies…' : 'Search executives…'}
+                  placeholder={tab === 'ind-companies' ? 'Search companies…' : tab === 'ind-subs' ? 'Search subcontractors…' : 'Search executives…'}
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                 />
@@ -841,6 +944,11 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
                   {tab === 'ind-people' && (
                     <button className="adm-btn primary" onClick={() => { setEditType('contacts'); setEditItem({ tags: ['INDUSTRY'] }); setIsNew(true); }}>
                       + Add Executive
+                    </button>
+                  )}
+                  {tab === 'ind-subs' && (
+                    <button className="adm-btn primary" onClick={() => { setIsNewSubCo(true); setEditSubCo({}); }}>
+                      + Add Subcontractor
                     </button>
                   )}
                 </div>
@@ -883,6 +991,45 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
                     </tbody>
                   </table>
                   <Pagination total={filteredCompanies.length} page={page} perPage={PER_PAGE} onChange={setPage} />
+                </div>
+              )}
+
+              {/* IND SUBS */}
+              {tab === 'ind-subs' && (
+                <div className="adm-table-wrap">
+                  <div className="adm-count">{filteredSubCompanies.length} subcontractors enriched · {allSubAwards.length} total in awards data</div>
+                  <table className="adm-table">
+                    <thead><tr>
+                      <th /><th>Subcontractor</th><th>HQ</th><th>Website</th><th>Primes</th><th>Total Value</th>
+                    </tr></thead>
+                    <tbody>
+                      {pagedSubCompanies.map((s: any) => {
+                        const agg = allSubAwards.find((a: any) => a.name === s.legal_name) ?? {};
+                        return (
+                          <tr key={s.id}>
+                            <td><button className="adm-link-btn" onClick={() => { setIsNewSubCo(false); setEditSubCo(s); }}>Edit</button></td>
+                            <td>
+                              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                                {s.logo_url
+                                  ? <img src={s.logo_url} alt="" style={{ width:28, height:28, borderRadius:4, objectFit:'contain' }} />
+                                  : <div className="adm-av" style={{ background: colorFor(s.name), fontSize:10, width:28, height:28 }}>{initials(s.name)}</div>
+                                }
+                                <div>
+                                  <div className="adm-cell-primary">{s.name}</div>
+                                  {s.legal_name && <div className="adm-cell-sub" style={{ fontSize:10 }}>{s.legal_name}</div>}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="adm-cell-sub">{s.headquarters ?? '—'}</td>
+                            <td className="adm-cell-sub">{s.website ? <a href={s.website} target="_blank" rel="noreferrer" className="adm-link">↗</a> : '—'}</td>
+                            <td className="adm-cell-num">{agg.prime_count ?? s.prime_count ?? '—'}</td>
+                            <td className="adm-cell-num" style={{ color:'var(--teal)', fontWeight:600 }}>{agg.total_value ? fmtMoney(agg.total_value) : '—'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  <Pagination total={filteredSubCompanies.length} page={page} perPage={PER_PAGE} onChange={setPage} />
                 </div>
               )}
 
@@ -966,6 +1113,21 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
         />
       )}
 
+      {/* ── Sub-company edit panel ── */}
+      {editSubCo !== null && (
+        <SubCompanyEditPanel
+          item={editSubCo}
+          isNew={isNewSubCo}
+          allSubs={allSubAwards}
+          onClose={() => setEditSubCo(null)}
+          onSave={updated => {
+            setSubCompanies(prev => isNewSubCo ? [updated, ...prev] : prev.map(s => s.id === updated.id ? { ...s, ...updated } : s));
+            setEditSubCo(null);
+          }}
+          onDelete={() => setDeleteSubCo({ id: editSubCo.id, name: editSubCo.name })}
+        />
+      )}
+
       {/* ── Delete confirmations ── */}
       {deleteTarget && (
         <DeleteModal
@@ -984,6 +1146,18 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
             setEditCompany(null);
           }}
           onCancel={() => setDeleteCompany(null)}
+        />
+      )}
+      {deleteSubCo && (
+        <DeleteModal
+          name={deleteSubCo.name}
+          onConfirm={async () => {
+            const res = await fetch(`/api/admin/sub-companies/${deleteSubCo.id}`, { method: 'DELETE' });
+            if (res.ok) setSubCompanies(prev => prev.filter(s => s.id !== deleteSubCo.id));
+            setDeleteSubCo(null);
+            setEditSubCo(null);
+          }}
+          onCancel={() => setDeleteSubCo(null)}
         />
       )}
     </div>

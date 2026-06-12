@@ -75,35 +75,6 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/api/industry": {
-      "initialHeaders": {
-        "content-type": "application/json",
-        "x-next-cache-tags": "_N_T_/layout,_N_T_/api/layout,_N_T_/api/industry/layout,_N_T_/api/industry/route,_N_T_/api/industry"
-      },
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "next-action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": 600,
-      "initialExpireSeconds": 31536000,
-      "srcRoute": "/api/industry",
-      "dataRoute": null,
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
     "/favicon.ico": {
       "initialHeaders": {
         "cache-control": "public, max-age=0, must-revalidate",
