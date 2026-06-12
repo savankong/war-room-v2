@@ -10,14 +10,16 @@ async function getSignalsData() {
     db`
       SELECT
         c.id, c.external_id, c.title, c.value, c.set_aside AS status, c.signal_type,
-        c.award_date, c.source, c.set_aside, c.deadline, c.org_id,
+        COALESCE(c.award_date, c.created_at::date) AS award_date,
+        c.source, c.set_aside, c.deadline, c.org_id, c.recipient,
+        c.award_amt, c.poc_email, c.naics,
         o.full_name AS org_name, o.id AS org_slug,
         o.organization_type AS badge_text, NULL::text AS badge_color
       FROM contracts c
       LEFT JOIN orgs o ON o.id = c.org_id
       WHERE c.signal_type IS NOT NULL
-      ORDER BY c.award_date DESC NULLS LAST, c.created_at DESC
-      LIMIT 200
+      ORDER BY c.created_at DESC NULLS LAST
+      LIMIT 5000
     `,
     db`SELECT id, full_name AS name, id AS slug, NULL::text AS badge_color, organization_type AS badge_text FROM orgs WHERE is_active = true ORDER BY full_name`,
     db`
