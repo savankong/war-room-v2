@@ -23,6 +23,20 @@ function fmtDate(d: string | null) {
   return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 }
 
+/* ── Set-aside filter tags ───────────────────────────────────────────── */
+const SET_ASIDE_FILTERS = [
+  { label: 'SBIR',    tag: 'SBIR' },
+  { label: 'SBIR I',  tag: 'SBIR I' },
+  { label: 'SBIR II', tag: 'SBIR II' },
+  { label: 'STTR',    tag: 'STTR' },
+  { label: '8(a)',     tag: '8(a)' },
+  { label: 'WOSB',    tag: 'WOSB' },
+  { label: 'HUBZone', tag: 'HUBZone' },
+  { label: 'SDVOSB',  tag: 'SDVOSB' },
+  { label: 'SDB',     tag: 'SDB' },
+];
+const SA_COLLAPSED_COUNT = 5;
+
 /* ── Value tiers for industry sidebar ───────────────────────────────── */
 const VALUE_TIERS = [
   { label: '$10B+',       min: 10e9,  max: Infinity },
@@ -631,9 +645,9 @@ function Directory({ groups, activeSection }: { groups: { label: string; rows: O
 
 /* ── Industry list (table view) ──────────────────────────────────────── */
 function IndustryList({
-  companies, search, valueTier, page, onPageChange, onSelectCompany,
+  companies, search, valueTier, setAside, page, onPageChange, onSelectCompany,
 }: {
-  companies: any[]; search: string; valueTier: string | null; page: number;
+  companies: any[]; search: string; valueTier: string | null; setAside: string | null; page: number;
   onPageChange(p: number): void; onSelectCompany(c: any): void;
 }) {
   const filtered = useMemo(() => {
@@ -646,8 +660,11 @@ function IndustryList({
       const tier = VALUE_TIERS.find(t => t.label === valueTier);
       if (tier) list = list.filter(c => Number(c.total_value) >= tier.min && Number(c.total_value) < tier.max);
     }
+    if (setAside) {
+      list = list.filter(c => Array.isArray(c.set_aside_tags) && c.set_aside_tags.includes(setAside));
+    }
     return list;
-  }, [companies, search, valueTier]);
+  }, [companies, search, valueTier, setAside]);
 
   const paged = filtered.slice((page-1)*IND_PER_PAGE, page*IND_PER_PAGE);
 
@@ -891,6 +908,8 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
   const [selectedCompany, setSelectedCompany] = useState<any|null>(null);
 
   /* Subcontractor state */
+  const [indSetAside,    setIndSetAside]    = useState<string|null>(null);
+  const [saExpanded,     setSaExpanded]     = useState(false);
   const [indRole,        setIndRole]        = useState<'primes'|'subs'>('primes');
   const [subs,           setSubs]           = useState<any[]>([]);
   const [subsLoaded,     setSubsLoaded]     = useState(false);
@@ -917,7 +936,7 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
   }, [indRole, subsLoaded]);
 
   /* Reset page when industry filters change */
-  useEffect(() => { setIndPage(1); setSelectedCompany(null); setSelectedSub(null); }, [indSearch, indValueTier, indRole]);
+  useEffect(() => { setIndPage(1); setSelectedCompany(null); setSelectedSub(null); }, [indSearch, indValueTier, indSetAside, indRole]);
 
   /* Gov org data */
   const filtered = useMemo(() => {
@@ -950,12 +969,21 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
     [companies]
   );
 
+  const saFilterCounts = useMemo(() =>
+    SET_ASIDE_FILTERS.map(f => ({
+      ...f,
+      count: companies.filter(c => Array.isArray(c.set_aside_tags) && c.set_aside_tags.includes(f.tag)).length,
+    })).filter(f => f.count > 0),
+    [companies]
+  );
+
   function switchSeg(s: 'gov'|'ind') {
     setSeg(s);
     setSearch('');
     setActiveSection(null);
     setIndSearch('');
     setIndValueTier(null);
+    setIndSetAside(null);
     setSelectedCompany(null);
   }
 
@@ -1054,7 +1082,7 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
                 <div
                   key={t.label}
                   className={'wr-idx'+(indValueTier===t.label?' on':'')}
-                  onClick={() => { setIndValueTier(t.label); setSelectedCompany(null); }}
+                  onClick={() => { setIndValueTier(t.label); setIndSetAside(null); setSelectedCompany(null); }}
                 >
                   <span className="ico">
                     <span style={{ width:8, height:8, borderRadius:2, background:'var(--teal)', display:'block', opacity: t.count > 0 ? 1 : 0.3 }} />
@@ -1063,6 +1091,36 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
                   <span className="c">{t.count}</span>
                 </div>
               ))}
+
+              {saFilterCounts.length > 0 && <>
+                <div className="wr-idx-div" />
+                <div className="wr-hidx-lab" style={{ paddingTop:8 }}>Set-Aside / Program</div>
+                {(saExpanded ? saFilterCounts : saFilterCounts.slice(0, SA_COLLAPSED_COUNT)).map(f => (
+                  <div
+                    key={f.tag}
+                    className={'wr-idx'+(indSetAside===f.tag?' on':'')}
+                    onClick={() => { setIndSetAside(indSetAside===f.tag ? null : f.tag); setIndValueTier(null); setSelectedCompany(null); }}
+                  >
+                    <span className="ico">
+                      <span style={{ width:8, height:8, borderRadius:2, background:'#e0a32e', display:'block' }} />
+                    </span>
+                    <span>{f.label}</span>
+                    <span className="c">{f.count}</span>
+                  </div>
+                ))}
+                {saFilterCounts.length > SA_COLLAPSED_COUNT && (
+                  <div
+                    className="wr-idx"
+                    onClick={() => setSaExpanded(e => !e)}
+                    style={{ color:'var(--ink-3)', fontSize:11 }}
+                  >
+                    <span className="ico">
+                      <span style={{ width:8, height:8, display:'block' }} />
+                    </span>
+                    <span>{saExpanded ? '↑ Show less' : `+ ${saFilterCounts.length - SA_COLLAPSED_COUNT} more`}</span>
+                  </div>
+                )}
+              </>}
             </>}
 
             {indRole === 'subs' && <>
@@ -1097,6 +1155,7 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
             companies={companies}
             search={indSearch}
             valueTier={indValueTier}
+            setAside={indSetAside}
             page={indPage}
             onPageChange={setIndPage}
             onSelectCompany={setSelectedCompany}
