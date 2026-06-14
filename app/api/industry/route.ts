@@ -21,7 +21,11 @@ export async function GET() {
       COUNT(*) FILTER (WHERE c.set_aside IS NOT NULL)::int     AS set_aside_count,
       ARRAY_AGG(DISTINCT COALESCE(c.sub_agency, c.agency))
         FILTER (WHERE COALESCE(c.sub_agency, c.agency) IS NOT NULL) AS agencies,
-      ARRAY_AGG(DISTINCT c.source)                             AS sources
+      ARRAY_AGG(DISTINCT c.source)                             AS sources,
+      (SELECT ARRAY_AGG(DISTINCT tag)
+       FROM contracts c2, UNNEST(c2.set_aside_tags) AS tag
+       WHERE c2.recipient = c.recipient AND c2.set_aside_tags IS NOT NULL
+      )                                                        AS set_aside_tags
     FROM contracts c
     LEFT JOIN industry_companies ic ON ic.legal_name = c.recipient
     WHERE c.recipient IS NOT NULL
