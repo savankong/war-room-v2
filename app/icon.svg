@@ -1,0 +1,22 @@
+<svg width="64" height="64" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="War Room favicon">
+  <defs>
+    <linearGradient id="fvL" x1="26" y1="30" x2="120" y2="216" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E0E7F0"/><stop offset="0.5" stop-color="#A9B4C2"/><stop offset="1" stop-color="#737F90"/>
+    </linearGradient>
+    <linearGradient id="fvR" x1="100" y1="34" x2="174" y2="216" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6FA8EC"/><stop offset="0.55" stop-color="#2F6FC4"/><stop offset="1" stop-color="#1B4E96"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="512" height="512" rx="96" fill="#1B2738"/>
+  <g transform="translate(112,92) scale(1.45)">
+    <polygon points="26,34 100,34 100,216 26,112" fill="url(#fvL)"/>
+    <polygon points="100,34 174,34 174,112 100,216" fill="url(#fvR)"/>
+    <polygon points="42,48 100,48 100,126 42,108" fill="#3A5078"/>
+    <polygon points="100,48 158,48 158,108 100,126" fill="#2A3D62"/>
+    <polygon points="42,108 100,126 100,194" fill="#202F4C"/>
+    <polygon points="158,108 100,126 100,194" fill="#141E32"/>
+    <line x1="100" y1="48" x2="100" y2="194" stroke="#9BC2F0" stroke-width="2.4" opacity="0.55"/>
+    <polyline points="42,108 100,126 158,108" fill="none" stroke="#0C1422" stroke-width="2.4" stroke-linejoin="round" opacity="0.55"/>
+    <polygon points="26,34 174,34 174,112 100,216 26,112" fill="none" stroke="#080E18" stroke-opacity="0.35" stroke-width="2" stroke-linejoin="round"/>
+  </g>
+</svg>
