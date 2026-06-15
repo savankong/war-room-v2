@@ -67,66 +67,61 @@ async function run() {
   const postedTo = fmt(now);
   const postedFrom = fmt(past);
 
-  const allOpps = new Map(); // noticeId → opp
+  let updated = 0;
   let offset = 0;
   let total = Infinity;
 
   while (offset < total) {
     const { opps, total: t } = await fetchPage(postedFrom, postedTo, offset);
     total = t;
+
+    // Update DB immediately for any matches found on this page
     for (const opp of opps) {
-      if (idMap.has(opp.noticeId)) allOpps.set(opp.noticeId, opp);
+      if (!idMap.has(opp.noticeId)) continue;
+      const dbId = idMap.get(opp.noticeId);
+      const pocs = Array.isArray(opp.pointOfContact) ? opp.pointOfContact : [];
+      const poc = pocs.find(p => (p.type || '').toLowerCase() === 'primary') || pocs[0] || null;
+
+      const description = stripHtml(opp.description);
+      const naics = opp.naicsCode || null;
+      const pscCode = opp.classificationCode || null;
+      const setAside = opp.typeOfSetAsideDesc || opp.typeOfSetAside || null;
+      const solNum = opp.solicitationNumber || null;
+      const noticeType = opp.type || null;
+      const deadline = opp.responseDeadLine || null;
+      const pocName = poc?.fullName || null;
+      const pocEmail = poc?.email || null;
+      const pocPhone = poc?.phone || null;
+      const path = (opp.fullParentPathName || '').split('.');
+      const agency = path[1]?.trim() || path[0]?.trim() || null;
+      const subAgency = path[2]?.trim() || null;
+
+      await db`
+        UPDATE contracts SET
+          description         = COALESCE(NULLIF(description, ''), ${description}),
+          naics               = COALESCE(naics,               ${naics}),
+          psc_code            = COALESCE(psc_code,            ${pscCode}),
+          set_aside           = COALESCE(set_aside,           ${setAside}),
+          solicitation_number = COALESCE(solicitation_number, ${solNum}),
+          notice_type         = COALESCE(notice_type,         ${noticeType}),
+          poc                 = COALESCE(poc,                 ${pocName}),
+          poc_email           = COALESCE(poc_email,           ${pocEmail}),
+          poc_phone           = COALESCE(poc_phone,           ${pocPhone}),
+          agency              = COALESCE(agency,              ${agency}),
+          sub_agency          = COALESCE(sub_agency,          ${subAgency}),
+          raw_payload         = ${db.json(opp)}
+        WHERE id = ${dbId}
+      `;
+      updated++;
+      idMap.delete(opp.noticeId); // remove so we know what's left
     }
-    console.log(`  Got ${opps.length} opps (total=${t}, matched so far: ${allOpps.size}/${idMap.size})`);
+
+    console.log(`  Got ${opps.length} opps (total=${t}, updated so far: ${updated}, remaining: ${idMap.size})`);
     offset += 1000;
     if (opps.length === 0) break;
-    // Stop early if we've matched everything
-    if (allOpps.size >= idMap.size) { console.log('  All records matched — stopping early.'); break; }
-    // Small delay to be polite
+    if (idMap.size === 0) { console.log('  All records updated — stopping early.'); break; }
     if (offset < total) await new Promise(r => setTimeout(r, 800));
   }
-
-  console.log(`\nMatched ${allOpps.size} of ${idMap.size} DB records from API`);
-
-  let updated = 0;
-  for (const [noticeId, opp] of allOpps) {
-    const dbId = idMap.get(noticeId);
-    const pocs = Array.isArray(opp.pointOfContact) ? opp.pointOfContact : [];
-    const poc = pocs.find(p => (p.type || '').toLowerCase() === 'primary') || pocs[0] || null;
-
-    const description = stripHtml(opp.description);
-    const naics = opp.naicsCode || null;
-    const pscCode = opp.classificationCode || null;
-    const setAside = opp.typeOfSetAsideDesc || opp.typeOfSetAside || null;
-    const solNum = opp.solicitationNumber || null;
-    const noticeType = opp.type || null;
-    const deadline = opp.responseDeadLine || null;
-    const pocName = poc?.fullName || null;
-    const pocEmail = poc?.email || null;
-    const pocPhone = poc?.phone || null;
-
-    // Extract agency/sub from path
-    const path = (opp.fullParentPathName || '').split('.');
-    const agency = path[1]?.trim() || path[0]?.trim() || null;
-    const subAgency = path[2]?.trim() || null;
-
-    await db`
-      UPDATE contracts SET
-        description         = COALESCE(NULLIF(description, ''), ${description}),
-        naics               = COALESCE(naics,               ${naics}),
-        psc_code            = COALESCE(psc_code,            ${pscCode}),
-        set_aside           = COALESCE(set_aside,           ${setAside}),
-        solicitation_number = COALESCE(solicitation_number, ${solNum}),
-        notice_type         = COALESCE(notice_type,         ${noticeType}),
-        poc                 = COALESCE(poc,                 ${pocName}),
-        poc_email           = COALESCE(poc_email,           ${pocEmail}),
-        poc_phone           = COALESCE(poc_phone,           ${pocPhone}),
-        agency              = COALESCE(agency,              ${agency}),
-        sub_agency          = COALESCE(sub_agency,          ${subAgency}),
-        raw_payload         = ${db.json(opp)}
-      WHERE id = ${dbId}
-    `;
-    updated++;
   }
 
   console.log(`Updated ${updated} records.`);
