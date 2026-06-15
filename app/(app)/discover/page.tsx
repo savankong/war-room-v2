@@ -8,7 +8,7 @@ async function getOrgs() {
   const rows = await db`
     SELECT
       o.id,
-      o.full_name            AS name,
+      COALESCE(o.full_name, o.id) AS name,
       o.org_type_id          AS organization_type,
       o.loc                  AS hq_address,
       o.branch,
@@ -51,5 +51,5 @@ async function getOrgs() {
 
 export default async function Page() {
   const orgs = await getOrgs();
-  return <div>loaded {orgs.length} orgs — sample: {JSON.stringify(orgs[0])}</div>;
+  return <DiscoverClient orgs={orgs} />;
 }
