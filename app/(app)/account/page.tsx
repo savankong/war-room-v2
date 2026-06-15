@@ -62,7 +62,7 @@ export default function AccountPage() {
       });
       const data = await res.json();
       if (!res.ok) { setProfileMsg({ ok: false, text: data.error || 'Update failed' }); }
-      else { setUser(u => u ? { ...u, ...data } : u); setProfileMsg({ ok: true, text: 'Profile updated.' }); }
+      else { setUser((u: any) => u ? { ...u, ...data } : u); setProfileMsg({ ok: true, text: 'Profile updated.' }); }
     } catch { setProfileMsg({ ok: false, text: 'Network error.' }); }
     setProfileSaving(false);
   }
