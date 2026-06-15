@@ -14,22 +14,22 @@ async function getOrgs() {
       o.branch,
       o.hierarchy_level      AS abs_hierarchy_level,
       o.hierarchy_level,
-      o.parent_id::text      AS parent_id,
+      o.parent_id,
       COUNT(DISTINCT c.id)::int   AS contact_count,
       COUNT(DISTINCT ct.id)::int  AS contract_count,
       (
         SELECT c2.name FROM contacts c2
-        WHERE c2.org_id = o.id::text AND c2.hierarchy_order = 1
+        WHERE c2.org_id = o.id AND c2.hierarchy_order = 1
         ORDER BY c2.name LIMIT 1
       ) AS top_leader_name,
       (
         SELECT c2.title FROM contacts c2
-        WHERE c2.org_id = o.id::text AND c2.hierarchy_order = 1
+        WHERE c2.org_id = o.id AND c2.hierarchy_order = 1
         ORDER BY c2.name LIMIT 1
       ) AS top_leader_title
     FROM orgs o
-    LEFT JOIN contacts c  ON c.org_id  = o.id::text
-    LEFT JOIN contracts ct ON ct.org_id = o.id::text
+    LEFT JOIN contacts c  ON c.org_id = o.id
+    LEFT JOIN contracts ct ON ct.org_id::text = o.id
     WHERE o.is_active = true
     GROUP BY o.id
     ORDER BY o.hierarchy_level NULLS LAST, o.full_name

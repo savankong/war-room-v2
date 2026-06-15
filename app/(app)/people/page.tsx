@@ -32,10 +32,10 @@ async function getPeopleData() {
         COALESCE(cs.awards_3yr,      0)::int  AS org_awards_3yr,
         COALESCE(cs.open_opps,       0)::int  AS org_open_opps
       FROM contacts c
-      LEFT JOIN orgs o ON o.id::text = c.org_id
+      LEFT JOIN orgs o ON o.id = c.org_id
       LEFT JOIN (
         SELECT
-          org_id,
+          org_id::text,
           COUNT(*)::int                                                                     AS total_contracts,
           COUNT(*) FILTER (WHERE signal_type = 'Award'
                            AND award_date IS NOT NULL

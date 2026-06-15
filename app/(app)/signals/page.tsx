@@ -36,7 +36,7 @@ async function getSignalsData() {
         o.full_name AS org_name, o.id::text AS org_slug,
         o.org_type_id AS badge_text, NULL::text AS badge_color
       FROM contracts c
-      LEFT JOIN orgs o ON o.id::text = c.org_id
+      LEFT JOIN orgs o ON o.id = c.org_id::text
       WHERE c.signal_type IS NOT NULL
       ORDER BY c.created_at DESC NULLS LAST
       LIMIT 5000
@@ -57,7 +57,7 @@ async function getSignalsData() {
         c.agency_or_lab AS sub_agency, c.service_branch AS agency, c.naics_code AS naics, c.status AS set_aside, c.source,
         c.org_id, o.full_name AS org_name
       FROM contracts c
-      LEFT JOIN orgs o ON o.id::text = c.org_id
+      LEFT JOIN orgs o ON o.id = c.org_id::text
       WHERE c.signal_type = 'Award'
         AND c.awardee IS NOT NULL
         AND ${db.unsafe(IND_WHERE)}
