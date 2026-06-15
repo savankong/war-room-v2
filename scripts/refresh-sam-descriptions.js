@@ -60,10 +60,12 @@ async function run() {
   console.log(`${idMap.size} SAM.gov records in DB to enrich`);
 
   // Sweep: last 3 years in one wide window
-  const postedTo = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, '/');
-  const from = new Date();
-  from.setFullYear(from.getFullYear() - 3);
-  const postedFrom = from.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, '/');
+  // SAM.gov expects MM/dd/yyyy
+  const fmt = d => `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+  const now = new Date();
+  const past = new Date(); past.setDate(now.getDate() - 364);
+  const postedTo = fmt(now);
+  const postedFrom = fmt(past);
 
   const allOpps = new Map(); // noticeId → opp
   let offset = 0;
