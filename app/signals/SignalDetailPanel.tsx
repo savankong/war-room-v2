@@ -14,16 +14,18 @@ function fmtDate(d: string | null) {
     return new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   } catch { return d; }
 }
+function truncId(s: string | null, max = 24): string {
+  if (!s) return '—';
+  return s.length > max ? s.slice(0, max) + '…' : s;
+}
+function isUrl(s: string | null): boolean {
+  return !!s && (s.startsWith('http://') || s.startsWith('https://'));
+}
 
 const TYPE_COLOR: Record<string, string> = {
   Opportunity: '#2f8676',
   Award:       '#283a6b',
   Budget:      '#C98A2B',
-};
-const TYPE_BG: Record<string, string> = {
-  Opportunity: 'rgba(47,134,118,.12)',
-  Award:       'rgba(40,58,107,.12)',
-  Budget:      'rgba(201,138,43,.14)',
 };
 const SOURCE_LABEL: Record<string, string> = {
   sam_gov:     'SAM.gov',
@@ -48,6 +50,16 @@ function StatCell({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+function IdRow({ label, value }: { label: string; value: string | null }) {
+  if (!value) return null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '8px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, marginBottom: 6 }}>
+      <div style={{ fontFamily: 'IBM Plex Mono', fontSize: 9, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '1px' }}>{label}</div>
+      <div style={{ fontFamily: 'IBM Plex Mono', fontSize: 12, color: 'var(--ink)', wordBreak: 'break-all' }} title={value}>{value}</div>
+    </div>
+  );
+}
+
 export default function SignalDetailPanel({ signal, onClose }: Props) {
   const typeColor = TYPE_COLOR[signal.signal_type] ?? '#4A5666';
   const src = SOURCE_LABEL[signal.source] ?? signal.source ?? '';
@@ -61,6 +73,11 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
   const externalUrl = samUrl ?? usaUrl;
 
   const hasPoc = signal.poc || signal.poc_email || signal.poc_phone;
+  const pocSearchUrl = signal.poc ? `/people?q=${encodeURIComponent(signal.poc)}` : null;
+  const orgUrl = signal.org_slug ? `/org/${signal.org_slug}` : null;
+
+  const description = signal.description;
+  const descIsUrl = isUrl(description);
 
   return (
     <div className="wr-pf-back" onClick={onClose}>
@@ -86,11 +103,6 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
           <div style={{ fontFamily: 'Archivo', fontSize: 16, fontWeight: 700, color: 'var(--topbar-fg)', lineHeight: 1.35, marginBottom: 6 }}>
             {signal.title}
           </div>
-          {(signal.external_id || signal.id) && (
-            <div style={{ fontFamily: 'IBM Plex Mono', fontSize: 10, color: 'rgba(237,241,246,.45)', marginBottom: 10 }}>
-              {signal.external_id ?? signal.id}
-            </div>
-          )}
           {(signal.value || signal.award_amt) && (
             <div style={{ fontFamily: 'Archivo', fontSize: 22, fontWeight: 800, color: '#EDF1F6', letterSpacing: '-.01em' }}>
               {fmtMoney(signal.value ?? signal.award_amt)}
@@ -101,12 +113,17 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
         {/* Body */}
         <div className="wr-pf-body">
 
-          {/* Classification */}
+          {/* IDs on own lines */}
+          <div className="wr-pf-sec">
+            <div className="wr-pf-sh"><span className="t">Identifiers</span><span className="ln" /></div>
+            <IdRow label="Notice ID" value={signal.external_id} />
+            <IdRow label="Solicitation #" value={signal.solicitation_number} />
+          </div>
+
+          {/* Details */}
           <div className="wr-pf-sec">
             <div className="wr-pf-sh"><span className="t">Details</span><span className="ln" /></div>
             <div className="wr-pf-sam-stats" style={{ gridTemplateColumns: 'repeat(2,1fr)' }}>
-              <StatCell label="Notice ID" value={signal.external_id} />
-              <StatCell label="Solicitation #" value={signal.solicitation_number} />
               <StatCell label="Published" value={fmtDate(signal.published_date || signal.award_date)} />
               <StatCell label="Response Deadline" value={fmtDate(signal.deadline)} />
               <StatCell label="Award Date" value={fmtDate(signal.award_date)} />
@@ -131,9 +148,14 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
               <div className="wr-pf-sh"><span className="t">Awarding agency</span><span className="ln" /></div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {signal.org_name && (
-                  <div style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-                    {signal.org_name}
-                  </div>
+                  orgUrl
+                    ? <a href={orgUrl} style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 700, color: 'var(--ink)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        {signal.org_name}
+                        <span style={{ opacity: .4, fontSize: 11 }}><IcLink /></span>
+                      </a>
+                    : <div style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+                        {signal.org_name}
+                      </div>
                 )}
                 {signal.sub_agency && signal.sub_agency !== signal.org_name && (
                   <div style={{ padding: '8px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 12, color: 'var(--ink-2)' }}>
@@ -162,7 +184,9 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
                 {signal.poc && (
                   <div className="wr-pf-sam-contact-row">
                     <span className="wr-pf-sam-contact-type">Name</span>
-                    <span className="wr-pf-sam-contact-val">{signal.poc}</span>
+                    {pocSearchUrl
+                      ? <a href={pocSearchUrl} className="wr-pf-sam-contact-val" style={{ textDecoration: 'none', color: 'var(--accent)' }}>{signal.poc}</a>
+                      : <span className="wr-pf-sam-contact-val">{signal.poc}</span>}
                   </div>
                 )}
                 {signal.poc_email && (
@@ -185,21 +209,20 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
           <div className="wr-pf-sec">
             <div className="wr-pf-sh"><span className="t">Description</span><span className="ln" /></div>
             <div className="wr-pf-about" style={{ whiteSpace: 'pre-wrap' }}>
-              {signal.description
-                ? signal.description
-                : `${signal.signal_type ?? 'Contract'} signal from ${src}. Full description not available — view on the source platform for complete details.`}
+              {descIsUrl ? (
+                <a href={description!} target="_blank" rel="noopener noreferrer" className="wr-pf-sam-link" style={{ display: 'inline-flex' }}>
+                  <IcLink /> View full description →
+                </a>
+              ) : description ? description : (
+                `${signal.signal_type ?? 'Contract'} signal from ${src}. Full description not available — view on the source platform for complete details.`
+              )}
             </div>
           </div>
 
           {/* External link */}
           {externalUrl && (
             <div className="wr-pf-sec" style={{ paddingBottom: 24 }}>
-              <a
-                href={externalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="wr-pf-sam-link"
-              >
+              <a href={externalUrl} target="_blank" rel="noopener noreferrer" className="wr-pf-sam-link">
                 <IcLink /> View on {samUrl ? 'SAM.gov' : 'USASpending.gov'} →
               </a>
             </div>
