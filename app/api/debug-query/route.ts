@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const db = getDb();
-    const cols = (t: string) => db`SELECT column_name FROM information_schema.columns WHERE table_name = ${t} ORDER BY ordinal_position`;
+    const cols = (t: string) => db`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = ${t} ORDER BY ordinal_position`;
     const [cc, oc, ctc] = await Promise.all([cols('contacts'), cols('orgs'), cols('contracts')]);
     // Test fixed discover query (UUID cast)
     let discoverErr = null;
@@ -26,9 +26,9 @@ export async function GET(req: NextRequest) {
       await db`SELECT c.id, c.signal_type, c.awardee, c.naics_code, c.status FROM contracts c WHERE c.signal_type IS NOT NULL LIMIT 1`;
     } catch(e: any) { signalsErr = e.message; }
     return NextResponse.json({
-      contacts_cols: cc.map((r: any) => r.column_name),
-      org_cols: oc.map((r: any) => r.column_name),
-      contract_cols: ctc.map((r: any) => r.column_name),
+      contacts_cols: cc.map((r: any) => `${r.column_name}:${r.data_type}`),
+      org_cols: oc.map((r: any) => `${r.column_name}:${r.data_type}`),
+      contract_cols: ctc.map((r: any) => `${r.column_name}:${r.data_type}`),
       discover_err: discoverErr,
       people_err: peopleErr,
       signals_err: signalsErr,
