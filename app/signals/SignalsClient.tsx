@@ -200,11 +200,11 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
   const [seg, setSeg] = useState<'dow'|'ind'>('dow');
 
   /* Gov filters */
-  const [search,       setSearch]       = useState('');
-  const [typeFilters,  setTypeFilters]  = useState<string[]>([]);
-  const [orgFilter,    setOrgFilter]    = useState<string|null>(null);
-  const [sourceFilter, setSourceFilter] = useState<string|null>(null);
-  const [govSort,      setGovSort]      = useState('Newest');
+  const [search,        setSearch]       = useState('');
+  const [typeFilters,   setTypeFilters]  = useState<string[]>([]);
+  const [orgFilters,    setOrgFilters]   = useState<string[]>([]);
+  const [sourceFilters, setSourceFilters]= useState<string[]>([]);
+  const [govSort,       setGovSort]      = useState('Newest');
 
   /* Industry filters */
   const [indSearch,    setIndSearch]    = useState('');
@@ -220,6 +220,11 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
   const [compSectionOpen,   setCompSectionOpen]   = useState(true);
   const [valueSectionOpen,  setValueSectionOpen]  = useState(true);
   const [agencySectionOpen, setAgencySectionOpen] = useState(true);
+
+  /* Expanded state for collapsible filter lists */
+  const [orgExpanded,    setOrgExpanded]    = useState(false);
+  const [compExpanded,   setCompExpanded]   = useState(false);
+  const [agencyExpanded, setAgencyExpanded] = useState(false);
 
   const [openSignal, setOpenSignal] = useState<any>(null);
 
@@ -253,8 +258,8 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
     return m;
   }, [contracts]);
 
-  const topOrgsForFilter = useMemo(() =>
-    [...activeOrgs].sort((a,b) => (orgCounts[b.id]??0)-(orgCounts[a.id]??0)).slice(0, 20),
+  const allOrgsForFilter = useMemo(() =>
+    [...activeOrgs].sort((a,b) => (orgCounts[b.id]??0)-(orgCounts[a.id]??0)),
     [activeOrgs, orgCounts]
   );
 
@@ -264,13 +269,13 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
       const q = search.toLowerCase();
       list = list.filter(c => (c.title??'').toLowerCase().includes(q) || (c.org_name??'').toLowerCase().includes(q));
     }
-    if (typeFilters.length > 0) list = list.filter(c => typeFilters.includes(c.signal_type));
-    if (orgFilter)    list = list.filter(c => c.org_id === orgFilter);
-    if (sourceFilter) list = list.filter(c => (SOURCE_LABEL[c.source] ?? c.source) === sourceFilter);
+    if (typeFilters.length > 0)   list = list.filter(c => typeFilters.includes(c.signal_type));
+    if (orgFilters.length > 0)    list = list.filter(c => orgFilters.includes(c.org_id));
+    if (sourceFilters.length > 0) list = list.filter(c => sourceFilters.includes(SOURCE_LABEL[c.source] ?? c.source));
     if (govSort === 'Highest Value') list = [...list].sort((a,b) => (Number(b.value)||0)-(Number(a.value)||0));
     if (govSort === 'Title A–Z')     list = [...list].sort((a,b) => (a.title??'').localeCompare(b.title??''));
     return list;
-  }, [contracts, search, typeFilters, orgFilter, sourceFilter, govSort]);
+  }, [contracts, search, typeFilters, orgFilters, sourceFilters, govSort]);
 
   /* ── Industry segment data ───────────────────────────────────── */
 
@@ -336,7 +341,7 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
   }, [indWithCompany]);
 
   /* ── Page resets ─────────────────────────────────────────────── */
-  useEffect(() => setPage(1), [search, typeFilters, orgFilter, sourceFilter, govSort]);
+  useEffect(() => setPage(1), [search, typeFilters, orgFilters, sourceFilters, govSort]);
   useEffect(() => setPage(1), [indSearch, compFilter, agencyFilter, valueTier, indSort]);
   useEffect(() => { setPage(1); }, [seg]);
 
@@ -346,8 +351,10 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
     [activeList, page]
   );
 
-  const toggleType = (t: string) =>
-    setTypeFilters(prev => prev.includes(t) ? prev.filter(x=>x!==t) : [...prev,t]);
+  const toggleType   = (t: string) => setTypeFilters(prev => prev.includes(t) ? prev.filter(x=>x!==t) : [...prev,t]);
+  const toggleOrg    = (id: string) => setOrgFilters(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev,id]);
+  const toggleSource = (s: string) => setSourceFilters(prev => prev.includes(s) ? prev.filter(x=>x!==s) : [...prev,s]);
+  const toggleComp   = (c: string) => setCompFilter(compFilter === c ? null : c);
 
   const cycleSort = () => {
     if (seg === 'ind') setIndSort(s => IND_SORTS[(IND_SORTS.indexOf(s)+1) % IND_SORTS.length]);
@@ -443,20 +450,25 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
                 })}
               </FilterSection>
 
-              <FilterSection label="Organization" isOpen={orgSectionOpen} onToggle={()=>setOrgSectionOpen(v=>!v)} onClear={()=>setOrgFilter(null)} showClear={!!orgFilter}>
-                {topOrgsForFilter.map(o => (
-                  <div key={o.id} className={'wr-chk'+(orgFilter===o.id?' on':'')} onClick={()=>setOrgFilter(orgFilter===o.id?null:o.id)}>
-                    <span className="box">{orgFilter===o.id?<IcTick />:null}</span>
+              <FilterSection label="Organization" isOpen={orgSectionOpen} onToggle={()=>setOrgSectionOpen(v=>!v)} onClear={()=>setOrgFilters([])} showClear={orgFilters.length>0}>
+                {(orgExpanded ? allOrgsForFilter : allOrgsForFilter.slice(0,5)).map(o => (
+                  <div key={o.id} className={'wr-chk'+(orgFilters.includes(o.id)?' on':'')} onClick={()=>toggleOrg(o.id)}>
+                    <span className="box">{orgFilters.includes(o.id)?<IcTick />:null}</span>
                     <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:12.5 }}>{o.name}</span>
                     <span className="c">{orgCounts[o.id]??0}</span>
                   </div>
                 ))}
+                {allOrgsForFilter.length > 5 && (
+                  <button onClick={()=>setOrgExpanded(v=>!v)} style={{ background:'none',border:'none',cursor:'pointer',fontSize:11.5,color:'var(--accent)',padding:'4px 0',fontWeight:600 }}>
+                    {orgExpanded ? 'Show less' : `+${allOrgsForFilter.length-5} more`}
+                  </button>
+                )}
               </FilterSection>
 
-              <FilterSection label="Source" isOpen={sourceSectionOpen} onToggle={()=>setSourceSectionOpen(v=>!v)} onClear={()=>setSourceFilter(null)} showClear={!!sourceFilter}>
+              <FilterSection label="Source" isOpen={sourceSectionOpen} onToggle={()=>setSourceSectionOpen(v=>!v)} onClear={()=>setSourceFilters([])} showClear={sourceFilters.length>0}>
                 {Object.entries(sourceCounts).map(([s,cnt]) => (
-                  <div key={s} className={'wr-chk'+(sourceFilter===s?' on':'')} onClick={()=>setSourceFilter(sourceFilter===s?null:s)}>
-                    <span className="box">{sourceFilter===s?<IcTick />:null}</span>
+                  <div key={s} className={'wr-chk'+(sourceFilters.includes(s)?' on':'')} onClick={()=>toggleSource(s)}>
+                    <span className="box">{sourceFilters.includes(s)?<IcTick />:null}</span>
                     <span style={{ flex:1,fontSize:12.5,display:'flex',alignItems:'center',gap:5 }}><IcGlobe />{s}</span>
                     <span className="c">{cnt}</span>
                   </div>
@@ -471,13 +483,18 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
               </div>
 
               <FilterSection label="Company" isOpen={compSectionOpen} onToggle={()=>setCompSectionOpen(v=>!v)} onClear={()=>setCompFilter(null)} showClear={!!compFilter}>
-                {topCompanies.map(([company, cnt]) => (
-                  <div key={company} className={'wr-chk'+(compFilter===company?' on':'')} onClick={()=>setCompFilter(compFilter===company?null:company)}>
+                {(compExpanded ? topCompanies : topCompanies.slice(0,5)).map(([company, cnt]) => (
+                  <div key={company} className={'wr-chk'+(compFilter===company?' on':'')} onClick={()=>toggleComp(company)}>
                     <span className="box">{compFilter===company?<IcTick />:null}</span>
                     <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:12.5 }}>{company}</span>
                     <span className="c">{cnt}</span>
                   </div>
                 ))}
+                {topCompanies.length > 5 && (
+                  <button onClick={()=>setCompExpanded(v=>!v)} style={{ background:'none',border:'none',cursor:'pointer',fontSize:11.5,color:'var(--accent)',padding:'4px 0',fontWeight:600 }}>
+                    {compExpanded ? 'Show less' : `+${topCompanies.length-5} more`}
+                  </button>
+                )}
               </FilterSection>
 
               <FilterSection label="Value" isOpen={valueSectionOpen} onToggle={()=>setValueSectionOpen(v=>!v)} onClear={()=>setValueTier(null)} showClear={!!valueTier}>
@@ -495,13 +512,18 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
               </FilterSection>
 
               <FilterSection label="Agency" isOpen={agencySectionOpen} onToggle={()=>setAgencySectionOpen(v=>!v)} onClear={()=>setAgencyFilter(null)} showClear={!!agencyFilter}>
-                {agencyCounts.map(([agency, cnt]) => (
+                {(agencyExpanded ? agencyCounts : agencyCounts.slice(0,5)).map(([agency, cnt]) => (
                   <div key={agency} className={'wr-chk'+(agencyFilter===agency?' on':'')} onClick={()=>setAgencyFilter(agencyFilter===agency?null:agency)}>
                     <span className="box">{agencyFilter===agency?<IcTick />:null}</span>
                     <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:12.5 }}>{agency}</span>
                     <span className="c">{cnt}</span>
                   </div>
                 ))}
+                {agencyCounts.length > 5 && (
+                  <button onClick={()=>setAgencyExpanded(v=>!v)} style={{ background:'none',border:'none',cursor:'pointer',fontSize:11.5,color:'var(--accent)',padding:'4px 0',fontWeight:600 }}>
+                    {agencyExpanded ? 'Show less' : `+${agencyCounts.length-5} more`}
+                  </button>
+                )}
               </FilterSection>
             </>
           )}
@@ -520,20 +542,23 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
                   <span className="x" onClick={()=>toggleType(t)}>✕</span>
                 </span>
               ))}
-              {orgFilter && (
-                <span className="wr-achip">
-                  <span className="dot" style={{ background:'var(--accent)' }} />
-                  {orgs.find(o=>o.id===orgFilter)?.name}
-                  <span className="x" onClick={()=>setOrgFilter(null)}>✕</span>
-                </span>
-              )}
-              {sourceFilter && (
-                <span className="wr-achip">
+              {orgFilters.map(id => {
+                const org = orgs.find(o=>o.id===id);
+                return org ? (
+                  <span className="wr-achip" key={id}>
+                    <span className="dot" style={{ background:'var(--accent)' }} />
+                    {org.name}
+                    <span className="x" onClick={()=>toggleOrg(id)}>✕</span>
+                  </span>
+                ) : null;
+              })}
+              {sourceFilters.map(s => (
+                <span className="wr-achip" key={s}>
                   <span className="dot" style={{ background:'var(--ink-3)' }} />
-                  {sourceFilter}
-                  <span className="x" onClick={()=>setSourceFilter(null)}>✕</span>
+                  {s}
+                  <span className="x" onClick={()=>toggleSource(s)}>✕</span>
                 </span>
-              )}
+              ))}
             </>}
             {seg === 'ind' && <>
               {compFilter && (

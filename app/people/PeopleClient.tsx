@@ -509,7 +509,10 @@ const SORTS = ['Relevance', 'Name A–Z', 'Seniority'];
 
 export default function PeopleClient({ people, topOrgs }: Props) {
   const [seg, setSeg] = useState<'gov' | 'ind'>('gov');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return new URLSearchParams(window.location.search).get('q') ?? '';
+  });
   const [focusFilters, setFocusFilters] = useState<string[]>([]);
   const [orgFilter, setOrgFilter] = useState<string | null>(null);
   const [seniorityFilter, setSeniorityFilter] = useState<string | null>(null);
