@@ -52,9 +52,13 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
   const typeColor = TYPE_COLOR[signal.signal_type] ?? '#4A5666';
   const src = SOURCE_LABEL[signal.source] ?? signal.source ?? '';
 
-  const samUrl = signal.external_id
+  const samUrl = signal.source === 'sam_gov' && signal.external_id
     ? `https://sam.gov/opp/${signal.external_id}/view`
     : null;
+  const usaUrl = signal.source === 'usaspending' && signal.external_id
+    ? `https://www.usaspending.gov/award/${signal.external_id}`
+    : null;
+  const externalUrl = samUrl ?? usaUrl;
 
   const hasPoc = signal.poc || signal.poc_email || signal.poc_phone;
 
@@ -188,15 +192,15 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
           </div>
 
           {/* External link */}
-          {samUrl && (
+          {externalUrl && (
             <div className="wr-pf-sec" style={{ paddingBottom: 24 }}>
               <a
-                href={samUrl}
+                href={externalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="wr-pf-sam-link"
               >
-                <IcLink /> View on SAM.gov →
+                <IcLink /> View on {samUrl ? 'SAM.gov' : 'USASpending.gov'} →
               </a>
             </div>
           )}
