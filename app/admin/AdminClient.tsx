@@ -18,8 +18,8 @@ function fmtMoney(v: string | number | null) {
 }
 
 type Tab = 'orgs' | 'contacts' | 'contracts' | 'ind-companies' | 'ind-people' | 'ind-subs';
-const SIGNAL_TYPES = ['Opportunity','Award','Budget'];
-const SOURCES      = ['sam_gov','usaspending','manual'];
+const SIGNAL_TYPES = ['Opportunity','Award','Audit Lead','Budget'];
+const SOURCES      = ['sam_gov','usaspending','beholder-gov','manual'];
 const BRANCHES     = ['Army','Navy','Air Force','Marine Corps','Space Force','OSD','Joint','DHS','Other'];
 const PER_PAGE = 50;
 
@@ -632,6 +632,27 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
   /* Industry data */
   const { companies, setCompanies, contractAgg, people, setPeople, subCompanies, setSubCompanies, allSubAwards, loading: indLoading } = useIndustryData();
 
+  /* Beholder-Gov ingest */
+  const [beholderStatus, setBeholderStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [beholderResult, setBeholderResult] = useState<string>('');
+  async function runBeholderIngest() {
+    setBeholderStatus('loading');
+    try {
+      const res = await fetch('/api/admin/ingest/beholder', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        setBeholderResult(`+${data.inserted} new (${data.skipped} already existed)`);
+        setBeholderStatus('done');
+      } else {
+        setBeholderResult(data.error ?? 'Unknown error');
+        setBeholderStatus('error');
+      }
+    } catch (e) {
+      setBeholderResult(String(e));
+      setBeholderStatus('error');
+    }
+  }
+
   /* Branches for org filter */
   const branches = useMemo(() =>
     ['All', ...Array.from(new Set(localOrgs.map((o:any) => o.branch).filter(Boolean))).sort()],
@@ -789,8 +810,25 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
                   </label>
                 </div>
               )}
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
                 <a href={`/api/admin/export?type=${tab}`} download className="adm-export-btn">↓ CSV</a>
+                {tab === 'contracts' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      className="adm-btn"
+                      style={{ borderColor: '#2f8676', color: '#2f8676' }}
+                      disabled={beholderStatus === 'loading'}
+                      onClick={runBeholderIngest}
+                    >
+                      {beholderStatus === 'loading' ? 'Fetching…' : '↓ Beholder-Gov'}
+                    </button>
+                    {beholderResult && (
+                      <span style={{ fontSize: 11, color: beholderStatus === 'error' ? 'var(--amber)' : '#2f8676', fontFamily: 'IBM Plex Mono' }}>
+                        {beholderResult}
+                      </span>
+                    )}
+                  </div>
+                )}
                 <button className="adm-btn primary" onClick={() => openAdd(tab)}>
                   + Add {tab === 'orgs' ? 'Org' : tab === 'contacts' ? 'Person' : 'Signal'}
                 </button>
