@@ -122,7 +122,6 @@ async function run() {
     if (idMap.size === 0) { console.log('  All records updated — stopping early.'); break; }
     if (offset < total) await new Promise(r => setTimeout(r, 800));
   }
-  }
 
   console.log(`Updated ${updated} records.`);
   await db.end();
