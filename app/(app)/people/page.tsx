@@ -23,16 +23,16 @@ async function getPeopleData() {
         c.org_id,
         c.org_full,
         o.full_name      AS org_name,
-        o.id             AS org_slug,
-        o.abs_hierarchy_level AS org_level,
+        o.id::text       AS org_slug,
+        o.hierarchy_level AS org_level,
         o.loc            AS org_hq,
         o.branch         AS org_branch,
-        o.organization_type AS org_type,
+        o.org_type_id    AS org_type,
         COALESCE(cs.total_contracts, 0)::int  AS org_contracts,
         COALESCE(cs.awards_3yr,      0)::int  AS org_awards_3yr,
         COALESCE(cs.open_opps,       0)::int  AS org_open_opps
       FROM contacts c
-      LEFT JOIN orgs o ON o.id = c.org_id
+      LEFT JOIN orgs o ON o.id::text = c.org_id
       LEFT JOIN (
         SELECT
           org_id,
@@ -48,12 +48,12 @@ async function getPeopleData() {
     `,
     /* only top 2 absolute levels for the org filter */
     db`
-      SELECT id, full_name AS name, abs_hierarchy_level
+      SELECT id::text, full_name AS name, hierarchy_level AS abs_hierarchy_level
       FROM orgs
       WHERE is_active = true
-        AND abs_hierarchy_level IS NOT NULL
-        AND abs_hierarchy_level <= 1
-      ORDER BY abs_hierarchy_level, full_name
+        AND hierarchy_level IS NOT NULL
+        AND hierarchy_level <= 1
+      ORDER BY hierarchy_level, full_name
     `,
   ]);
 

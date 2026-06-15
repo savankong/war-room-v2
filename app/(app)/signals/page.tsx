@@ -4,23 +4,23 @@ import SignalsClient from './SignalsClient';
 export const dynamic = 'force-dynamic';
 
 const IND_WHERE = `(
-  recipient ILIKE 'LOCKHEED MARTIN%'
-  OR recipient ILIKE 'THE BOEING COMPANY%'
-  OR recipient ILIKE 'BOEING%'
-  OR recipient ILIKE '%RAYTHEON%'
-  OR recipient ILIKE 'RTX CORPORATION%'
-  OR recipient ILIKE 'NORTHROP GRUMMAN%'
-  OR recipient ILIKE 'HUNTINGTON INGALLS%'
-  OR recipient ILIKE 'GENERAL DYNAMICS%'
-  OR recipient ILIKE 'LEIDOS%'
-  OR recipient ILIKE 'SCIENCE APPLICATIONS%'
-  OR recipient ILIKE 'BAE SYSTEMS%'
-  OR recipient ILIKE 'KBR SERVICES%'
-  OR recipient ILIKE 'AMENTUM%'
-  OR recipient ILIKE 'ELECTRIC BOAT%'
-  OR recipient ILIKE 'BATH IRON WORKS%'
-  OR recipient ILIKE 'SIKORSKY%'
-  OR recipient ILIKE 'GENERAL ATOMICS%'
+  awardee ILIKE 'LOCKHEED MARTIN%'
+  OR awardee ILIKE 'THE BOEING COMPANY%'
+  OR awardee ILIKE 'BOEING%'
+  OR awardee ILIKE '%RAYTHEON%'
+  OR awardee ILIKE 'RTX CORPORATION%'
+  OR awardee ILIKE 'NORTHROP GRUMMAN%'
+  OR awardee ILIKE 'HUNTINGTON INGALLS%'
+  OR awardee ILIKE 'GENERAL DYNAMICS%'
+  OR awardee ILIKE 'LEIDOS%'
+  OR awardee ILIKE 'SCIENCE APPLICATIONS%'
+  OR awardee ILIKE 'BAE SYSTEMS%'
+  OR awardee ILIKE 'KBR SERVICES%'
+  OR awardee ILIKE 'AMENTUM%'
+  OR awardee ILIKE 'ELECTRIC BOAT%'
+  OR awardee ILIKE 'BATH IRON WORKS%'
+  OR awardee ILIKE 'SIKORSKY%'
+  OR awardee ILIKE 'GENERAL ATOMICS%'
 )`;
 
 async function getSignalsData() {
@@ -29,19 +29,19 @@ async function getSignalsData() {
   const [contracts, orgs, stats, industryContracts, indStats] = await Promise.all([
     db`
       SELECT
-        c.id, c.external_id, c.title, c.value, c.set_aside AS status, c.signal_type,
+        c.id, c.external_id, c.title, c.value, c.status, c.signal_type,
         COALESCE(c.award_date, c.created_at::date) AS award_date,
-        c.source, c.set_aside, c.deadline, c.org_id, c.recipient,
-        c.award_amt, c.poc_email, c.naics, c.sub_agency,
-        o.full_name AS org_name, o.id AS org_slug,
-        o.organization_type AS badge_text, NULL::text AS badge_color
+        c.source, c.status AS set_aside, NULL::text AS deadline, c.org_id, c.awardee AS recipient,
+        NULL::numeric AS award_amt, NULL::text AS poc_email, c.naics_code AS naics, c.agency_or_lab AS sub_agency,
+        o.full_name AS org_name, o.id::text AS org_slug,
+        o.org_type_id AS badge_text, NULL::text AS badge_color
       FROM contracts c
-      LEFT JOIN orgs o ON o.id = c.org_id
+      LEFT JOIN orgs o ON o.id::text = c.org_id
       WHERE c.signal_type IS NOT NULL
       ORDER BY c.created_at DESC NULLS LAST
       LIMIT 5000
     `,
-    db`SELECT id, full_name AS name, id AS slug FROM orgs WHERE is_active = true ORDER BY full_name`,
+    db`SELECT id::text, full_name AS name, id::text AS slug FROM orgs WHERE is_active = true ORDER BY full_name`,
     db`
       SELECT
         COUNT(*)::int AS total,
@@ -53,13 +53,13 @@ async function getSignalsData() {
     `,
     db`
       SELECT
-        c.id, c.title, c.award_amt, c.award_date, c.recipient,
-        c.sub_agency, c.agency, c.naics, c.set_aside, c.source,
+        c.id, c.title, NULL::numeric AS award_amt, c.award_date, c.awardee AS recipient,
+        c.agency_or_lab AS sub_agency, c.service_branch AS agency, c.naics_code AS naics, c.status AS set_aside, c.source,
         c.org_id, o.full_name AS org_name
       FROM contracts c
-      LEFT JOIN orgs o ON o.id = c.org_id
+      LEFT JOIN orgs o ON o.id::text = c.org_id
       WHERE c.signal_type = 'Award'
-        AND c.recipient IS NOT NULL
+        AND c.awardee IS NOT NULL
         AND ${db.unsafe(IND_WHERE)}
       ORDER BY c.award_amt::numeric DESC NULLS LAST
       LIMIT 2000
@@ -68,10 +68,10 @@ async function getSignalsData() {
       SELECT
         COUNT(*)::int AS total,
         COUNT(DISTINCT recipient)::int AS companies,
-        COALESCE(SUM(award_amt::numeric), 0)::bigint AS total_value
+        0::bigint AS total_value
       FROM contracts
       WHERE signal_type = 'Award'
-        AND recipient IS NOT NULL
+        AND awardee IS NOT NULL
         AND ${db.unsafe(IND_WHERE)}
     `,
   ]);
