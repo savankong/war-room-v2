@@ -33,9 +33,9 @@ async function getAdminData() {
       ORDER BY c.hierarchy_order NULLS LAST, c.name
     `,
     db`
-      SELECT id, title, signal_type, value, award_amt, award_date,
-             set_aside, org_id, source, recipient,
-             poc, poc_email, naics, description, deadline
+      SELECT id, title, signal_type, value, award_date,
+             org_id, source, awardee AS recipient,
+             naics_code AS naics, description
       FROM contracts
       ORDER BY created_at DESC NULLS LAST
       LIMIT 2000
