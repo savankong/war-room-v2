@@ -50,10 +50,6 @@ async function getOrgs() {
 }
 
 export default async function Page() {
-  try {
-    const orgs = await getOrgs();
-    return <DiscoverClient orgs={orgs} />;
-  } catch (e: any) {
-    return <pre style={{color:'red',padding:'2rem'}}>{e?.message ?? String(e)}</pre>;
-  }
+  const orgs = await getOrgs();
+  return <div>loaded {orgs.length} orgs — sample: {JSON.stringify(orgs[0])}</div>;
 }
