@@ -200,7 +200,10 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
   const [seg, setSeg] = useState<'dow'|'ind'>('dow');
 
   /* Gov filters */
-  const [search,        setSearch]       = useState('');
+  const [search,        setSearch]       = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return new URLSearchParams(window.location.search).get('q') ?? '';
+  });
   const [typeFilters,   setTypeFilters]  = useState<string[]>([]);
   const [orgFilters,    setOrgFilters]   = useState<string[]>([]);
   const [sourceFilters, setSourceFilters]= useState<string[]>([]);
