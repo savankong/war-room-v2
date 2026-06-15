@@ -910,6 +910,8 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
   /* Subcontractor state */
   const [indSetAside,    setIndSetAside]    = useState<string|null>(null);
   const [saExpanded,     setSaExpanded]     = useState(false);
+  const [deptExpanded,   setDeptExpanded]   = useState(false);
+  const [tierExpanded,   setTierExpanded]   = useState(false);
   const [indRole,        setIndRole]        = useState<'primes'|'subs'>('primes');
   const [subs,           setSubs]           = useState<any[]>([]);
   const [subsLoaded,     setSubsLoaded]     = useState(false);
@@ -1033,7 +1035,7 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
           {/* GOV sidebar */}
           {seg === 'gov' && <>
             <div className="wr-hidx-lab">Departments</div>
-            {indexItems.map((item, i) => (
+            {(deptExpanded ? indexItems : indexItems.slice(0, 6)).map((item, i) => (
               <div key={item.label}>
                 <div
                   className={'wr-idx'+((item.all && activeSection===null)||(!item.all && activeSection===item.label)?' on':'')}
@@ -1050,6 +1052,12 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
                 {i === 0 && <div className="wr-idx-div" />}
               </div>
             ))}
+            {indexItems.length > 6 && (
+              <div className="wr-idx" onClick={() => setDeptExpanded(e => !e)} style={{ color:'var(--ink-3)', fontSize:11 }}>
+                <span className="ico"><span style={{ width:8, height:8, display:'block' }} /></span>
+                <span>{deptExpanded ? '↑ Show less' : `+ ${indexItems.length - 6} more`}</span>
+              </div>
+            )}
           </>}
 
           {/* INDUSTRY sidebar */}
@@ -1078,7 +1086,7 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
               </div>
               <div className="wr-idx-div" />
               <div className="wr-hidx-lab" style={{ paddingTop:8 }}>By Contract Value</div>
-              {tierCounts.map(t => (
+              {(tierExpanded ? tierCounts : tierCounts.slice(0, 5)).map(t => (
                 <div
                   key={t.label}
                   className={'wr-idx'+(indValueTier===t.label?' on':'')}
@@ -1091,6 +1099,12 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
                   <span className="c">{t.count}</span>
                 </div>
               ))}
+              {tierCounts.length > 5 && (
+                <div className="wr-idx" onClick={() => setTierExpanded(e => !e)} style={{ color:'var(--ink-3)', fontSize:11 }}>
+                  <span className="ico"><span style={{ width:8, height:8, display:'block' }} /></span>
+                  <span>{tierExpanded ? '↑ Show less' : `+ ${tierCounts.length - 5} more`}</span>
+                </div>
+              )}
 
               {saFilterCounts.length > 0 && <>
                 <div className="wr-idx-div" />
