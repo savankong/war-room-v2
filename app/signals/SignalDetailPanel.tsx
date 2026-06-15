@@ -147,20 +147,28 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
             <div className="wr-pf-sec">
               <div className="wr-pf-sh"><span className="t">Awarding agency</span><span className="ln" /></div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {signal.org_name && (
+                {/* Linked org if we have a slug, else agency text with signals search link */}
+                {signal.org_name ? (
                   orgUrl
                     ? <a href={orgUrl} style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 700, color: 'var(--ink)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         {signal.org_name}
                         <span style={{ opacity: .4, fontSize: 11 }}><IcLink /></span>
                       </a>
-                    : <div style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+                    : <a href={`/signals?q=${encodeURIComponent(signal.org_name)}`} style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 700, color: 'var(--ink)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         {signal.org_name}
-                      </div>
-                )}
+                        <span style={{ opacity: .4, fontSize: 11 }}><IcLink /></span>
+                      </a>
+                ) : signal.agency ? (
+                  <a href={`/signals?q=${encodeURIComponent(signal.agency)}`} style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 700, color: 'var(--ink)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    {signal.agency}
+                    <span style={{ opacity: .4, fontSize: 11 }}><IcLink /></span>
+                  </a>
+                ) : null}
                 {signal.sub_agency && signal.sub_agency !== signal.org_name && (
-                  <div style={{ padding: '8px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 12, color: 'var(--ink-2)' }}>
+                  <a href={`/signals?q=${encodeURIComponent(signal.sub_agency)}`} style={{ padding: '8px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 12, color: 'var(--accent)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     {signal.sub_agency}
-                  </div>
+                    <span style={{ opacity: .4, fontSize: 11 }}><IcLink /></span>
+                  </a>
                 )}
               </div>
             </div>
@@ -170,9 +178,10 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
           {signal.recipient && (
             <div className="wr-pf-sec">
               <div className="wr-pf-sh"><span className="t">Recipient / Prime</span><span className="ln" /></div>
-              <div style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>
+              <a href={`/signals?q=${encodeURIComponent(signal.recipient)}`} style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 {signal.recipient}
-              </div>
+                <span style={{ opacity: .4, fontSize: 11 }}><IcLink /></span>
+              </a>
             </div>
           )}
 
