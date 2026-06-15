@@ -12,24 +12,26 @@ async function getAdminData() {
   const [orgs, contacts, contracts, statsRaw] = await Promise.all([
     db`
       SELECT o.id, o.full_name AS name, o.abbreviation, o.branch,
-             o.organization_type AS type, o.organization_type,
+             ot.name AS type, ot.name AS organization_type,
              o.description, o.website, o.parent_id,
-             o.is_active, o.loc, o.abs_hierarchy_level,
+             o.is_active, o.loc, o.hierarchy_level AS abs_hierarchy_level,
              COUNT(DISTINCT c.id)::int  AS contacts,
              COUNT(DISTINCT ct.id)::int AS contracts
       FROM orgs o
+      LEFT JOIN org_types ot ON ot.id = o.org_type_id
       LEFT JOIN contacts  c  ON c.org_id  = o.id
-      LEFT JOIN contracts ct ON ct.org_id = o.id
-      GROUP BY o.id ORDER BY o.full_name
+      LEFT JOIN contracts ct ON ct.canonical_org_id = o.id
+      GROUP BY o.id, ot.name ORDER BY o.full_name
     `,
     db`
       SELECT c.id, c.name, c.title, c.org_id, c.org_full,
              c.email, c.phone, c.linkedin,
              c.hierarchy_order, c.is_inbox,
              c.tags, c.opps, c.last_signal,
-             o.organization_type AS org_type
+             ot.name AS org_type
       FROM contacts c
       LEFT JOIN orgs o ON o.id = c.org_id
+      LEFT JOIN org_types ot ON ot.id = o.org_type_id
       ORDER BY c.hierarchy_order NULLS LAST, c.name
     `,
     db`
