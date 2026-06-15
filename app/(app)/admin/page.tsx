@@ -6,9 +6,6 @@ export const dynamic = 'force-dynamic';
 async function getAdminData() {
   const db = getDb();
 
-  // Idempotent migration
-  await db`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS is_inbox boolean DEFAULT false`;
-
   const [orgs, contacts, contracts, statsRaw] = await Promise.all([
     db`
       SELECT o.id, o.full_name AS name, o.abbreviation, o.branch,
