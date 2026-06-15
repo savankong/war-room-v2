@@ -112,7 +112,7 @@ async function run() {
     if (!externalId) { skipped++; continue; }
 
     const tags = buildTags(r);
-    const awardAmt = parseFloat(r['Award Amount']) || null;
+    const awardAmt = r['Award Amount'] ? Math.round(parseFloat(r['Award Amount'])) : null;
     const awardDate = r['Proposal Award Date'] || null;
 
     const raw = {
