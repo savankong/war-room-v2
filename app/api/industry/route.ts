@@ -40,8 +40,7 @@ export async function GET() {
     FROM contracts c
     LEFT JOIN industry_companies ic ON ic.legal_name = c.recipient
     WHERE c.recipient IS NOT NULL
-      AND c.signal_type = 'Award'
-      AND c.award_amt   > 0
+      AND c.source IN ('sam_gov', 'usaspending')
     GROUP BY c.recipient, ic.name, ic.legal_name, ic.logo_url, ic.ticker, ic.headquarters, ic.website, ic.description
     ORDER BY total_value DESC NULLS LAST
     LIMIT 500
