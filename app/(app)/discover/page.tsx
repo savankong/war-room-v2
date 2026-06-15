@@ -50,6 +50,10 @@ async function getOrgs() {
 }
 
 export default async function Page() {
-  const orgs = await getOrgs();
-  return <DiscoverClient orgs={orgs} />;
+  try {
+    const orgs = await getOrgs();
+    return <DiscoverClient orgs={orgs} />;
+  } catch (e: any) {
+    return <pre style={{color:'red',padding:'2rem'}}>{e?.message ?? String(e)}</pre>;
+  }
 }
