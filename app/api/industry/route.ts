@@ -22,9 +22,20 @@ export async function GET() {
       ARRAY_AGG(DISTINCT COALESCE(c.sub_agency, c.agency))
         FILTER (WHERE COALESCE(c.sub_agency, c.agency) IS NOT NULL) AS agencies,
       ARRAY_AGG(DISTINCT c.source)                             AS sources,
-      (SELECT ARRAY_AGG(DISTINCT tag)
-       FROM contracts c2, UNNEST(c2.set_aside_tags) AS tag
-       WHERE c2.recipient = c.recipient AND c2.set_aside_tags IS NOT NULL
+      (SELECT ARRAY_REMOVE(ARRAY_AGG(DISTINCT tag), NULL)
+       FROM contracts c2
+       CROSS JOIN LATERAL (VALUES
+         (CASE WHEN c2.set_aside ILIKE '%SBIR Phase I%'  THEN 'SBIR I'   END),
+         (CASE WHEN c2.set_aside ILIKE '%SBIR Phase II%' THEN 'SBIR II'  END),
+         (CASE WHEN c2.set_aside ILIKE '%SBIR%' AND c2.set_aside NOT ILIKE '%Phase%' THEN 'SBIR' END),
+         (CASE WHEN c2.set_aside ILIKE '%STTR%'          THEN 'STTR'     END),
+         (CASE WHEN c2.set_aside ILIKE '%8(a)%' OR c2.set_aside ILIKE '%8a%' THEN '8(a)' END),
+         (CASE WHEN c2.set_aside ILIKE '%WOSB%' OR c2.set_aside ILIKE '%Women%Owned%' THEN 'WOSB' END),
+         (CASE WHEN c2.set_aside ILIKE '%HUBZone%'       THEN 'HUBZone'  END),
+         (CASE WHEN c2.set_aside ILIKE '%SDVOSB%' OR c2.set_aside ILIKE '%Service.Disabled%' THEN 'SDVOSB' END),
+         (CASE WHEN c2.set_aside ILIKE '%SDB%' OR c2.set_aside ILIKE '%Small Disadvantaged%' THEN 'SDB' END)
+       ) AS t(tag)
+       WHERE c2.recipient = c.recipient AND c2.set_aside IS NOT NULL
       )                                                        AS set_aside_tags
     FROM contracts c
     LEFT JOIN industry_companies ic ON ic.legal_name = c.recipient
