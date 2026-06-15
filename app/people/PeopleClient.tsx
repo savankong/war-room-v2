@@ -524,6 +524,9 @@ export default function PeopleClient({ people, topOrgs }: Props) {
   const [orgSectionOpen, setOrgSectionOpen] = useState(true);
   const [focusSectionOpen, setFocusSectionOpen] = useState(true);
   const [seniorSectionOpen, setSeniorSectionOpen] = useState(true);
+  const [orgExpanded, setOrgExpanded] = useState(false);
+  const [focusExpanded, setFocusExpanded] = useState(false);
+  const [seniorExpanded, setSeniorExpanded] = useState(false);
 
   const govPeople = useMemo(() => people.filter(p => !p.tags?.includes('INDUSTRY')), [people]);
   const indPeople = useMemo(() => people.filter(p => p.tags?.includes('INDUSTRY')), [people]);
@@ -739,14 +742,26 @@ export default function PeopleClient({ people, topOrgs }: Props) {
                 </button>
                 {focusFilters.length > 0 && <span className="clr" onClick={() => setFocusFilters([])}>Clear</span>}
               </div>
-              {focusSectionOpen && Object.entries(focusCounts).filter(([, c]) => c > 0).map(([f, c]) => (
-                <div key={f} className={'wr-foc' + (focusFilters.includes(f) ? ' on' : '')} onClick={() => toggleFocus(f)}>
-                  <span className="dot" style={{ background: FOCUS_COLORS[f] }} />
-                  <span>{f}</span>
-                  <span className="c">{c}</span>
-                  <span className="tick"><IcTick /></span>
-                </div>
-              ))}
+              {focusSectionOpen && (() => {
+                const items = Object.entries(focusCounts).filter(([, c]) => c > 0);
+                const visible = focusExpanded ? items : items.slice(0, 5);
+                return (<>
+                  {visible.map(([f, c]) => (
+                    <div key={f} className={'wr-foc' + (focusFilters.includes(f) ? ' on' : '')} onClick={() => toggleFocus(f)}>
+                      <span className="dot" style={{ background: FOCUS_COLORS[f] }} />
+                      <span>{f}</span>
+                      <span className="c">{c}</span>
+                      <span className="tick"><IcTick /></span>
+                    </div>
+                  ))}
+                  {items.length > 5 && (
+                    <div className="wr-foc" style={{ color: 'var(--ink-3)', fontSize: 11 }} onClick={() => setFocusExpanded(e => !e)}>
+                      <span className="dot" style={{ background: 'transparent' }} />
+                      <span>{focusExpanded ? '↑ Show less' : `+ ${items.length - 5} more`}</span>
+                    </div>
+                  )}
+                </>);
+              })()}
             </div>
 
             {/* Organization — top 2 levels */}
@@ -758,16 +773,27 @@ export default function PeopleClient({ people, topOrgs }: Props) {
                 </button>
                 {orgFilter && <span className="clr" onClick={() => setOrgFilter(null)}>Clear</span>}
               </div>
-              {orgSectionOpen && filterOrgs.map(o => {
-                const cnt = govPeople.filter(p => p.org_id === o.id).length;
-                return (
-                  <div key={o.id} className={'wr-chk' + (orgFilter === o.id ? ' on' : '')} onClick={() => setOrgFilter(orgFilter === o.id ? null : o.id)}>
-                    <span className="box">{orgFilter === o.id ? <IcTick /> : null}</span>
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12.5 }}>{o.name}</span>
-                    <span className="c">{cnt}</span>
-                  </div>
-                );
-              })}
+              {orgSectionOpen && (() => {
+                const visible = orgExpanded ? filterOrgs : filterOrgs.slice(0, 5);
+                return (<>
+                  {visible.map(o => {
+                    const cnt = govPeople.filter(p => p.org_id === o.id).length;
+                    return (
+                      <div key={o.id} className={'wr-chk' + (orgFilter === o.id ? ' on' : '')} onClick={() => setOrgFilter(orgFilter === o.id ? null : o.id)}>
+                        <span className="box">{orgFilter === o.id ? <IcTick /> : null}</span>
+                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12.5 }}>{o.name}</span>
+                        <span className="c">{cnt}</span>
+                      </div>
+                    );
+                  })}
+                  {filterOrgs.length > 5 && (
+                    <div className="wr-chk" style={{ color: 'var(--ink-3)', fontSize: 11 }} onClick={() => setOrgExpanded(e => !e)}>
+                      <span className="box" />
+                      <span style={{ flex: 1 }}>{orgExpanded ? '↑ Show less' : `+ ${filterOrgs.length - 5} more`}</span>
+                    </div>
+                  )}
+                </>);
+              })()}
             </div>
 
             {/* Seniority */}
@@ -779,17 +805,25 @@ export default function PeopleClient({ people, topOrgs }: Props) {
                 </button>
                 {seniorityFilter && <span className="clr" onClick={() => setSeniorityFilter(null)}>Clear</span>}
               </div>
-              {seniorSectionOpen && SENIORITY_GROUPS.map(g => {
-                const cnt = seniorityCounts[g.label] ?? 0;
-                if (!cnt) return null;
-                return (
-                  <div key={g.label} className={'wr-chk' + (seniorityFilter === g.label ? ' on' : '')} onClick={() => setSeniorityFilter(seniorityFilter === g.label ? null : g.label)}>
-                    <span className="box">{seniorityFilter === g.label ? <IcTick /> : null}</span>
-                    <span style={{ flex: 1, fontSize: 12.5 }}>{g.label}</span>
-                    <span className="c">{cnt}</span>
-                  </div>
-                );
-              })}
+              {seniorSectionOpen && (() => {
+                const items = SENIORITY_GROUPS.filter(g => (seniorityCounts[g.label] ?? 0) > 0);
+                const visible = seniorExpanded ? items : items.slice(0, 5);
+                return (<>
+                  {visible.map(g => (
+                    <div key={g.label} className={'wr-chk' + (seniorityFilter === g.label ? ' on' : '')} onClick={() => setSeniorityFilter(seniorityFilter === g.label ? null : g.label)}>
+                      <span className="box">{seniorityFilter === g.label ? <IcTick /> : null}</span>
+                      <span style={{ flex: 1, fontSize: 12.5 }}>{g.label}</span>
+                      <span className="c">{seniorityCounts[g.label] ?? 0}</span>
+                    </div>
+                  ))}
+                  {items.length > 5 && (
+                    <div className="wr-chk" style={{ color: 'var(--ink-3)', fontSize: 11 }} onClick={() => setSeniorExpanded(e => !e)}>
+                      <span className="box" />
+                      <span style={{ flex: 1 }}>{seniorExpanded ? '↑ Show less' : `+ ${items.length - 5} more`}</span>
+                    </div>
+                  )}
+                </>);
+              })()}
             </div>
 
             {/* Contract data filter */}
