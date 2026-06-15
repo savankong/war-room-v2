@@ -10,21 +10,22 @@ export async function GET(req: NextRequest) {
     const db = getDb();
     const cols = (t: string) => db`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = ${t} ORDER BY ordinal_position`;
     const [cc, oc, ctc] = await Promise.all([cols('contacts'), cols('orgs'), cols('contracts')]);
-    // Test fixed discover query (UUID cast)
+    // Test exact discover query
     let discoverErr = null;
     try {
-      await db`SELECT o.id FROM orgs o LEFT JOIN contacts c ON c.org_id = o.id::text LEFT JOIN contracts ct ON ct.org_id = o.id::text WHERE o.is_active = true GROUP BY o.id LIMIT 1`;
+      await db`SELECT o.id, o.org_type_id, o.loc, o.branch, o.hierarchy_level, o.parent_id, COUNT(DISTINCT c.id)::int, COUNT(DISTINCT ct.id)::int FROM orgs o LEFT JOIN contacts c ON c.org_id = o.id LEFT JOIN contracts ct ON ct.org_id::text = o.id WHERE o.is_active = true GROUP BY o.id LIMIT 1`;
     } catch(e: any) { discoverErr = e.message; }
-    // Test people join
-    let peopleErr = null;
-    try {
-      await db`SELECT c.id, c.hierarchy_order, c.awards, o.hierarchy_level, o.org_type_id FROM contacts c LEFT JOIN orgs o ON o.id::text = c.org_id LIMIT 1`;
-    } catch(e: any) { peopleErr = e.message; }
-    // Test signals query
+    // Test signals stats query
     let signalsErr = null;
     try {
-      await db`SELECT c.id, c.signal_type, c.awardee, c.naics_code, c.status FROM contracts c WHERE c.signal_type IS NOT NULL LIMIT 1`;
+      await db`SELECT COUNT(*)::int, COALESCE(SUM(CASE WHEN value ~ '^[0-9.]+$' THEN value::numeric ELSE 0 END), 0)::bigint FROM contracts WHERE signal_type IS NOT NULL`;
     } catch(e: any) { signalsErr = e.message; }
+    // Test signals industry query
+    let sigIndErr = null;
+    try {
+      await db`SELECT c.id, c.awardee, c.naics_code, c.status, c.source, c.org_id, o.full_name FROM contracts c LEFT JOIN orgs o ON o.id = c.org_id::text WHERE c.signal_type = 'Award' AND c.awardee IS NOT NULL LIMIT 1`;
+    } catch(e: any) { sigIndErr = e.message; }
+    let peopleErr = null;
     return NextResponse.json({
       contacts_cols: cc.map((r: any) => `${r.column_name}:${r.data_type}`),
       org_cols: oc.map((r: any) => `${r.column_name}:${r.data_type}`),
@@ -32,6 +33,7 @@ export async function GET(req: NextRequest) {
       discover_err: discoverErr,
       people_err: peopleErr,
       signals_err: signalsErr,
+      sig_ind_err: sigIndErr,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

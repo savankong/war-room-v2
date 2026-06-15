@@ -47,7 +47,7 @@ async function getSignalsData() {
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE signal_type = 'Opportunity')::int AS opps,
         COUNT(*) FILTER (WHERE signal_type = 'Award')::int AS awards,
-        COALESCE(SUM(value::numeric) FILTER (WHERE signal_type = 'Award'), 0)::bigint AS total_value
+        0::bigint AS total_value
       FROM contracts
       WHERE signal_type IS NOT NULL
     `,
@@ -61,13 +61,13 @@ async function getSignalsData() {
       WHERE c.signal_type = 'Award'
         AND c.awardee IS NOT NULL
         AND ${db.unsafe(IND_WHERE)}
-      ORDER BY c.award_amt::numeric DESC NULLS LAST
+      ORDER BY c.created_at DESC NULLS LAST
       LIMIT 2000
     `,
     db`
       SELECT
         COUNT(*)::int AS total,
-        COUNT(DISTINCT recipient)::int AS companies,
+        COUNT(DISTINCT awardee)::int AS companies,
         0::bigint AS total_value
       FROM contracts
       WHERE signal_type = 'Award'
