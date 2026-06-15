@@ -1,11 +1,33 @@
+export interface PointOfContact {
+  type?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+}
+
 export interface SamOpportunity {
   noticeId: string;
   title: string;
   type: string;
+  baseType?: string;
   typeOfSetAside?: string;
-  fullParentPathName?: string;  // e.g. "DEPT OF DEFENSE.DEPT OF THE AIR FORCE.ACC.FA4600  55 CONS  PKP"
-  fullParentPathCode?: string;  // e.g. "057.5700.ACC.FA4600"
-  award?: { amount?: number; date?: string };
+  typeOfSetAsideDesc?: string;
+  naicsCode?: string;
+  classificationCode?: string;          // PSC code
+  solicitationNumber?: string;
+  responseDeadLine?: string;
+  postedDate?: string;
+  archiveDate?: string;
+  fullParentPathName?: string;
+  fullParentPathCode?: string;
+  description?: string;
+  pointOfContact?: PointOfContact[];
+  placeOfPerformance?: {
+    city?: { name?: string };
+    state?: { name?: string; code?: string };
+    country?: { code?: string };
+  };
+  award?: { amount?: number; date?: string; awardee?: { name?: string } };
   [key: string]: unknown;
 }
 

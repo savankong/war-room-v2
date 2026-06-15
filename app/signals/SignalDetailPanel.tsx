@@ -10,7 +10,9 @@ function fmtMoney(v: number | string | null) {
 }
 function fmtDate(d: string | null) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  try {
+    return new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  } catch { return d; }
 }
 
 const TYPE_COLOR: Record<string, string> = {
@@ -37,10 +39,24 @@ interface Props {
   onClose: () => void;
 }
 
+function StatCell({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="wr-pf-sam-cell">
+      <div className="k">{label}</div>
+      <div className="v" style={{ fontSize: 13 }}>{value || '—'}</div>
+    </div>
+  );
+}
+
 export default function SignalDetailPanel({ signal, onClose }: Props) {
   const typeColor = TYPE_COLOR[signal.signal_type] ?? '#4A5666';
-  const typeBg    = TYPE_BG[signal.signal_type]    ?? 'rgba(74,86,102,.12)';
   const src = SOURCE_LABEL[signal.source] ?? signal.source ?? '';
+
+  const samUrl = signal.external_id
+    ? `https://sam.gov/opp/${signal.external_id}/view`
+    : null;
+
+  const hasPoc = signal.poc || signal.poc_email || signal.poc_phone;
 
   return (
     <div className="wr-pf-back" onClick={onClose}>
@@ -55,7 +71,7 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
               style={{ background: 'rgba(255,255,255,.12)', color: '#EDF1F6', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 4, fontSize: 10, fontFamily: 'IBM Plex Mono', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}
             >
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: typeColor, flexShrink: 0, display: 'inline-block' }} />
-              {signal.signal_type ?? 'Signal'}
+              {signal.notice_type || signal.signal_type || 'Signal'}
             </span>
             {src && (
               <span style={{ marginLeft: 8, fontFamily: 'IBM Plex Mono', fontSize: 9, color: 'rgba(237,241,246,.5)', textTransform: 'uppercase', letterSpacing: '1px' }}>
@@ -71,7 +87,6 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
               {signal.external_id ?? signal.id}
             </div>
           )}
-          {/* Value prominently in header */}
           {(signal.value || signal.award_amt) && (
             <div style={{ fontFamily: 'Archivo', fontSize: 22, fontWeight: 800, color: '#EDF1F6', letterSpacing: '-.01em' }}>
               {fmtMoney(signal.value ?? signal.award_amt)}
@@ -82,35 +97,45 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
         {/* Body */}
         <div className="wr-pf-body">
 
-          {/* Key stats */}
+          {/* Classification */}
           <div className="wr-pf-sec">
             <div className="wr-pf-sh"><span className="t">Details</span><span className="ln" /></div>
             <div className="wr-pf-sam-stats" style={{ gridTemplateColumns: 'repeat(2,1fr)' }}>
-              <div className="wr-pf-sam-cell">
-                <div className="k">Award Date</div>
-                <div className="v" style={{ fontSize: 13 }}>{fmtDate(signal.award_date)}</div>
-              </div>
-              <div className="wr-pf-sam-cell">
-                <div className="k">Deadline</div>
-                <div className="v" style={{ fontSize: 13 }}>{fmtDate(signal.deadline)}</div>
-              </div>
-              <div className="wr-pf-sam-cell">
-                <div className="k">Status</div>
-                <div className="v" style={{ fontSize: 13 }}>{signal.status ?? signal.set_aside ?? '—'}</div>
-              </div>
-              <div className="wr-pf-sam-cell">
-                <div className="k">Source</div>
-                <div className="v" style={{ fontSize: 13 }}>{src || '—'}</div>
-              </div>
+              <StatCell label="Notice ID" value={signal.external_id} />
+              <StatCell label="Solicitation #" value={signal.solicitation_number} />
+              <StatCell label="Published" value={fmtDate(signal.published_date || signal.award_date)} />
+              <StatCell label="Response Deadline" value={fmtDate(signal.deadline)} />
+              <StatCell label="Award Date" value={fmtDate(signal.award_date)} />
+              <StatCell label="Source" value={src || '—'} />
+            </div>
+          </div>
+
+          {/* Classification codes */}
+          <div className="wr-pf-sec">
+            <div className="wr-pf-sh"><span className="t">Classification</span><span className="ln" /></div>
+            <div className="wr-pf-sam-stats" style={{ gridTemplateColumns: 'repeat(2,1fr)' }}>
+              <StatCell label="Set Aside" value={signal.set_aside || signal.status} />
+              <StatCell label="NAICS Code" value={signal.naics || signal.naics_code} />
+              <StatCell label="PSC Code" value={signal.psc_code} />
+              <StatCell label="Place of Performance" value={signal.place_of_performance} />
             </div>
           </div>
 
           {/* Agency */}
-          {signal.org_name && (
+          {(signal.org_name || signal.agency) && (
             <div className="wr-pf-sec">
               <div className="wr-pf-sh"><span className="t">Awarding agency</span><span className="ln" /></div>
-              <div style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-                {signal.org_name}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {signal.org_name && (
+                  <div style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+                    {signal.org_name}
+                  </div>
+                )}
+                {signal.sub_agency && signal.sub_agency !== signal.org_name && (
+                  <div style={{ padding: '8px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 12, color: 'var(--ink-2)' }}>
+                    {signal.sub_agency}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -126,14 +151,28 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
           )}
 
           {/* POC */}
-          {signal.poc_email && (
+          {hasPoc && (
             <div className="wr-pf-sec">
               <div className="wr-pf-sh"><span className="t">Point of contact</span><span className="ln" /></div>
               <div className="wr-pf-sam-contact">
-                <div className="wr-pf-sam-contact-row">
-                  <span className="wr-pf-sam-contact-type">Email</span>
-                  <a href={`mailto:${signal.poc_email}`} className="wr-pf-sam-contact-val">{signal.poc_email}</a>
-                </div>
+                {signal.poc && (
+                  <div className="wr-pf-sam-contact-row">
+                    <span className="wr-pf-sam-contact-type">Name</span>
+                    <span className="wr-pf-sam-contact-val">{signal.poc}</span>
+                  </div>
+                )}
+                {signal.poc_email && (
+                  <div className="wr-pf-sam-contact-row">
+                    <span className="wr-pf-sam-contact-type">Email</span>
+                    <a href={`mailto:${signal.poc_email}`} className="wr-pf-sam-contact-val">{signal.poc_email}</a>
+                  </div>
+                )}
+                {signal.poc_phone && (
+                  <div className="wr-pf-sam-contact-row">
+                    <span className="wr-pf-sam-contact-type">Phone</span>
+                    <a href={`tel:${signal.poc_phone}`} className="wr-pf-sam-contact-val">{signal.poc_phone}</a>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -141,16 +180,18 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
           {/* Description */}
           <div className="wr-pf-sec">
             <div className="wr-pf-sh"><span className="t">Description</span><span className="ln" /></div>
-            <div className="wr-pf-about">
-              {signal.description ?? `${signal.signal_type ?? 'Contract'} signal from ${src}. Full description not available — view on the source platform for complete details.`}
+            <div className="wr-pf-about" style={{ whiteSpace: 'pre-wrap' }}>
+              {signal.description
+                ? signal.description
+                : `${signal.signal_type ?? 'Contract'} signal from ${src}. Full description not available — view on the source platform for complete details.`}
             </div>
           </div>
 
           {/* External link */}
-          {signal.external_id && (
+          {samUrl && (
             <div className="wr-pf-sec" style={{ paddingBottom: 24 }}>
               <a
-                href={`https://sam.gov/opp/${signal.external_id}/view`}
+                href={samUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="wr-pf-sam-link"

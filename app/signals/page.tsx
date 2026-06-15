@@ -32,7 +32,10 @@ async function getSignalsData() {
         c.id, c.external_id, c.title, c.value, c.set_aside AS status, c.signal_type,
         COALESCE(c.award_date, c.created_at::date) AS award_date,
         c.source, c.set_aside, c.deadline, c.org_id, c.recipient,
-        c.award_amt, c.poc_email, c.naics, c.sub_agency,
+        c.award_amt, c.poc, c.poc_email, c.poc_phone,
+        c.naics, c.psc_code, c.sub_agency, c.agency,
+        c.description, c.solicitation_number, c.notice_type,
+        c.published_date, c.place_of_performance,
         o.full_name AS org_name, o.id AS org_slug,
         o.organization_type AS badge_text, NULL::text AS badge_color
       FROM contracts c
