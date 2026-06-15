@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 
 function fmtMoney(v: number | string | null) {
   const n = v == null ? null : Number(v);
@@ -74,6 +75,23 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
 
   const hasPoc = signal.poc || signal.poc_email || signal.poc_phone;
   const pocSearchUrl = signal.poc ? `/people?q=${encodeURIComponent(signal.poc)}` : null;
+
+  // Silently create a People directory entry for the POC if one doesn't exist yet
+  useEffect(() => {
+    if (!signal.poc && !signal.poc_email) return;
+    fetch('/api/poc-upsert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name:      signal.poc,
+        email:     signal.poc_email,
+        phone:     signal.poc_phone,
+        agency:    signal.agency,
+        sub_agency:signal.sub_agency,
+        org_id:    signal.org_id,
+      }),
+    }).catch(() => {/* silent */});
+  }, [signal.poc, signal.poc_email]); // eslint-disable-line react-hooks/exhaustive-deps
   const orgUrl = signal.org_slug ? `/org/${signal.org_slug}` : null;
 
   const description = signal.description;
