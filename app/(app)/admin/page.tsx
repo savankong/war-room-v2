@@ -63,6 +63,16 @@ async function getAdminData() {
 }
 
 export default async function AdminPage() {
-  const data = await getAdminData();
-  return <AdminClient {...data} />;
+  try {
+    const data = await getAdminData();
+    return <AdminClient {...data} />;
+  } catch (e: any) {
+    return (
+      <div style={{ padding: '2rem', color: 'red', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+        <h2>Admin Error</h2>
+        <p>{e?.message ?? String(e)}</p>
+        <p>{e?.stack}</p>
+      </div>
+    );
+  }
 }
