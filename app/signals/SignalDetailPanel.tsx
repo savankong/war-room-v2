@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 function fmtMoney(v: number | string | null) {
   const n = v == null ? null : Number(v);
@@ -76,24 +76,53 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
   const hasPoc = signal.poc || signal.poc_email || signal.poc_phone;
   const pocSearchUrl = signal.poc ? `/people?q=${encodeURIComponent(signal.poc)}` : null;
 
-  // Silently create a People directory entry for the POC if one doesn't exist yet
-  useEffect(() => {
-    if (!signal.poc && !signal.poc_email) return;
-    fetch('/api/poc-upsert', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name:      signal.poc,
-        email:     signal.poc_email,
-        phone:     signal.poc_phone,
-        agency:    signal.agency,
-        sub_agency:signal.sub_agency,
-        org_id:    signal.org_id,
-      }),
-    }).catch(() => {/* silent */});
-  }, [signal.poc, signal.poc_email]); // eslint-disable-line react-hooks/exhaustive-deps
-  const orgUrl = signal.org_slug ? `/org/${signal.org_slug}` : null;
+  // Resolved org slugs (may be created on the fly)
+  const [agencyOrgId,    setAgencyOrgId]    = useState<string | null>(signal.org_slug ?? null);
+  const [recipientOrgId, setRecipientOrgId] = useState<string | null>(null);
 
+  useEffect(() => {
+    const agencyName = signal.org_name || signal.agency;
+
+    // Resolve / create org for awarding agency
+    if (agencyName && !agencyOrgId) {
+      fetch('/api/org-upsert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: agencyName, type: 'agency' }),
+      })
+        .then(r => r.json())
+        .then(d => { if (d.id) setAgencyOrgId(d.id); })
+        .catch(() => {});
+    }
+
+    // Resolve / create org for recipient
+    if (signal.recipient) {
+      fetch('/api/org-upsert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: signal.recipient, type: 'company' }),
+      })
+        .then(r => r.json())
+        .then(d => { if (d.id) setRecipientOrgId(d.id); })
+        .catch(() => {});
+    }
+
+    // Create People directory entry for POC
+    if (signal.poc || signal.poc_email) {
+      fetch('/api/poc-upsert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name:      signal.poc,
+          email:     signal.poc_email,
+          phone:     signal.poc_phone,
+          agency:    signal.agency,
+          sub_agency:signal.sub_agency,
+          org_id:    signal.org_id,
+        }),
+      }).catch(() => {});
+    }
+  }, [signal.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const description = signal.description;
   const descIsUrl = isUrl(description);
 
@@ -165,23 +194,12 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
             <div className="wr-pf-sec">
               <div className="wr-pf-sh"><span className="t">Awarding agency</span><span className="ln" /></div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {/* Linked org if we have a slug, else agency text with signals search link */}
-                {signal.org_name ? (
-                  orgUrl
-                    ? <a href={orgUrl} style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 700, color: 'var(--ink)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        {signal.org_name}
-                        <span style={{ opacity: .4, fontSize: 11 }}><IcLink /></span>
-                      </a>
-                    : <a href={`/signals?q=${encodeURIComponent(signal.org_name)}`} style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 700, color: 'var(--ink)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        {signal.org_name}
-                        <span style={{ opacity: .4, fontSize: 11 }}><IcLink /></span>
-                      </a>
-                ) : signal.agency ? (
-                  <a href={`/signals?q=${encodeURIComponent(signal.agency)}`} style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 700, color: 'var(--ink)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    {signal.agency}
+                {(signal.org_name || signal.agency) && (
+                  <a href={agencyOrgId ? `/org/${agencyOrgId}` : '#'} style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 700, color: 'var(--ink)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    {signal.org_name || signal.agency}
                     <span style={{ opacity: .4, fontSize: 11 }}><IcLink /></span>
                   </a>
-                ) : null}
+                )}
                 {signal.sub_agency && signal.sub_agency !== signal.org_name && (
                   <a href={`/signals?q=${encodeURIComponent(signal.sub_agency)}`} style={{ padding: '8px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 12, color: 'var(--accent)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     {signal.sub_agency}
@@ -196,7 +214,7 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
           {signal.recipient && (
             <div className="wr-pf-sec">
               <div className="wr-pf-sh"><span className="t">Recipient / Prime</span><span className="ln" /></div>
-              <a href={`/signals?q=${encodeURIComponent(signal.recipient)}`} style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <a href={recipientOrgId ? `/org/${recipientOrgId}` : '#'} style={{ padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 7, fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 {signal.recipient}
                 <span style={{ opacity: .4, fontSize: 11 }}><IcLink /></span>
               </a>
