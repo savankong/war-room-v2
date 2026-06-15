@@ -16,3 +16,20 @@ export function getDb(): any {
   }
   return _sql;
 }
+
+// Write-capable DB using Netlify owner credentials (@netlify/database)
+// Falls back to getDb() in non-Netlify environments (local dev)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getWriteDb(): any {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getDatabase } = require('@netlify/database');
+    const ndb = getDatabase();
+    // Wrap ndb.sql so callers can use db`...` instead of db.sql`...`
+    const fn = ndb.sql.bind(ndb) as any;
+    fn.unsafe = (s: string) => ({ __unsafe: s });
+    return fn;
+  } catch {
+    return getDb();
+  }
+}
