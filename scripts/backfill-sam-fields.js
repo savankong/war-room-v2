@@ -106,6 +106,7 @@ async function run() {
   await db`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS deadline            TIMESTAMPTZ`;
   await db`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS set_aside           VARCHAR(255)`;
   await db`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS solicitation_number VARCHAR(255)`;
+  await db`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS psc_code            VARCHAR(20)`;
 
   console.log('Fetching SAM.gov records with raw_payload...');
   const rows = await db`
