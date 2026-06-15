@@ -108,13 +108,21 @@ export async function getOrgContacts(orgId: string): Promise<Contact[]> {
 
 export async function getOrgContracts(orgId: string): Promise<Contract[]> {
   const db = getDb();
+  // Fetch org name so we can also match contracts by recipient
+  const orgRow = await db`SELECT full_name FROM orgs WHERE id = ${orgId} LIMIT 1`;
+  const orgName = orgRow[0]?.full_name ?? null;
+
   const rows = await db`
     SELECT id, title, value::numeric AS value, set_aside AS status,
            signal_type, award_date, source
     FROM contracts
-    WHERE org_id = ${orgId} AND signal_type IS NOT NULL
+    WHERE signal_type IS NOT NULL
+      AND (
+        org_id = ${orgId}
+        ${orgName ? db`OR recipient ILIKE ${'%' + orgName + '%'}` : db``}
+      )
     ORDER BY award_date DESC NULLS LAST, created_at DESC
-    LIMIT 50
+    LIMIT 100
   `;
   return rows as unknown as Contract[];
 }
