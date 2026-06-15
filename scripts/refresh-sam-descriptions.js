@@ -70,11 +70,13 @@ async function run() {
   let updated = 0;
   let offset = 0;
   let total = Infinity;
+  let pagesWithNoNewMatches = 0;
 
   while (offset < total) {
     const { opps, total: t } = await fetchPage(postedFrom, postedTo, offset);
     total = t;
 
+    const updatedBefore = updated;
     // Update DB immediately for any matches found on this page
     for (const opp of opps) {
       if (!idMap.has(opp.noticeId)) continue;
@@ -116,10 +118,17 @@ async function run() {
       idMap.delete(opp.noticeId); // remove so we know what's left
     }
 
+    if (updated === updatedBefore) {
+      pagesWithNoNewMatches++;
+    } else {
+      pagesWithNoNewMatches = 0;
+    }
+
     console.log(`  Got ${opps.length} opps (total=${t}, updated so far: ${updated}, remaining: ${idMap.size})`);
     offset += 1000;
     if (opps.length === 0) break;
     if (idMap.size === 0) { console.log('  All records updated — stopping early.'); break; }
+    if (pagesWithNoNewMatches >= 3) { console.log('  No new matches in 3 consecutive pages — stopping early.'); break; }
     if (offset < total) await new Promise(r => setTimeout(r, 800));
   }
 
