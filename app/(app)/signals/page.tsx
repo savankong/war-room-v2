@@ -1,7 +1,7 @@
 import { getDb } from '@/lib/db';
 import SignalsClient from './SignalsClient';
 
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
 
 const IND_WHERE = `(
   recipient ILIKE 'LOCKHEED MARTIN%'

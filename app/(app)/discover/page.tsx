@@ -1,7 +1,7 @@
 import { getDb } from '@/lib/db';
 import DiscoverClient from '../DiscoverClient';
 
-export const revalidate = 600;
+export const dynamic = 'force-dynamic';
 
 async function getOrgs() {
   const db = getDb();
