@@ -77,11 +77,13 @@ async function run() {
     for (const opp of opps) {
       if (idMap.has(opp.noticeId)) allOpps.set(opp.noticeId, opp);
     }
-    console.log(`  Got ${opps.length} opps (total=${t}, matched so far: ${allOpps.size})`);
+    console.log(`  Got ${opps.length} opps (total=${t}, matched so far: ${allOpps.size}/${idMap.size})`);
     offset += 1000;
     if (opps.length === 0) break;
+    // Stop early if we've matched everything
+    if (allOpps.size >= idMap.size) { console.log('  All records matched — stopping early.'); break; }
     // Small delay to be polite
-    if (offset < total) await new Promise(r => setTimeout(r, 500));
+    if (offset < total) await new Promise(r => setTimeout(r, 800));
   }
 
   console.log(`\nMatched ${allOpps.size} of ${idMap.size} DB records from API`);
