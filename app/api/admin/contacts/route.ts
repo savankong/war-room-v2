@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       ${id}, ${b.name}, ${b.title ?? null}, ${b.org_id ?? null},
       ${orgFull}, ${b.email ?? null}, ${b.phone ?? null}, ${b.linkedin ?? null},
       ${b.photo_url ?? null}, ${b.hierarchy_order ?? null}, ${b.is_inbox ?? false},
-      ${b.tags ? b.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : null}
+      ${b.tags ? (Array.isArray(b.tags) ? b.tags.map((t: string) => t.trim()).filter(Boolean) : b.tags.split(',').map((t: string) => t.trim()).filter(Boolean)) : null}
     )
   `;
   return NextResponse.json({ ok: true, id });

@@ -15,7 +15,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const tags = b.tags
-    ? b.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+    ? (Array.isArray(b.tags)
+        ? b.tags.map((t: string) => t.trim()).filter(Boolean)
+        : b.tags.split(',').map((t: string) => t.trim()).filter(Boolean))
     : null;
 
   await db`

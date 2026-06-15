@@ -9,12 +9,13 @@ export async function GET(req: NextRequest) {
 
   const db = getDb();
   const rows = await db`
-    SELECT id, name, title, color, photo_url, email, linkedin,
-           org_full, tags, hierarchy_order
-    FROM contacts
-    WHERE org_full = ${company}
-      AND tags @> ARRAY['INDUSTRY']
-    ORDER BY hierarchy_order NULLS LAST, name
+    SELECT c.id, c.name, c.title, c.color, c.photo_url, c.email, c.phone, c.linkedin,
+           c.org_full, c.tags, c.hierarchy_order
+    FROM contacts c
+    LEFT JOIN orgs o ON o.id = c.org_id
+    WHERE (c.org_full = ${company} OR o.full_name = ${company})
+      AND (c.tags @> ARRAY['INDUSTRY'] OR o.organization_type = 'sbir_company')
+    ORDER BY c.hierarchy_order NULLS LAST, c.name
   `;
   return NextResponse.json(rows);
 }

@@ -1,7 +1,7 @@
 functionsDirectory = "/Users/savankong/Desktop/WarRoom.io/war-room-v2-site/netlify/functions"
 functionsDirectoryOrigin = "default"
-headersOrigin = "inline"
-redirectsOrigin = "inline"
+headers = []
+redirects = []
 
 [build]
 publish = "/Users/savankong/Desktop/WarRoom.io/war-room-v2-site/.next"
@@ -33,39 +33,3 @@ origin = "config"
 package = "@netlify/plugin-nextjs"
 
 [plugins.inputs]
-
-[[headers]]
-for = "/_next/static/*"
-
-[headers.values]
-Cache-Control = "public, max-age=31536000, immutable"
-
-[[redirects]]
-from = "/_next/image"
-to = "/.netlify/images?url=:url&w=:width&q=:quality"
-status = 200.0
-force = false
-
-[redirects.query]
-url = ":url"
-w = ":width"
-q = ":quality"
-
-[redirects.conditions]
-
-[redirects.headers]
-
-[[redirects]]
-from = "/_ipx/*"
-to = "/.netlify/images?url=:url&w=:width&q=:quality"
-status = 200.0
-force = false
-
-[redirects.query]
-url = ":url"
-w = ":width"
-q = ":quality"
-
-[redirects.conditions]
-
-[redirects.headers]
