@@ -265,6 +265,35 @@ function PersonPanel({ contact, org, allContacts, onClose }: {
 /* ── Tier-box org chart ──────────────────────────────────────────────── */
 const CARDS_PER_TIER = 8;
 
+/* ── Tier accent colours ──────────────────────────────────────────── */
+const TIER_COLORS: Record<number, string> = {
+  1: '#2563B8', 2: '#7c4dbc', 3: '#e0a32e', 4: '#2f8676',
+  5: '#c8502d', 6: '#1d6b8a', 7: '#5a6b82', 8: '#283a6b',
+};
+function tierColor(t: number) { return TIER_COLORS[t] ?? TIER_COLORS[8]; }
+
+function OcCard({ c, tier, onSelect }: { c: Contact; tier: number; onSelect: (c: Contact) => void }) {
+  const bg = c.avatar_color ?? colorFor(c.name);
+  const tc = tierColor(tier);
+  return (
+    <div className="oct-card" onClick={() => onSelect(c)}>
+      <div className="oct-bar" style={{ background: tc }} />
+      <div className="oct-head">{c.title ?? '—'}</div>
+      <div className="oct-person">
+        <div className="oct-av" style={{ background: bg }}>
+          {c.photo_url
+            ? <img src={c.photo_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+            : initials(c.name)}
+        </div>
+        <div className="oct-info">
+          <div className="oct-name">{c.name}</div>
+          {c.email && <div className="oct-sub">{c.email}</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OrgChartBroad({ contacts, onSelect }: { contacts: Contact[]; onSelect: (c: Contact) => void }) {
   const [expandedTiers, setExpandedTiers] = useState<Set<number>>(new Set());
 
@@ -278,83 +307,37 @@ function OrgChartBroad({ contacts, onSelect }: { contacts: Contact[]; onSelect: 
   const levels = Array.from(levelMap.entries()).sort((a, b) => a[0] - b[0]);
   if (levels.length === 0) return <div className="oc-empty">No contacts found for this org</div>;
 
-  const [topTier, topMembers] = levels[0];
-  const remainingLevels = levels.slice(1);
-
-  const toggleExpand = (tier: number) => {
-    setExpandedTiers(prev => {
-      const next = new Set(prev);
-      if (next.has(tier)) next.delete(tier); else next.add(tier);
-      return next;
-    });
-  };
-
   return (
-    <div className="wr-broad">
-      {/* Root card(s) — tier 1 */}
-      <div className="wr-broad-root">
-        {topMembers.map(c => {
-          const bg = c.avatar_color ?? colorFor(c.name);
-          return (
-            <div key={c.id} className="wr-node-root" onClick={() => onSelect(c)}>
-              <span className="rk">T{topTier}</span>
-              <div className="ava" style={{background:bg}}>
-                {c.photo_url
-                  ? <img src={c.photo_url} alt={c.name} style={{width:'100%',height:'100%',objectFit:'cover'}} />
-                  : initials(c.name)}
-              </div>
-              <div className="nm">{c.name}</div>
-              {c.title && <div className="rl">{c.title}</div>}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Remaining tiers as boxes */}
-      {remainingLevels.map(([tier, members]) => {
+    <div className="oct-wrap">
+      {levels.map(([tier, members], idx) => {
         const isExpanded = expandedTiers.has(tier);
         const shown = isExpanded ? members : members.slice(0, CARDS_PER_TIER);
         const overflow = members.length - shown.length;
-        const label = TIER_LABELS[tier] ?? `Tier ${tier}`;
+        const multi = shown.length > 1;
 
         return (
-          <div key={tier} style={{width:'100%'}}>
-            <div className="wr-stem" />
-            <div className="wr-tierbox">
-              <div className="wr-tierhead">
-                <span className="dot" />
-                <span className="tl">{label}</span>
-                <span className="tc">{members.length} {members.length === 1 ? 'person' : 'people'}</span>
-                {members.length > CARDS_PER_TIER && (
-                  <button className="more-link" onClick={() => toggleExpand(tier)}>
-                    {isExpanded ? 'Show less ↑' : `View all →`}
+          <div key={tier} className="oct-level">
+            {idx > 0 && <div className="oct-vline" />}
+            <div className={multi ? 'oct-row multi' : 'oct-row'}>
+              {shown.map(c => (
+                <div key={c.id} className="oct-col">
+                  <OcCard c={c} tier={tier} onSelect={onSelect} />
+                </div>
+              ))}
+              {overflow > 0 && (
+                <div className="oct-col">
+                  <button className="oct-more" onClick={() => setExpandedTiers(prev => { const n = new Set(prev); n.add(tier); return n; })}>
+                    <span className="oct-more-n">+{overflow}</span>
+                    <span className="oct-more-l">more</span>
                   </button>
-                )}
-              </div>
-              <div className="wr-grid">
-                {shown.map(c => {
-                  const bg = c.avatar_color ?? colorFor(c.name);
-                  return (
-                    <div key={c.id} className="wr-cc" onClick={() => onSelect(c)}>
-                      <span className="rk">T{tier}</span>
-                      <div className="ava" style={{background:bg}}>
-                        {c.photo_url
-                          ? <img src={c.photo_url} alt={c.name} style={{width:'100%',height:'100%',objectFit:'cover'}} />
-                          : initials(c.name)}
-                      </div>
-                      <div className="nm">{c.name}</div>
-                      {c.title && <div className="rl">{c.title}</div>}
-                    </div>
-                  );
-                })}
-                {overflow > 0 && (
-                  <div className="wr-more" onClick={() => toggleExpand(tier)}>
-                    <b>+{overflow}</b>
-                    <span>more</span>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
+            {isExpanded && members.length > CARDS_PER_TIER && (
+              <button className="oct-collapse" onClick={() => setExpandedTiers(prev => { const n = new Set(prev); n.delete(tier); return n; })}>
+                Show less ↑
+              </button>
+            )}
           </div>
         );
       })}
