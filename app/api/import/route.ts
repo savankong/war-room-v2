@@ -122,6 +122,31 @@ export async function POST(req: NextRequest) {
         inserted++;
       } catch (e: any) { errors.push(`contract ${c.id}: ${getErr(e)}`); }
     }
+  } else if (type === 'org_types') {
+    // Insert industry (or any) org_type rows
+    for (const t of records) {
+      try {
+        await db.sql`
+          INSERT INTO org_types (id, name, category, sort_order, description)
+          VALUES (${t.id}, ${t.name}, ${t.category || 'industry'}, ${t.sort_order ?? 99}, ${t.description || null})
+          ON CONFLICT (id) DO NOTHING
+        `;
+        inserted++;
+      } catch (e: any) { errors.push(`org_type ${t.id}: ${getErr(e)}`); }
+    }
+  } else if (type === 'link_contracts') {
+    // records: [{ awardee: string, org_id: string }]
+    // Updates canonical_org_id on all contracts matching awardee name
+    for (const r of records) {
+      try {
+        const result = await db.sql`
+          UPDATE contracts SET canonical_org_id = ${r.org_id}
+          WHERE LOWER(TRIM(awardee)) = LOWER(TRIM(${r.awardee}))
+            AND (canonical_org_id IS NULL OR canonical_org_id <> ${r.org_id})
+        `;
+        inserted += (result as any).rowCount ?? 1;
+      } catch (e: any) { errors.push(`link ${r.awardee}: ${getErr(e)}`); }
+    }
   } else if (type === 'delete_contacts_by_id_prefix') {
     const prefix = body.prefix;
     if (!prefix) return NextResponse.json({ error: 'prefix required' }, { status: 400 });
