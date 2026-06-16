@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   const errors: string[] = [];
 
 
-  const VALID_ORG_TYPES = new Set(['asd_office','osd_office','joint_staff','department','military_department','usd_office','service_hq','major_command','field_command','component_command','unified_command','sub_unified_command','fleet_command','special_ops_command','defense_agency','defense_field_activity','intelligence_office','systems_command','portfolio_acq_exec','capability_prog_exec']);
+  const VALID_ORG_TYPES = new Set(['asd_office','osd_office','joint_staff','department','military_department','usd_office','service_hq','major_command','field_command','component_command','unified_command','sub_unified_command','fleet_command','special_ops_command','defense_agency','defense_field_activity','intelligence_office','systems_command','portfolio_acq_exec','capability_prog_exec','prime_contractor','subcontractor','sbir_company','defense_tech','research_institute','contracting_command','program_exec_office','program_office','contracting_org','research_lab','innovation_unit','rapid_capabilities','training_command','office','directorate']);
 
   if (type === 'orgs') {
     for (const o of records) {
