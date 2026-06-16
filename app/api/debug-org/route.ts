@@ -13,6 +13,13 @@ export async function GET(req: NextRequest) {
     catch (e: unknown) { results[key] = { ok: false, error: e instanceof Error ? e.message : String(e) }; }
   };
 
+  await run('contracts_columns', () => db`
+    SELECT column_name, data_type
+    FROM information_schema.columns
+    WHERE table_name = 'contracts'
+    ORDER BY ordinal_position
+  `);
+
   await run('profile', () => db`
     SELECT o.id, COALESCE(o.full_name, o.sub, o.id) AS name,
            o.organization_type, o.abs_hierarchy_level,
