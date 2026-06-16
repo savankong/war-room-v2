@@ -17,8 +17,29 @@ const BRANCHES = [
   'Federal Agency','Joint','Joint Staff','DoD Field Activity',
 ];
 
-// Group label for each section based on abs_hierarchy_level
-function sectionLabel(level: number | null): string {
+// Group label for each section — prefer sub field, fall back to hierarchy level
+const SUB_DISPLAY: Record<string, string> = {
+  'Office of the Secretary of Defense': 'Office of the Secretary of Defense',
+  'Military Departments': 'Military Departments',
+  'Combatant Commands': 'Combatant Commands',
+  'Defense Agencies & DoD Field Activities': 'Defense Agencies & Field Activities',
+};
+
+const SUB_ORDER = [
+  'DoD Leadership',
+  'Office of the Secretary of Defense',
+  'Military Departments',
+  'Combatant Commands',
+  'Defense Agencies & Field Activities',
+  'Major Commands',
+  'Sub-commands',
+  'Field / Sub-commands',
+  'Other',
+];
+
+function sectionLabel(org: NavOrg): string {
+  if (org.sub && SUB_DISPLAY[org.sub]) return SUB_DISPLAY[org.sub];
+  const level = org.abs_hierarchy_level;
   if (level == null || level >= 3) return 'Field / Sub-commands';
   if (level === 0) return 'DoD Leadership';
   if (level === 1) return 'Major Commands';
@@ -43,7 +64,7 @@ export default function OrgNav({ orgs, currentId, currentBranch }: {
     return inBranch.filter(o => o.name.toLowerCase().includes(q));
   }, [orgs, branch, search]);
 
-  // Group into sections by abs_hierarchy_level
+  // Group into sections by sub (preferred) or hierarchy level
   const sections = useMemo(() => {
     const sorted = [...filtered].sort((a, b) => {
       const aL = a.abs_hierarchy_level ?? a.hierarchy_level ?? 99;
@@ -54,11 +75,18 @@ export default function OrgNav({ orgs, currentId, currentBranch }: {
 
     const map = new Map<string, NavOrg[]>();
     for (const o of sorted) {
-      const label = sectionLabel(o.abs_hierarchy_level);
+      const label = sectionLabel(o);
       if (!map.has(label)) map.set(label, []);
       map.get(label)!.push(o);
     }
-    return Array.from(map.entries()).map(([label, items]) => ({ label, items }));
+    // Sort sections by SUB_ORDER
+    const entries = Array.from(map.entries());
+    entries.sort(([a], [b]) => {
+      const ai = SUB_ORDER.indexOf(a);
+      const bi = SUB_ORDER.indexOf(b);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+    return entries.map(([label, items]) => ({ label, items }));
   }, [filtered]);
 
   const availBranches = BRANCHES.filter(b => orgs.some(o => o.branch === b));

@@ -12,6 +12,7 @@ async function getOrgs() {
       o.org_type_id          AS organization_type,
       o.loc                  AS hq_address,
       o.branch,
+      o.sub,
       o.hierarchy_level      AS abs_hierarchy_level,
       o.hierarchy_level,
       o.parent_id,
@@ -39,6 +40,7 @@ async function getOrgs() {
     organization_type: string | null;
     hq_address: string | null;
     branch: string | null;
+    sub: string | null;
     abs_hierarchy_level: number | null;
     hierarchy_level: number | null;
     parent_id: string | null;

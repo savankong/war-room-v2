@@ -41,7 +41,7 @@ async function getSignalsData() {
       ORDER BY c.created_at DESC NULLS LAST
       LIMIT 5000
     `,
-    db`SELECT id::text, full_name AS name, id::text AS slug FROM orgs WHERE is_active = true ORDER BY full_name`,
+    db`SELECT id::text, full_name AS name, id::text AS slug, sub FROM orgs WHERE is_active = true ORDER BY full_name`,
     db`
       SELECT
         COUNT(*)::int AS total,

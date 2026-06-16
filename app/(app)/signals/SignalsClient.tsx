@@ -462,6 +462,7 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
                   <div key={o.id} className={'wr-chk'+(orgFilter===o.id?' on':'')} onClick={()=>setOrgFilter(orgFilter===o.id?null:o.id)}>
                     <span className="box">{orgFilter===o.id?<IcTick />:null}</span>
                     <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:12.5 }}>{o.name}</span>
+                    {o.sub && <span style={{ fontFamily:'IBM Plex Mono',fontSize:9,color:'var(--ink-3)',background:'var(--row-bg)',border:'1px solid var(--card-border)',borderRadius:3,padding:'1px 4px',whiteSpace:'nowrap',flexShrink:0,maxWidth:90,overflow:'hidden',textOverflow:'ellipsis' }}>{o.sub}</span>}
                     <span className="c">{orgCounts[o.id]??0}</span>
                   </div>
                 ))}

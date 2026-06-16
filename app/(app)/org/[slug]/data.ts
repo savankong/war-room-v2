@@ -14,7 +14,7 @@ export interface OrgProfile {
 export interface NavOrg {
   id: string; name: string; parent_id: string | null;
   hierarchy_level: number; abs_hierarchy_level: number | null;
-  branch: string | null; contract_count: number;
+  branch: string | null; sub: string | null; contract_count: number;
 }
 
 export interface ChildOrg {
@@ -68,7 +68,7 @@ export const getNavOrgs = unstable_cache(
       SELECT o.id, COALESCE(o.full_name, o.sub, o.id) AS name, o.parent_id,
         COALESCE(o.hierarchy_level, 2)::int AS hierarchy_level,
         o.hierarchy_level AS abs_hierarchy_level,
-        o.branch,
+        o.branch, o.sub,
         COUNT(DISTINCT ct.id)::int AS contract_count
       FROM orgs o
       LEFT JOIN contracts ct ON ct.canonical_org_id = o.id

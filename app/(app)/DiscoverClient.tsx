@@ -677,6 +677,7 @@ interface Org {
   organization_type: string | null;
   hq_address: string | null;
   branch: string | null;
+  sub: string | null;
   abs_hierarchy_level: number | null;
   hierarchy_level: number | null;
   parent_id: string | null;
@@ -686,7 +687,16 @@ interface Org {
   top_leader_title: string | null;
 }
 
-function sectionFor(lvl: number | null): string {
+const SUB_DISPLAY: Record<string, string> = {
+  'Office of the Secretary of Defense': 'Office of the Secretary of Defense',
+  'Military Departments': 'Military Departments',
+  'Combatant Commands': 'Combatant Commands',
+  'Defense Agencies & DoD Field Activities': 'Defense Agencies & Field Activities',
+};
+
+function sectionFor(org: Org): string {
+  if (org.sub && SUB_DISPLAY[org.sub]) return SUB_DISPLAY[org.sub];
+  const lvl = org.abs_hierarchy_level;
   if (lvl == null || lvl >= 4) return 'Field Activities';
   if (lvl === 0) return 'DoD Leadership';
   if (lvl === 1) return 'Major Commands & Senior Offices';
@@ -696,6 +706,10 @@ function sectionFor(lvl: number | null): string {
 
 const SECTION_ORDER = [
   'DoD Leadership',
+  'Office of the Secretary of Defense',
+  'Military Departments',
+  'Combatant Commands',
+  'Defense Agencies & Field Activities',
   'Major Commands & Senior Offices',
   'Sub-commands & Directorates',
   'Units & Squadrons',
@@ -740,6 +754,42 @@ function Directory({ groups, activeSection }: { groups: { label: string; rows: O
           const isOpen    = !collapsed.has(g.label);
           const gPage     = getPage(g.label);
           const pagedRows = g.rows.slice((gPage-1)*ORGS_PER_PAGE, gPage*ORGS_PER_PAGE);
+          // Build major sub-groups for sections that have them
+          const majorGroups: { major: string | null; rows: Org[] }[] = [];
+          for (const org of pagedRows) {
+            const maj = (org as any).major ?? null;
+            const last = majorGroups[majorGroups.length - 1];
+            if (!last || last.major !== maj) majorGroups.push({ major: maj, rows: [org] });
+            else last.rows.push(org);
+          }
+          const hasMajors = majorGroups.some(mg => mg.major != null);
+          const renderOrgRow = (org: Org) => {
+            const color       = colorFor(org.name);
+            const ini         = initials(org.name);
+            const leaderColor = org.top_leader_name ? colorFor(org.top_leader_name) : '#8995A4';
+            const leaderIni   = org.top_leader_name ? initials(org.top_leader_name) : '—';
+            return (
+              <div key={org.id} className="wr-drow" onClick={() => router.push(`/org/${org.id}`)}>
+                <div className="wr-org">
+                  <div className="mk" style={{ background: color }}>{ini}</div>
+                  <div className="tx">
+                    <div className="on" title={org.name}>{org.name}</div>
+                    <div className="os">{org.hq_address ?? org.branch ?? '—'}</div>
+                  </div>
+                </div>
+                <div><span className="wr-chip">{org.organization_type ?? org.branch ?? 'Org'}</span></div>
+                <div className="wr-lead">
+                  {org.top_leader_name
+                    ? <><div className="av" style={{ background: leaderColor }}>{leaderIni}</div><div className="ln" title={org.top_leader_name}>{org.top_leader_name}</div></>
+                    : <div className="ln" style={{ color:'var(--ink-3)' }}>—</div>}
+                </div>
+                <div className={'wr-num'+(org.contact_count?'':' z')}>{org.contact_count||'—'}</div>
+                <div className={'wr-num'+(org.contract_count?'':' z')}>{org.contract_count||'—'}</div>
+                <div className="wr-upd">{org.abs_hierarchy_level!=null?`L${org.abs_hierarchy_level}`:'—'}</div>
+                <div className="wr-go"><ChevRight /></div>
+              </div>
+            );
+          };
           return (
             <div key={g.label}>
               <div className={'wr-dgroup'+(isOpen?'':' closed')} onClick={() => toggle(g.label)}>
@@ -748,33 +798,12 @@ function Directory({ groups, activeSection }: { groups: { label: string; rows: O
                 <span className="gc">{g.rows.length}</span>
                 <span className="gline" />
               </div>
-              {isOpen && pagedRows.map(org => {
-                const color       = colorFor(org.name);
-                const ini         = initials(org.name);
-                const leaderColor = org.top_leader_name ? colorFor(org.top_leader_name) : '#8995A4';
-                const leaderIni   = org.top_leader_name ? initials(org.top_leader_name) : '—';
-                return (
-                  <div key={org.id} className="wr-drow" onClick={() => router.push(`/org/${org.id}`)}>
-                    <div className="wr-org">
-                      <div className="mk" style={{ background: color }}>{ini}</div>
-                      <div className="tx">
-                        <div className="on" title={org.name}>{org.name}</div>
-                        <div className="os">{org.hq_address ?? org.branch ?? '—'}</div>
-                      </div>
-                    </div>
-                    <div><span className="wr-chip">{org.organization_type ?? org.branch ?? 'Org'}</span></div>
-                    <div className="wr-lead">
-                      {org.top_leader_name
-                        ? <><div className="av" style={{ background: leaderColor }}>{leaderIni}</div><div className="ln" title={org.top_leader_name}>{org.top_leader_name}</div></>
-                        : <div className="ln" style={{ color:'var(--ink-3)' }}>—</div>}
-                    </div>
-                    <div className={'wr-num'+(org.contact_count?'':' z')}>{org.contact_count||'—'}</div>
-                    <div className={'wr-num'+(org.contract_count?'':' z')}>{org.contract_count||'—'}</div>
-                    <div className="wr-upd">{org.abs_hierarchy_level!=null?`L${org.abs_hierarchy_level}`:'—'}</div>
-                    <div className="wr-go"><ChevRight /></div>
-                  </div>
-                );
-              })}
+              {isOpen && (hasMajors ? majorGroups.map(mg => (
+                <div key={mg.major ?? '__none__'}>
+                  {mg.major && <div style={{ padding:'4px 26px 2px', fontFamily:'IBM Plex Mono', fontSize:10, color:'var(--ink-3)', textTransform:'uppercase', letterSpacing:'0.08em', borderBottom:'1px solid var(--card-border)' }}>{mg.major}</div>}
+                  {mg.rows.map(renderOrgRow)}
+                </div>
+              )) : pagedRows.map(renderOrgRow))}
               {isOpen && (
                 <Pagination total={g.rows.length} page={gPage} perPage={ORGS_PER_PAGE} onChange={p => setGroupPage(g.label, p)} />
               )}
@@ -1109,7 +1138,7 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
   const groups = useMemo(() => {
     const map = new Map<string, Org[]>();
     for (const o of filtered) {
-      const sec = sectionFor(o.abs_hierarchy_level);
+      const sec = sectionFor(o);
       if (!map.has(sec)) map.set(sec, []);
       map.get(sec)!.push(o);
     }
