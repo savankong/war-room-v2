@@ -771,6 +771,41 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
     if (res.ok) setUsers(u => u.filter(x => x.id !== id));
   }
 
+  /* USASpending sync */
+  const [syncRunning, setSyncRunning]   = useState(false);
+  const [syncPage,    setSyncPage]      = useState(0);
+  const [syncTotal,   setSyncTotal]     = useState(0);
+  const [syncDone,    setSyncDone]      = useState(false);
+  const [syncError,   setSyncError]     = useState<string | null>(null);
+  const syncAbort = useRef(false);
+
+  async function startSync() {
+    syncAbort.current = false;
+    setSyncRunning(true); setSyncDone(false); setSyncError(null);
+    setSyncPage(0); setSyncTotal(0);
+
+    const base = '/api/sync-usaspending?token=warroom-seed-2026&startDate=2023-01-01&endDate=2026-06-15';
+    let url = base + '&page=1';
+
+    while (url && !syncAbort.current) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) { setSyncError(`HTTP ${res.status}`); break; }
+        const d = await res.json();
+        if (d.error) { setSyncError(d.error); break; }
+        setSyncPage(p => p + 1);
+        setSyncTotal(t => t + (d.inserted ?? 0));
+        if (!d.hasNext || !d.nextUrl) { setSyncDone(true); break; }
+        url = d.nextUrl;
+        await new Promise(r => setTimeout(r, 300)); // small delay between pages
+      } catch (e: any) {
+        setSyncError(e.message ?? 'Network error');
+        break;
+      }
+    }
+    setSyncRunning(false);
+  }
+
   /* Branches for org filter */
   const branches = useMemo(() =>
     ['All', ...Array.from(new Set(localOrgs.map((o:any) => o.branch).filter(Boolean))).sort()],
@@ -917,7 +952,29 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
         <div className="adm-nav-section" style={{ marginTop: 16 }}>PLATFORM</div>
         {navItem('users', 'Users', users.length, '#2563B8')}
 
-        <div className="adm-nav-section" style={{ marginTop: 24 }}>EXPORTS</div>
+        <div className="adm-nav-section" style={{ marginTop: 24 }}>SYNC</div>
+        <div style={{ padding: '8px 16px 12px' }}>
+          {!syncRunning ? (
+            <button className="adm-export-btn primary" style={{ display:'block', width:'100%', textAlign:'center', marginBottom: 6 }} onClick={startSync}>
+              ↻ Sync USASpending
+            </button>
+          ) : (
+            <button className="adm-export-btn primary" style={{ display:'block', width:'100%', textAlign:'center', marginBottom: 6, color:'#B71C1C', borderColor:'#B71C1C' }}
+              onClick={() => { syncAbort.current = true; }}>
+              ■ Stop Sync
+            </button>
+          )}
+          {(syncRunning || syncTotal > 0 || syncDone || syncError) && (
+            <div style={{ fontSize: 10, fontFamily: 'IBM Plex Mono', color: 'var(--ink-3)', lineHeight: 1.6 }}>
+              {syncRunning && <div style={{ color: 'var(--teal)' }}>● Running · page {syncPage}</div>}
+              {syncDone   && <div style={{ color: 'var(--teal)' }}>✓ Complete</div>}
+              {syncError  && <div style={{ color: '#B71C1C' }}>✗ {syncError}</div>}
+              {syncTotal > 0 && <div>{syncTotal.toLocaleString()} contracts synced</div>}
+            </div>
+          )}
+        </div>
+
+        <div className="adm-nav-section" style={{ marginTop: 8 }}>EXPORTS</div>
         {(['orgs','contacts','contracts'] as const).map(t => (
           <a key={t} href={`/api/admin/export?type=${t}`} download className="adm-export-btn">
             ↓ Export {t === 'orgs' ? 'Orgs' : t === 'contacts' ? 'Contacts' : 'Contracts'} CSV
