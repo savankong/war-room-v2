@@ -126,7 +126,7 @@ export const getOrgContracts = unstable_cache(
     const db = getDb();
     const rows = await db`
       SELECT id, title,
-             (CASE WHEN value ~ '^[0-9.]+$' THEN value::numeric ELSE NULL END) AS value,
+             value,
              set_aside AS status,
              signal_type, award_date,
              COALESCE(source, 'sam') AS source

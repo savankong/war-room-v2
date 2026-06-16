@@ -28,8 +28,7 @@ export async function GET(req: NextRequest) {
   `);
 
   await run('contracts', () => db`
-    SELECT id, title,
-           (CASE WHEN value ~ '^[0-9.]+$' THEN value::numeric ELSE NULL END) AS value,
+    SELECT id, title, value,
            set_aside AS status, signal_type, award_date,
            COALESCE(source, 'sam') AS source
     FROM contracts WHERE org_id::text = ${slug} AND signal_type IS NOT NULL
