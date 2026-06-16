@@ -911,7 +911,7 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
         <div className="adm-nav-section" style={{ marginTop: 16 }}>INDUSTRY</div>
         {navItem('ind-companies', 'Companies',      companies.length,    '#7c4dbc')}
         {navItem('ind-people',    'People',         people.length,       '#c8502d')}
-        {navItem('ind-signals',   'Signals',        Object.values(contractAgg).reduce((s: number, a: any) => s + (a.contract_count || 0), 0), '#e67e22')}
+        {navItem('ind-signals',   'Signals',        Object.values(contractAgg as Record<string,any>).reduce((s: number, a: any) => s + (a.contract_count || 0), 0), '#e67e22')}
         {navItem('ind-subs',      'Subcontractors', subCompanies.length, '#1d6b8a')}
 
         <div className="adm-nav-section" style={{ marginTop: 16 }}>PLATFORM</div>
@@ -1106,42 +1106,46 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
         )}
 
         {/* ── INDUSTRY TABS ── */}
-        {tab === 'ind-signals' && (
-          <>
-            <div className="adm-toolbar">
-              <input className="adm-search" placeholder="Search signals…" value={search} onChange={e => setSearch(e.target.value)} />
-            </div>
-            <div className="adm-count">
-              {Object.values(contractAgg).reduce((s: number, a: any) => s + (a.contract_count || 0), 0).toLocaleString()} signals across {companies.length} industry primes
-            </div>
-            <div className="adm-table-wrap">
-              <table className="adm-table">
-                <thead><tr>
-                  <th>Company</th>
-                  <th style={{ textAlign: 'right' }}>Contracts</th>
-                  <th style={{ textAlign: 'right' }}>Total Value</th>
-                  <th>Agencies</th>
-                </tr></thead>
-                <tbody>
-                  {companies
-                    .filter((c: any) => !search || c.name?.toLowerCase().includes(search.toLowerCase()) || c.legal_name?.toLowerCase().includes(search.toLowerCase()))
-                    .map((c: any) => {
-                      const agg = contractAgg[c.name] ?? contractAgg[c.legal_name] ?? {};
-                      return (
-                        <tr key={c.legal_name ?? c.name}>
-                          <td><div className="adm-cell-primary">{c.display_name ?? c.name}</div>
-                              <div className="adm-cell-sub">{c.ticker}</div></td>
-                          <td className="adm-cell-num">{(agg.contract_count ?? 0).toLocaleString()}</td>
-                          <td className="adm-cell-num">{agg.total_value ? '$' + (agg.total_value / 1e9).toFixed(1) + 'B' : '—'}</td>
-                          <td className="adm-cell-sub">{(agg.agencies ?? []).slice(0, 3).join(', ')}</td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
+        {tab === 'ind-signals' && (() => {
+          const allSignals = Object.values(contractAgg as Record<string, any>)
+            .filter((a: any) => (a.contract_count || 0) > 0)
+            .sort((a: any, b: any) => (b.contract_count || 0) - (a.contract_count || 0));
+          const totalSignals = allSignals.reduce((s: number, a: any) => s + (a.contract_count || 0), 0);
+          const filtered = search
+            ? allSignals.filter((a: any) => a.name?.toLowerCase().includes(search.toLowerCase()))
+            : allSignals;
+          return (
+            <>
+              <div className="adm-toolbar">
+                <input className="adm-search" placeholder="Search awardees…" value={search} onChange={e => setSearch(e.target.value)} />
+              </div>
+              <div className="adm-count">
+                {totalSignals.toLocaleString()} contract signals across {allSignals.length.toLocaleString()} awardees
+              </div>
+              <div className="adm-table-wrap">
+                <table className="adm-table">
+                  <thead><tr>
+                    <th>Awardee</th>
+                    <th style={{ textAlign: 'right' }}>Contracts</th>
+                    <th style={{ textAlign: 'right' }}>Total Value</th>
+                    <th>Agencies</th>
+                  </tr></thead>
+                  <tbody>
+                    {filtered.slice(0, 500).map((a: any) => (
+                      <tr key={a.name}>
+                        <td><div className="adm-cell-primary">{a.display_name ?? a.name}</div>
+                            {a.display_name && <div className="adm-cell-sub">{a.name}</div>}</td>
+                        <td className="adm-cell-num">{(a.contract_count || 0).toLocaleString()}</td>
+                        <td className="adm-cell-num">{a.total_value ? '$' + (Number(a.total_value) / 1e9).toFixed(1) + 'B' : '—'}</td>
+                        <td className="adm-cell-sub">{(a.agencies ?? []).slice(0, 3).join(', ')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          );
+        })()}
 
         {(tab === 'ind-companies' || tab === 'ind-people' || tab === 'ind-subs') && (
           indLoading ? (
