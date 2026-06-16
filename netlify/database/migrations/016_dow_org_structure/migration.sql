@@ -506,16 +506,6 @@ ON CONFLICT (id) DO UPDATE SET
   description = EXCLUDED.description, org_type_id = EXCLUDED.org_type_id,
   is_active = EXCLUDED.is_active;
 
--- ── Org Aliases: Department of War secondary names (EO 14347) ────────────────
-
-INSERT INTO org_aliases (canonical_org_id, alias_org_id, alias_type, source)
-SELECT 'dod', 'dod', 'secondary_name', 'EO 14347 (Sept 5, 2025)'
-WHERE NOT EXISTS (
-  SELECT 1 FROM org_aliases WHERE canonical_org_id = 'dod' AND alias_type = 'secondary_name'
-);
-
-INSERT INTO org_aliases (canonical_org_id, alias_org_id, alias_type, source)
-SELECT 'osd', 'osd', 'secondary_name', 'EO 14347 (Sept 5, 2025)'
-WHERE NOT EXISTS (
-  SELECT 1 FROM org_aliases WHERE canonical_org_id = 'osd' AND alias_type = 'secondary_name'
-);
+-- ── EO 14347 secondary names stored in org descriptions ─────────────────────
+-- Note: org_aliases has a CHECK (canonical_org_id != alias_org_id) constraint,
+-- so secondary name aliases for DoD/OSD are captured in the description field only.
