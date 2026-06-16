@@ -49,7 +49,7 @@ export const getOrgProfile = unstable_cache(
         o.description, NULL::text AS sector, o.loc AS hq_address,
         NULL::int AS personnel_count, 0::int AS follower_count,
         COUNT(DISTINCT c.id)::int AS contact_count,
-        o.branch, o.parent_id, o.abs_hierarchy_level
+        o.branch, o.parent_id, o.hierarchy_level AS abs_hierarchy_level
       FROM orgs o
       LEFT JOIN contacts c ON c.org_id = o.id
       WHERE o.id = ${slug}
@@ -67,14 +67,14 @@ export const getNavOrgs = unstable_cache(
     const rows = await db`
       SELECT o.id, COALESCE(o.full_name, o.sub, o.id) AS name, o.parent_id,
         COALESCE(o.hierarchy_level, 2)::int AS hierarchy_level,
-        o.abs_hierarchy_level,
+        o.hierarchy_level AS abs_hierarchy_level,
         o.branch,
         COUNT(DISTINCT ct.id)::int AS contract_count
       FROM orgs o
       LEFT JOIN contracts ct ON ct.org_id::text = o.id
       WHERE o.is_active = true
       GROUP BY o.id
-      ORDER BY o.branch, o.abs_hierarchy_level NULLS LAST, o.hierarchy_level, o.full_name
+      ORDER BY o.branch, o.hierarchy_level NULLS LAST, o.full_name
     `;
     return rows as NavOrg[];
   },
@@ -106,9 +106,10 @@ export const getOrgContacts = unstable_cache(
   async (orgId: string): Promise<Contact[]> => {
     const db = getDb();
     const rows = await db`
-      SELECT id, name, title, color AS avatar_color, photo_url,
+      SELECT id, COALESCE(name, org_full, 'Unknown') AS name, title,
+             NULL::text AS avatar_color, NULL::text AS photo_url,
              email, phone, linkedin, org_id, org_full,
-             tags, opps, awards, last_signal, hierarchy_order
+             tags, opps, NULL::text AS awards, last_signal, hierarchy_order
       FROM contacts
       WHERE org_id = ${orgId}
       ORDER BY hierarchy_order NULLS LAST, name
