@@ -69,7 +69,7 @@ export const getNavOrgs = unstable_cache(
         o.branch,
         COUNT(DISTINCT ct.id)::int AS contract_count
       FROM orgs o
-      LEFT JOIN contracts ct ON ct.org_id = o.id
+      LEFT JOIN contracts ct ON ct.org_id::text = o.id
       WHERE o.is_active = true
       GROUP BY o.id
       ORDER BY o.branch, o.abs_hierarchy_level NULLS LAST, o.hierarchy_level, o.full_name
@@ -89,7 +89,7 @@ export const getChildOrgs = unstable_cache(
         COUNT(DISTINCT ct.id)::int AS contract_count
       FROM orgs o
       LEFT JOIN contacts c   ON c.org_id = o.id
-      LEFT JOIN contracts ct ON ct.org_id = o.id
+      LEFT JOIN contracts ct ON ct.org_id::text = o.id
       WHERE o.parent_id = ${orgId} AND o.is_active = true
       GROUP BY o.id
       ORDER BY o.full_name
@@ -125,7 +125,7 @@ export const getOrgContracts = unstable_cache(
       SELECT id, title, value::numeric AS value, set_aside AS status,
              signal_type, award_date, source
       FROM contracts
-      WHERE org_id = ${orgId} AND signal_type IS NOT NULL
+      WHERE org_id::text = ${orgId} AND signal_type IS NOT NULL
       ORDER BY award_date DESC NULLS LAST, created_at DESC
       LIMIT 50
     `;
