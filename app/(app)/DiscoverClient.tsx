@@ -138,6 +138,41 @@ function SbirBadges({ company, compact = false }: { company: any; compact?: bool
 const T2_INIT = 6;
 const T3_INIT = 8;
 
+const DISC_TIER_COLORS = ['#2563B8', '#7c4dbc', '#e0a32e'];
+
+function OcNodeDisc({ p, tierIdx, onPerson, canDrill, isDrill, onDrill }: {
+  p: any; tierIdx: number; onPerson(p: any): void;
+  canDrill?: boolean; isDrill?: boolean; onDrill?(): void;
+}) {
+  const color = execColorFor(p.name);
+  const ini   = execInitials(p.name);
+  const bar   = DISC_TIER_COLORS[tierIdx] ?? DISC_TIER_COLORS[2];
+  return (
+    <div className={`oct-card${isDrill ? ' oct-card-active' : ''}`} onClick={() => onPerson(p)}>
+      <div className="oct-bar" style={{ background: bar }} />
+      <div className="oct-head">{p.title ?? '—'}</div>
+      <div className="oct-person">
+        <div className="oct-av" style={{ background: color }}>
+          {p.photo_url
+            ? <img src={p.photo_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+            : ini}
+        </div>
+        <div className="oct-info">
+          <div className="oct-name">{p.name}</div>
+          {canDrill && (
+            <button
+              className="oct-drill"
+              onClick={e => { e.stopPropagation(); onDrill?.(); }}
+            >
+              {isDrill ? '↑ collapse' : '↓ expand'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OrgTree({ tier1, tier2, tier3, onPerson }: {
   tier1: any[]; tier2: any[]; tier3: any[];
   onPerson(p: any): void;
@@ -149,76 +184,61 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
   const visT2 = showAllT2 ? tier2 : tier2.slice(0, T2_INIT);
   const visT3 = showAllT3 ? tier3 : tier3.slice(0, T3_INIT);
 
-  const OrgNode = ({ p, root = false, canDrill = false }: { p: any; root?: boolean; canDrill?: boolean }) => {
-    const color = execColorFor(p.name);
-    const ini   = execInitials(p.name);
-    const isDrill = drillNode?.id === p.id;
+  function MoreBtn({ count, onClick }: { count: number; onClick(): void }) {
     return (
-      <div
-        className={'wr-ot-node' + (isDrill ? ' active' : '')}
-        style={root ? { width: 164, borderWidth: 2, borderColor: 'var(--accent)', boxShadow: '0 2px 14px rgba(37,99,184,.14)' } : {}}
-        onClick={() => onPerson(p)}
-      >
-        {root && <span className="rk">CEO</span>}
-        <div className="wr-ot-av" style={{ background: color }}>{ini}</div>
-        <div className="wr-ot-nm">{p.name}</div>
-        {p.title && <div className="wr-ot-rl">{p.title}</div>}
-        {canDrill && tier3.length > 0 && (
-          <button
-            onClick={e => { e.stopPropagation(); setDrillNode(isDrill ? null : p); setShowAllT3(false); }}
-            style={{ marginTop: 6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'IBM Plex Mono', fontSize: 9.5, color: isDrill ? 'var(--accent)' : 'var(--ink-3)', padding: 0 }}
-          >
-            {isDrill ? '↑ collapse' : '↓ expand'}
-          </button>
-        )}
+      <div className="oct-col">
+        <button className="oct-more" onClick={onClick}>
+          <span className="oct-more-n">+{count}</span>
+          <span className="oct-more-l">more</span>
+        </button>
       </div>
     );
-  };
+  }
 
-  /* Drill-down: show CEO → selected tier2 → all tier3 */
-  if (drillNode) {
+  function LessBtn({ onClick }: { onClick(): void }) {
     return (
-      <div className="wr-orgtree">
-        <button className="wr-ot-back" onClick={() => setDrillNode(null)}>← All people</button>
-        {/* CEO (dimmed) */}
-        {tier1.map(p => (
-          <div key={p.id} style={{ opacity: 0.45 }} onClick={() => onPerson(p)}>
-            <OrgNode p={p} root />
-          </div>
-        ))}
-        <div className="wr-ot-vline" />
-        {/* Drill target */}
-        <div className="wr-ot-row">
-          <div className="wr-ot-col">
-            <OrgNode p={drillNode} canDrill />
+      <div className="oct-col">
+        <button className="oct-collapse" onClick={onClick}>↑ less</button>
+      </div>
+    );
+  }
+
+  /* Drill-down view */
+  if (drillNode) {
+    const t3vis = showAllT3 ? tier3 : tier3.slice(0, T3_INIT);
+    return (
+      <div className="oct-wrap">
+        <button className="oct-back" onClick={() => setDrillNode(null)}>← All people</button>
+        <div className="oct-level">
+          {tier1.map(p => (
+            <div key={p.id} style={{ opacity: 0.45 }} className="oct-col">
+              <OcNodeDisc p={p} tierIdx={0} onPerson={onPerson} />
+            </div>
+          ))}
+        </div>
+        <div className="oct-level">
+          <div className="oct-vline" />
+          <div className="oct-row">
+            <div className="oct-col">
+              <OcNodeDisc p={drillNode} tierIdx={1} onPerson={onPerson}
+                canDrill={tier3.length > 0} isDrill
+                onDrill={() => { setDrillNode(null); }} />
+            </div>
           </div>
         </div>
-        {/* Tier 3 under drill target */}
         {tier3.length > 0 && (
-          <>
-            <div className="wr-ot-vline" />
-            <div className="wr-ot-label"><span className="dot" />Senior Leadership <span style={{ color:'var(--ink-3)', marginLeft:4 }}>{tier3.length} people</span></div>
-            <div className="wr-ot-row">
-              {(showAllT3 ? tier3 : tier3.slice(0, T3_INIT)).map(p => (
-                <div key={p.id} className="wr-ot-col">
-                  <OrgNode p={p} />
+          <div className="oct-level">
+            <div className="oct-vline" />
+            <div className={t3vis.length > 1 ? 'oct-row multi' : 'oct-row'}>
+              {t3vis.map(p => (
+                <div key={p.id} className="oct-col">
+                  <OcNodeDisc p={p} tierIdx={2} onPerson={onPerson} />
                 </div>
               ))}
-              {!showAllT3 && tier3.length > T3_INIT && (
-                <div className="wr-ot-col">
-                  <button className="wr-ot-more" onClick={() => setShowAllT3(true)}>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>+{tier3.length - T3_INIT}</span>
-                    more
-                  </button>
-                </div>
-              )}
-              {showAllT3 && tier3.length > T3_INIT && (
-                <div className="wr-ot-col">
-                  <button className="wr-ot-more" onClick={() => setShowAllT3(false)}>↑ less</button>
-                </div>
-              )}
+              {!showAllT3 && tier3.length > T3_INIT && <MoreBtn count={tier3.length - T3_INIT} onClick={() => setShowAllT3(true)} />}
+              {showAllT3 && tier3.length > T3_INIT && <LessBtn onClick={() => setShowAllT3(false)} />}
             </div>
-          </>
+          </div>
         )}
       </div>
     );
@@ -226,64 +246,51 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
 
   /* Full tree view */
   return (
-    <div className="wr-orgtree">
-      {/* CEO */}
-      {tier1.map(p => <OrgNode key={p.id} p={p} root />)}
+    <div className="oct-wrap">
+      {/* Tier 1 — CEO */}
+      <div className="oct-level">
+        <div className={tier1.length > 1 ? 'oct-row multi' : 'oct-row'}>
+          {tier1.map(p => (
+            <div key={p.id} className="oct-col">
+              <OcNodeDisc p={p} tierIdx={0} onPerson={onPerson} />
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Tier 2 */}
       {tier2.length > 0 && (
-        <>
-          <div className="wr-ot-vline" />
-          <div className="wr-ot-label"><span className="dot" />Division Presidents <span style={{ color:'var(--ink-3)', marginLeft:4 }}>{tier2.length} people</span></div>
-          <div className="wr-ot-row">
+        <div className="oct-level">
+          <div className="oct-vline" />
+          <div className={visT2.length > 1 ? 'oct-row multi' : 'oct-row'}>
             {visT2.map(p => (
-              <div key={p.id} className="wr-ot-col">
-                <OrgNode p={p} canDrill />
+              <div key={p.id} className="oct-col">
+                <OcNodeDisc p={p} tierIdx={1} onPerson={onPerson}
+                  canDrill={tier3.length > 0}
+                  isDrill={drillNode?.id === p.id}
+                  onDrill={() => { setDrillNode(drillNode?.id === p.id ? null : p); setShowAllT3(false); }} />
               </div>
             ))}
-            {!showAllT2 && tier2.length > T2_INIT && (
-              <div className="wr-ot-col">
-                <button className="wr-ot-more" onClick={() => setShowAllT2(true)}>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>+{tier2.length - T2_INIT}</span>
-                  more
-                </button>
-              </div>
-            )}
-            {showAllT2 && tier2.length > T2_INIT && (
-              <div className="wr-ot-col">
-                <button className="wr-ot-more" onClick={() => setShowAllT2(false)}>↑ less</button>
-              </div>
-            )}
+            {!showAllT2 && tier2.length > T2_INIT && <MoreBtn count={tier2.length - T2_INIT} onClick={() => setShowAllT2(true)} />}
+            {showAllT2 && tier2.length > T2_INIT && <LessBtn onClick={() => setShowAllT2(false)} />}
           </div>
-        </>
+        </div>
       )}
 
       {/* Tier 3 */}
       {tier3.length > 0 && (
-        <>
-          <div className="wr-ot-vline" />
-          <div className="wr-ot-label"><span className="dot" />Senior Leadership <span style={{ color:'var(--ink-3)', marginLeft:4 }}>{tier3.length} people</span></div>
-          <div className="wr-ot-row">
+        <div className="oct-level">
+          <div className="oct-vline" />
+          <div className={visT3.length > 1 ? 'oct-row multi' : 'oct-row'}>
             {visT3.map(p => (
-              <div key={p.id} className="wr-ot-col">
-                <OrgNode p={p} />
+              <div key={p.id} className="oct-col">
+                <OcNodeDisc p={p} tierIdx={2} onPerson={onPerson} />
               </div>
             ))}
-            {!showAllT3 && tier3.length > T3_INIT && (
-              <div className="wr-ot-col">
-                <button className="wr-ot-more" onClick={() => setShowAllT3(true)}>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>+{tier3.length - T3_INIT}</span>
-                  more
-                </button>
-              </div>
-            )}
-            {showAllT3 && tier3.length > T3_INIT && (
-              <div className="wr-ot-col">
-                <button className="wr-ot-more" onClick={() => setShowAllT3(false)}>↑ less</button>
-              </div>
-            )}
+            {!showAllT3 && tier3.length > T3_INIT && <MoreBtn count={tier3.length - T3_INIT} onClick={() => setShowAllT3(true)} />}
+            {showAllT3 && tier3.length > T3_INIT && <LessBtn onClick={() => setShowAllT3(false)} />}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
