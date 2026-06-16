@@ -86,7 +86,7 @@ function fmtMoney(v: string | number | null) {
   return `$${n}`;
 }
 
-type Tab = 'orgs' | 'contacts' | 'contracts' | 'ind-companies' | 'ind-people' | 'ind-subs' | 'users';
+type Tab = 'orgs' | 'contacts' | 'contracts' | 'ind-companies' | 'ind-people' | 'ind-subs' | 'ind-signals' | 'users';
 const SIGNAL_TYPES = ['Opportunity','Award','Budget'];
 const SOURCES      = ['sam_gov','usaspending','manual'];
 const BRANCHES     = ['Army','Navy','Air Force','Marine Corps','Space Force','OSD','Joint','DHS','Other'];
@@ -910,10 +910,11 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
         <div className="adm-nav-section" style={{ marginTop: 16 }}>INDUSTRY</div>
         {navItem('ind-companies', 'Companies',      companies.length,    '#7c4dbc')}
         {navItem('ind-people',    'People',         people.length,       '#c8502d')}
+        {navItem('ind-signals',   'Signals',        Object.values(contractAgg).reduce((s: number, a: any) => s + (a.contract_count || 0), 0), '#e67e22')}
         {navItem('ind-subs',      'Subcontractors', subCompanies.length, '#1d6b8a')}
 
         <div className="adm-nav-section" style={{ marginTop: 16 }}>PLATFORM</div>
-        {navItem('users', 'Users', null, '#2563B8')}
+        {navItem('users', 'Users', users.length, '#2563B8')}
 
         <div className="adm-nav-section" style={{ marginTop: 24 }}>EXPORTS</div>
         {(['orgs','contacts','contracts'] as const).map(t => (
@@ -1104,6 +1105,43 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
         )}
 
         {/* ── INDUSTRY TABS ── */}
+        {tab === 'ind-signals' && (
+          <>
+            <div className="adm-toolbar">
+              <input className="adm-search" placeholder="Search signals…" value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
+            <div className="adm-count">
+              {Object.values(contractAgg).reduce((s: number, a: any) => s + (a.contract_count || 0), 0).toLocaleString()} signals across {companies.length} industry primes
+            </div>
+            <div className="adm-table-wrap">
+              <table className="adm-table">
+                <thead><tr>
+                  <th>Company</th>
+                  <th style={{ textAlign: 'right' }}>Contracts</th>
+                  <th style={{ textAlign: 'right' }}>Total Value</th>
+                  <th>Agencies</th>
+                </tr></thead>
+                <tbody>
+                  {companies
+                    .filter((c: any) => !search || c.name?.toLowerCase().includes(search.toLowerCase()) || c.legal_name?.toLowerCase().includes(search.toLowerCase()))
+                    .map((c: any) => {
+                      const agg = contractAgg[c.name] ?? contractAgg[c.legal_name] ?? {};
+                      return (
+                        <tr key={c.legal_name ?? c.name}>
+                          <td><div className="adm-cell-primary">{c.display_name ?? c.name}</div>
+                              <div className="adm-cell-sub">{c.ticker}</div></td>
+                          <td className="adm-cell-num">{(agg.contract_count ?? 0).toLocaleString()}</td>
+                          <td className="adm-cell-num">{agg.total_value ? '$' + (agg.total_value / 1e9).toFixed(1) + 'B' : '—'}</td>
+                          <td className="adm-cell-sub">{(agg.agencies ?? []).slice(0, 3).join(', ')}</td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
         {(tab === 'ind-companies' || tab === 'ind-people' || tab === 'ind-subs') && (
           indLoading ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-3)', fontFamily: 'IBM Plex Mono', fontSize: 12 }}>Loading…</div>
@@ -1288,11 +1326,9 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
             </>
           )
         )}
-      </div>
-
-      {/* ── USERS TAB ── */}
-      {tab === 'users' && (
-        <div className="adm-panel">
+        {/* ── USERS TAB ── */}
+        {tab === 'users' && (
+          <>
           <div className="adm-toolbar">
             <div className="adm-count">{users.length} registered users</div>
           </div>
@@ -1361,8 +1397,10 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+          </>
+        )}
+
+      </div>
 
       {/* ── Gov edit panel ── */}
       {editItem !== null && (() => {
