@@ -35,11 +35,15 @@ export async function GET(req: NextRequest) {
   `);
 
   await run('contracts', () => db`
-    SELECT id::text, title, value,
-           status, signal_type, award_date,
-           COALESCE(source, 'sam') AS source
+    SELECT id::text, title, value, status, signal_type, award_date,
+           COALESCE(source, 'sam') AS source,
+           org_id::text AS org_id_raw,
+           canonical_org_id,
+           org_id_level_1, org_id_level_2, org_id_level_3,
+           hierarchy_label_1, hierarchy_label_2, hierarchy_label_3,
+           agency_or_lab, service_branch
     FROM contracts WHERE signal_type IS NOT NULL
-    ORDER BY award_date DESC NULLS LAST, created_at DESC LIMIT 5
+    ORDER BY award_date DESC NULLS LAST LIMIT 5
   `);
 
   await run('nav_orgs_count', () => db`
