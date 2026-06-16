@@ -288,7 +288,7 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
   }, [indWithCompany]);
 
   const topCompanies = useMemo(() =>
-    Object.entries(companyCounts).sort((a,b) => b[1]-a[1]),
+    Object.entries(companyCounts).sort((a,b) => b[1]-a[1]).slice(0, 20),
     [companyCounts]
   );
 
