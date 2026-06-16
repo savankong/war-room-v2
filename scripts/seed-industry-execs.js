@@ -3,7 +3,7 @@
  * Sources: SEC DEF 14A proxy filings, company investor relations pages.
  * Run: node scripts/seed-industry-execs.js
  */
-const postgres = require('../node_modules/postgres');
+const postgres = require('postgres');
 
 const sql = postgres(
   process.env.DATABASE_URL ||
