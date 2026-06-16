@@ -25,6 +25,7 @@ export interface ChildOrg {
 export interface Contact {
   id: string; name: string; title: string | null;
   avatar_color: string | null; photo_url: string | null;
+  bio: string | null;
   email: string | null; phone: string | null; linkedin: string | null;
   org_id: string; org_full: string | null;
   tags: string[] | null; opps: number | null; awards: string | null;
@@ -107,8 +108,8 @@ export const getOrgContacts = unstable_cache(
     const db = getDb();
     const rows = await db`
       SELECT id, COALESCE(name, org_full, 'Unknown') AS name, title,
-             NULL::text AS avatar_color, NULL::text AS photo_url,
-             email, phone, linkedin, org_id, org_full,
+             NULL::text AS avatar_color, photo_url,
+             bio, email, phone, linkedin, org_id, org_full,
              tags, opps, NULL::text AS awards, last_signal, hierarchy_order
       FROM contacts
       WHERE org_id = ${orgId}

@@ -152,7 +152,7 @@ function PersonPanel({ contact, org, allContacts, onClose }: {
 
           {/* About */}
           <PfSecOrg title="About">
-            <div className="wr-pf-about">{generateBio(contact, org.name)}</div>
+            <div className="wr-pf-about">{contact.bio ?? generateBio(contact, org.name)}</div>
           </PfSecOrg>
 
           {/* Focus areas */}
