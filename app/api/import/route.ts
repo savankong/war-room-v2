@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
             org_id          = COALESCE(EXCLUDED.org_id, contacts.org_id),
             org_full        = COALESCE(EXCLUDED.org_full, contacts.org_full),
             email           = COALESCE(EXCLUDED.email, contacts.email),
+            phone           = COALESCE(EXCLUDED.phone, contacts.phone),
             hierarchy_order = COALESCE(EXCLUDED.hierarchy_order, contacts.hierarchy_order)
         `;
         inserted++;
