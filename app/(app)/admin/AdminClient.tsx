@@ -1340,10 +1340,8 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
                   <SortTh field="full_name"  label="Name"         sort={sort} onSort={toggleSort} />
                   <SortTh field="email"      label="Email"        sort={sort} onSort={toggleSort} />
                   <SortTh field="company"    label="Organization" sort={sort} onSort={toggleSort} />
-                  <th>Auth</th>
-                  <SortTh field="role"       label="Role"         sort={sort} onSort={toggleSort} style={{ width: 110 }} />
-                  <SortTh field="created_at" label="Joined"       sort={sort} onSort={toggleSort} style={{ width: 120 }} />
-                  <SortTh field="last_login" label="Last sign-in" sort={sort} onSort={toggleSort} style={{ width: 120 }} />
+                  <SortTh field="created_at" label="Joined"       sort={sort} onSort={toggleSort} style={{ width: 140 }} />
+                  <SortTh field="last_login" label="Last sign-in" sort={sort} onSort={toggleSort} style={{ width: 140 }} />
                   <th style={{ width: 60 }} />
                 </tr>
               </thead>
@@ -1351,36 +1349,13 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
                 {sortedUsers.map((u: any) => (
                   <tr key={u.id}>
                     <td>
-                      <div className="adm-av" style={{ background: roleColor(u.role), fontSize: 11, width: 30, height: 30 }}>
-                        {u.full_name?.charAt(0).toUpperCase()}
+                      <div className="adm-av" style={{ background: 'var(--navy)', fontSize: 11, width: 30, height: 30 }}>
+                        {(u.full_name ?? u.email)?.charAt(0).toUpperCase()}
                       </div>
                     </td>
-                    <td><div className="adm-cell-primary">{u.full_name}</div></td>
+                    <td><div className="adm-cell-primary">{u.full_name ?? '—'}</div></td>
                     <td className="adm-cell-sub">{u.email}</td>
                     <td className="adm-cell-sub">{u.company ?? '—'}</td>
-                    <td>
-                      <span className="usr-auth-badge">{u.auth_provider === 'google' ? '🔵 Google' : '✉ Email'}</span>
-                    </td>
-                    <td>
-                      <select
-                        className="usr-role-select"
-                        value={u.role ?? 'member'}
-                        onChange={async e => {
-                          const role = e.target.value;
-                          const res = await fetch('/api/admin/users', {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: u.id, role }),
-                          });
-                          if (res.ok) setUsers(prev => prev.map(x => x.id === u.id ? { ...x, role } : x));
-                        }}
-                        style={{ color: roleColor(u.role) }}
-                      >
-                        <option value="admin">Admin</option>
-                        <option value="member">Member</option>
-                        <option value="viewer">Viewer</option>
-                      </select>
-                    </td>
                     <td className="adm-cell-sub">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</td>
                     <td className="adm-cell-sub">{u.last_login ? new Date(u.last_login).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never'}</td>
                     <td>
