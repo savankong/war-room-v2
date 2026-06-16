@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getDb, getWriteDb } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-  const db = getDb();
+  const readDb = getDb();
+  const db = getWriteDb();
   const b = await req.json();
   const base = (b.name ?? 'contact').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
   const id = `${base}-${Date.now().toString(36)}`;
 
   let orgFull: string | null = b.org_full ?? null;
   if (b.org_id) {
-    const org = await db`SELECT full_name FROM orgs WHERE id = ${b.org_id} LIMIT 1`;
+    const org = await readDb`SELECT full_name FROM orgs WHERE id = ${b.org_id} LIMIT 1`;
     orgFull = org[0]?.full_name ?? b.org_id;
   }
 

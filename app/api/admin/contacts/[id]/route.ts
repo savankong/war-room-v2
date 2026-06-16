@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getDb, getWriteDb } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const db = getDb();
+  const readDb = getDb();
+  const db = getWriteDb();
   const b = await req.json();
 
   let orgFull: string | null = b.org_full ?? null;
   if (b.org_id) {
-    const org = await db`SELECT full_name FROM orgs WHERE id = ${b.org_id} LIMIT 1`;
+    const org = await readDb`SELECT full_name FROM orgs WHERE id = ${b.org_id} LIMIT 1`;
     orgFull = org[0]?.full_name ?? b.org_id;
   }
 
@@ -40,7 +41,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const db = getDb();
+  const db = getWriteDb();
   await db`DELETE FROM contacts WHERE id = ${id}`;
   return NextResponse.json({ ok: true });
 }

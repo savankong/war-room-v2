@@ -377,24 +377,25 @@ body[data-page="account"] .main { overflow-y: auto; }
   flex-shrink: 0;
 }
 
-/* Row of cards at one tier — inline-flex so row width = content width */
+/* Row of cards at one tier — inline-flex so width = content, enabling precise line math */
 .oct-row {
   display: inline-flex;
-  gap: 20px;
+  gap: 16px;
+  max-width: 100%;
 }
 
-/* Multi-child rows: space above for the horizontal bar + vertical drops */
+/* Multi-child rows: padding-top creates space for horizontal bar + vertical drops */
 .oct-row.multi {
   padding-top: 28px;
   position: relative;
 }
 
-/* Horizontal bar from center-of-first-card to center-of-last-card */
+/* Horizontal bar: spans from center of first card to center of last card */
 .oct-row.multi::before {
   content: '';
   position: absolute;
   top: 0;
-  left: 105px;   /* half of 210px card width */
+  left: 105px;   /* half of 210px card */
   right: 105px;
   height: 2px;
   background: var(--line);
@@ -409,7 +410,7 @@ body[data-page="account"] .main { overflow-y: auto; }
   position: relative;
 }
 
-/* Vertical drop from horizontal bar down to each card */
+/* Vertical drop from horizontal bar to card top */
 .oct-row.multi .oct-col::before {
   content: '';
   position: absolute;
@@ -3241,6 +3242,13 @@ textarea.adm-input { resize:vertical; }
   .oct-row.multi .oct-col::before { display: none; }
   .oct-card { width: min(210px, calc(100vw - 40px)); }
   .oct-vline { height: 16px; }
+}
+
+/* ── Org tree: narrower cards + lines at mid widths ≤900px ──────────── */
+@media (max-width: 900px) {
+  .oct-card { width: 170px; }
+  /* Recalculate horizontal bar for 170px cards (half = 85px) */
+  .oct-row.multi::before { left: 85px; right: 85px; }
 }
 
 /* ── Branch dot colors (unified token) ────────────────────────────── */
