@@ -1,0 +1,35 @@
+functionsDirectory = "/Users/savankong/Desktop/WarRoom.io/war-room-v2-site/netlify/functions"
+functionsDirectoryOrigin = "default"
+headers = []
+redirects = []
+
+[build]
+publish = "/Users/savankong/Desktop/WarRoom.io/war-room-v2-site/.next"
+publishOrigin = "config"
+commandOrigin = "config"
+command = "npm run build"
+functions = "/Users/savankong/Desktop/WarRoom.io/war-room-v2-site/netlify/functions"
+
+[build.environment]
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]
+
+[functions]
+
+[functions."*"]
+
+[[plugins]]
+origin = "config"
+package = "@netlify/plugin-nextjs"
+
+[plugins.inputs]
