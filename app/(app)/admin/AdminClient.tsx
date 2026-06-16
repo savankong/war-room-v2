@@ -911,7 +911,7 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
         <div className="adm-nav-section" style={{ marginTop: 16 }}>INDUSTRY</div>
         {navItem('ind-companies', 'Companies',      companies.length,    '#7c4dbc')}
         {navItem('ind-people',    'People',         people.length,       '#c8502d')}
-        {navItem('ind-signals',   'Signals',        Object.values(contractAgg as Record<string,any>).reduce((s: number, a: any) => s + (a.contract_count || 0), 0), '#e67e22')}
+        {navItem('ind-signals',   'Signals',        stats.contractCount, '#e67e22')}
         {navItem('ind-subs',      'Subcontractors', subCompanies.length, '#1d6b8a')}
 
         <div className="adm-nav-section" style={{ marginTop: 16 }}>PLATFORM</div>
@@ -1107,41 +1107,50 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
 
         {/* ── INDUSTRY TABS ── */}
         {tab === 'ind-signals' && (() => {
-          const allSignals = Object.values(contractAgg as Record<string, any>)
-            .filter((a: any) => (a.contract_count || 0) > 0)
-            .sort((a: any, b: any) => (b.contract_count || 0) - (a.contract_count || 0));
-          const totalSignals = allSignals.reduce((s: number, a: any) => s + (a.contract_count || 0), 0);
-          const filtered = search
-            ? allSignals.filter((a: any) => a.name?.toLowerCase().includes(search.toLowerCase()))
-            : allSignals;
+          const totalSignals = Object.values(contractAgg as Record<string, any>)
+            .reduce((s: number, a: any) => s + (a.contract_count || 0), 0);
+          const filtered = filteredContracts;
+          const paged = sortList(filtered).slice((page - 1) * PER_PAGE, page * PER_PAGE);
           return (
             <>
               <div className="adm-toolbar">
-                <input className="adm-search" placeholder="Search awardees…" value={search} onChange={e => setSearch(e.target.value)} />
+                <input className="adm-search" placeholder="Search signals…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+                <button className="adm-export-btn primary" onClick={() => openAdd('contracts')}>+ Add Signal</button>
               </div>
-              <div className="adm-count">
-                {totalSignals.toLocaleString()} contract signals across {allSignals.length.toLocaleString()} awardees
-              </div>
+              <div className="adm-count">{totalSignals.toLocaleString()} total signals · {filtered.length.toLocaleString()} shown (first 2,000 loaded)</div>
               <div className="adm-table-wrap">
                 <table className="adm-table">
                   <thead><tr>
-                    <th>Awardee</th>
-                    <th style={{ textAlign: 'right' }}>Contracts</th>
-                    <th style={{ textAlign: 'right' }}>Total Value</th>
-                    <th>Agencies</th>
+                    <th />
+                    <SortTh field="title"       label="Title"        sort={sort} onSort={toggleSort} />
+                    <SortTh field="signal_type" label="Type"         sort={sort} onSort={toggleSort} style={{ width: 100 }} />
+                    <SortTh field="value"       label="Value"        sort={sort} onSort={toggleSort} style={{ width: 110 }} />
+                    <SortTh field="recipient"   label="Recipient"    sort={sort} onSort={toggleSort} />
+                    <SortTh field="org_id"      label="Organization" sort={sort} onSort={toggleSort} />
+                    <SortTh field="source"      label="Source"       sort={sort} onSort={toggleSort} style={{ width: 90 }} />
                   </tr></thead>
                   <tbody>
-                    {filtered.slice(0, 500).map((a: any) => (
-                      <tr key={a.name}>
-                        <td><div className="adm-cell-primary">{a.display_name ?? a.name}</div>
-                            {a.display_name && <div className="adm-cell-sub">{a.name}</div>}</td>
-                        <td className="adm-cell-num">{(a.contract_count || 0).toLocaleString()}</td>
-                        <td className="adm-cell-num">{a.total_value ? '$' + (Number(a.total_value) / 1e9).toFixed(1) + 'B' : '—'}</td>
-                        <td className="adm-cell-sub">{(a.agencies ?? []).slice(0, 3).join(', ')}</td>
-                      </tr>
-                    ))}
+                    {paged.map((c: any) => {
+                      const tc = c.signal_type === 'Opportunity' ? 'var(--teal)' : c.signal_type === 'Award' ? '#283a6b' : 'var(--amber)';
+                      return (
+                        <tr key={c.id}>
+                          <td><button className="adm-link-btn" onClick={() => openEdit('contracts', c)}>Edit</button></td>
+                          <td className="adm-cell-primary" style={{ maxWidth: 240 }}>{c.title}</td>
+                          <td>{c.signal_type && <span className="adm-badge" style={{ color: tc, borderColor: tc }}>{c.signal_type}</span>}</td>
+                          <td className="adm-cell-num" style={{ color: tc }}>{fmtMoney(c.value ?? c.award_amt)}</td>
+                          <td className="adm-cell-sub" style={{ maxWidth: 180 }}>{c.recipient ?? '—'}</td>
+                          <td>
+                            {c.org_id
+                              ? <Link href={`/org/${c.org_id}`} className="adm-link" style={{ fontSize: 12 }}>{c.org_id}</Link>
+                              : <span className="adm-cell-sub">—</span>}
+                          </td>
+                          <td><span className="adm-badge">{c.source?.replace('_', '.')}</span></td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
+                <Pagination total={filtered.length} page={page} perPage={PER_PAGE} onChange={setPage} />
               </div>
             </>
           );
