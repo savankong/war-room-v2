@@ -676,12 +676,13 @@ function useIndustryData() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const safe = (p: Promise<any>) => p.catch(() => []);
     Promise.all([
-      fetch('/api/admin/industry-companies').then(r => r.json()),
-      fetch('/api/industry').then(r => r.json()),
-      fetch('/api/admin/industry-people').then(r => r.json()),
-      fetch('/api/admin/sub-companies').then(r => r.json()),
-      fetch('/api/industry/subs').then(r => r.json()),
+      safe(fetch('/api/admin/industry-companies').then(r => r.json())),
+      safe(fetch('/api/industry').then(r => r.json())),
+      safe(fetch('/api/admin/industry-people').then(r => r.json())),
+      safe(fetch('/api/admin/sub-companies').then(r => r.json())),
+      safe(fetch('/api/industry/subs').then(r => r.json())),
     ]).then(([comp, agg, ppl, subs, subsAgg]) => {
       setCompanies(Array.isArray(comp) ? comp : []);
       const map: Record<string, any> = {};
