@@ -28,10 +28,30 @@ export async function GET(req: NextRequest) {
   `);
 
   await run('contracts', () => db`
-    SELECT id, title, NULLIF(value,'')::numeric AS value,
+    SELECT id, title,
+           (CASE WHEN value ~ '^[0-9.]+$' THEN value::numeric ELSE NULL END) AS value,
            set_aside AS status, signal_type, award_date,
            COALESCE(source, 'sam') AS source
-    FROM contracts WHERE org_id::text = ${slug} AND signal_type IS NOT NULL LIMIT 5
+    FROM contracts WHERE org_id::text = ${slug} AND signal_type IS NOT NULL
+    ORDER BY award_date DESC NULLS LAST, created_at DESC LIMIT 5
+  `);
+
+  await run('nav_orgs_count', () => db`
+    SELECT COUNT(*)::int AS org_count FROM orgs WHERE is_active = true
+  `);
+
+  await run('nav_orgs_query', () => db`
+    SELECT o.id, COALESCE(o.full_name, o.sub, o.id) AS name, o.parent_id,
+      COALESCE(o.hierarchy_level, 2)::int AS hierarchy_level,
+      o.hierarchy_level AS abs_hierarchy_level,
+      o.branch,
+      COUNT(DISTINCT ct.id)::int AS contract_count
+    FROM orgs o
+    LEFT JOIN contracts ct ON ct.org_id::text = o.id
+    WHERE o.is_active = true
+    GROUP BY o.id
+    ORDER BY o.branch, o.hierarchy_level NULLS LAST, o.full_name
+    LIMIT 5
   `);
 
   await run('nav_sample', () => db`
