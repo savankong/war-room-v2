@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { getWriteDb as getDb } from '@/lib/db';
+import { getDb } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
