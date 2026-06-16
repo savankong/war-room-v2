@@ -1354,6 +1354,7 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
                   <SortTh field="full_name"  label="Name"         sort={sort} onSort={toggleSort} />
                   <SortTh field="email"      label="Email"        sort={sort} onSort={toggleSort} />
                   <SortTh field="company"    label="Organization" sort={sort} onSort={toggleSort} />
+                  <th style={{ width: 80 }}>Admin</th>
                   <SortTh field="created_at" label="Joined"       sort={sort} onSort={toggleSort} style={{ width: 140 }} />
                   <SortTh field="last_login" label="Last sign-in" sort={sort} onSort={toggleSort} style={{ width: 140 }} />
                   <th style={{ width: 60 }} />
@@ -1363,13 +1364,29 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
                 {sortedUsers.map((u: any) => (
                   <tr key={u.id}>
                     <td>
-                      <div className="adm-av" style={{ background: 'var(--navy)', fontSize: 11, width: 30, height: 30 }}>
+                      <div className="adm-av" style={{ background: u.is_admin ? '#7c3aed' : 'var(--navy)', fontSize: 11, width: 30, height: 30 }}>
                         {(u.full_name ?? u.email)?.charAt(0).toUpperCase()}
                       </div>
                     </td>
                     <td><div className="adm-cell-primary">{u.full_name ?? '—'}</div></td>
                     <td className="adm-cell-sub">{u.email}</td>
                     <td className="adm-cell-sub">{u.company ?? '—'}</td>
+                    <td>
+                      <button
+                        className="adm-link-btn"
+                        style={{ color: u.is_admin ? '#7c3aed' : 'var(--ink-3)', fontWeight: u.is_admin ? 700 : 400 }}
+                        onClick={async () => {
+                          const res = await fetch('/api/admin/users', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: u.id, is_admin: !u.is_admin }),
+                          });
+                          if (res.ok) setUsers(prev => prev.map(x => x.id === u.id ? { ...x, is_admin: !u.is_admin } : x));
+                        }}
+                      >
+                        {u.is_admin ? '✓ Admin' : 'Make Admin'}
+                      </button>
+                    </td>
                     <td className="adm-cell-sub">{u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</td>
                     <td className="adm-cell-sub">{u.last_login ? new Date(u.last_login).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never'}</td>
                     <td>
