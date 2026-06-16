@@ -540,6 +540,33 @@ body[data-page="account"] .main { overflow-y: auto; }
 /* Active (drill) state */
 .oct-card-active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,184,.15); }
 
+/* Section header: "[Name] Collapse ↑" — TheOrg-style */
+.oct-section-hd {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 0 12px;
+}
+.oct-section-who {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-2);
+  letter-spacing: .3px;
+}
+.oct-collapse-hd {
+  background: none;
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: border-color .12s, color .12s;
+}
+.oct-collapse-hd:hover { border-color: var(--accent); color: var(--accent); }
+
 /* Back button (drill-down) */
 .oct-back {
   align-self: flex-start;

@@ -272,11 +272,14 @@ const TIER_COLORS: Record<number, string> = {
 };
 function tierColor(t: number) { return TIER_COLORS[t] ?? TIER_COLORS[8]; }
 
-function OcCard({ c, tier, onSelect }: { c: Contact; tier: number; onSelect: (c: Contact) => void }) {
+function OcCard({ c, tier, onSelect, canDrill, isDrill, onDrill }: {
+  c: Contact; tier: number; onSelect: (c: Contact) => void;
+  canDrill?: boolean; isDrill?: boolean; onDrill?(): void;
+}) {
   const bg = c.avatar_color ?? colorFor(c.name);
   const tc = tierColor(tier);
   return (
-    <div className="oct-card" onClick={() => onSelect(c)}>
+    <div className={`oct-card${isDrill ? ' oct-card-active' : ''}`} onClick={() => onSelect(c)}>
       <div className="oct-bar" style={{ background: tc }} />
       <div className="oct-head">{c.title ?? '—'}</div>
       <div className="oct-person">
@@ -288,6 +291,11 @@ function OcCard({ c, tier, onSelect }: { c: Contact; tier: number; onSelect: (c:
         <div className="oct-info">
           <div className="oct-name">{c.name}</div>
           {c.email && <div className="oct-sub">{c.email}</div>}
+          {canDrill && (
+            <button className="oct-drill" onClick={e => { e.stopPropagation(); onDrill?.(); }}>
+              ↓ expand
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -295,6 +303,7 @@ function OcCard({ c, tier, onSelect }: { c: Contact; tier: number; onSelect: (c:
 }
 
 function OrgChartBroad({ contacts, onSelect }: { contacts: Contact[]; onSelect: (c: Contact) => void }) {
+  const [visibleDepth, setVisibleDepth] = useState(1);
   const [expandedTiers, setExpandedTiers] = useState<Set<number>>(new Set());
 
   const levelMap = new Map<number, Contact[]>();
@@ -307,21 +316,37 @@ function OrgChartBroad({ contacts, onSelect }: { contacts: Contact[]; onSelect: 
   const levels = Array.from(levelMap.entries()).sort((a, b) => a[0] - b[0]);
   if (levels.length === 0) return <div className="oc-empty">No contacts found for this org</div>;
 
+  const visLevels = levels.slice(0, visibleDepth);
+
   return (
     <div className="oct-wrap">
-      {levels.map(([tier, members], idx) => {
+      {visLevels.map(([tier, members], idx) => {
         const isExpanded = expandedTiers.has(tier);
         const shown = isExpanded ? members : members.slice(0, CARDS_PER_TIER);
         const overflow = members.length - shown.length;
         const multi = shown.length > 1;
+        const isLastVisible = idx === visLevels.length - 1;
+        const hasNextLevel = idx < levels.length - 1;
+        const parentName = idx > 0 ? levels[idx - 1][1][0]?.name ?? '' : '';
 
         return (
           <div key={tier} className="oct-level">
             {idx > 0 && <div className="oct-vline" />}
+            {idx > 0 && (
+              <div className="oct-section-hd">
+                <span className="oct-section-who">{parentName}</span>
+                <button className="oct-collapse-hd" onClick={() => {
+                  setVisibleDepth(idx);
+                  setExpandedTiers(prev => { const n = new Set(prev); n.delete(tier); return n; });
+                }}>Collapse ↑</button>
+              </div>
+            )}
             <div className={multi ? 'oct-row multi' : 'oct-row'}>
               {shown.map(c => (
                 <div key={c.id} className="oct-col">
-                  <OcCard c={c} tier={tier} onSelect={onSelect} />
+                  <OcCard c={c} tier={tier} onSelect={onSelect}
+                    canDrill={isLastVisible && hasNextLevel}
+                    onDrill={isLastVisible && hasNextLevel ? () => setVisibleDepth(idx + 2) : undefined} />
                 </div>
               ))}
               {overflow > 0 && (

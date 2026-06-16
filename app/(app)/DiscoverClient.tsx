@@ -177,12 +177,15 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
   tier1: any[]; tier2: any[]; tier3: any[];
   onPerson(p: any): void;
 }) {
-  const [showAllT2, setShowAllT2] = useState(false);
-  const [showAllT3, setShowAllT3] = useState(false);
-  const [drillNode, setDrillNode] = useState<any|null>(null);
+  const [t1Open,     setT1Open]     = useState(false);
+  const [t2OpenId,   setT2OpenId]   = useState<string|null>(null);
+  const [showAllT2,  setShowAllT2]  = useState(false);
+  const [showAllT3,  setShowAllT3]  = useState(false);
 
   const visT2 = showAllT2 ? tier2 : tier2.slice(0, T2_INIT);
   const visT3 = showAllT3 ? tier3 : tier3.slice(0, T3_INIT);
+  const t1Person = tier1[0];
+  const t2Person = tier2.find(p => p.id === t2OpenId);
 
   function MoreBtn({ count, onClick }: { count: number; onClick(): void }) {
     return (
@@ -203,72 +206,46 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
     );
   }
 
-  /* Drill-down view */
-  if (drillNode) {
-    const t3vis = showAllT3 ? tier3 : tier3.slice(0, T3_INIT);
-    return (
-      <div className="oct-wrap">
-        <button className="oct-back" onClick={() => setDrillNode(null)}>← All people</button>
-        <div className="oct-level">
-          {tier1.map(p => (
-            <div key={p.id} style={{ opacity: 0.45 }} className="oct-col">
-              <OcNodeDisc p={p} tierIdx={0} onPerson={onPerson} />
-            </div>
-          ))}
-        </div>
-        <div className="oct-level">
-          <div className="oct-vline" />
-          <div className="oct-row">
-            <div className="oct-col">
-              <OcNodeDisc p={drillNode} tierIdx={1} onPerson={onPerson}
-                canDrill={tier3.length > 0} isDrill
-                onDrill={() => { setDrillNode(null); }} />
-            </div>
-          </div>
-        </div>
-        {tier3.length > 0 && (
-          <div className="oct-level">
-            <div className="oct-vline" />
-            <div className={t3vis.length > 1 ? 'oct-row multi' : 'oct-row'}>
-              {t3vis.map(p => (
-                <div key={p.id} className="oct-col">
-                  <OcNodeDisc p={p} tierIdx={2} onPerson={onPerson} />
-                </div>
-              ))}
-              {!showAllT3 && tier3.length > T3_INIT && <MoreBtn count={tier3.length - T3_INIT} onClick={() => setShowAllT3(true)} />}
-              {showAllT3 && tier3.length > T3_INIT && <LessBtn onClick={() => setShowAllT3(false)} />}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  /* Full tree view */
   return (
     <div className="oct-wrap">
-      {/* Tier 1 — CEO */}
+      {/* Tier 1 — CEO, always visible */}
       <div className="oct-level">
         <div className={tier1.length > 1 ? 'oct-row multi' : 'oct-row'}>
           {tier1.map(p => (
             <div key={p.id} className="oct-col">
-              <OcNodeDisc p={p} tierIdx={0} onPerson={onPerson} />
+              <OcNodeDisc p={p} tierIdx={0} onPerson={onPerson}
+                canDrill={tier2.length > 0}
+                isDrill={t1Open}
+                onDrill={() => {
+                  const next = !t1Open;
+                  setT1Open(next);
+                  if (!next) { setT2OpenId(null); setShowAllT2(false); setShowAllT3(false); }
+                }} />
             </div>
           ))}
         </div>
       </div>
 
-      {/* Tier 2 */}
-      {tier2.length > 0 && (
+      {/* Tier 2 — expands inline below T1 */}
+      {t1Open && tier2.length > 0 && (
         <div className="oct-level">
           <div className="oct-vline" />
+          <div className="oct-section-hd">
+            <span className="oct-section-who">{t1Person?.name}</span>
+            <button className="oct-collapse-hd" onClick={() => {
+              setT1Open(false); setT2OpenId(null); setShowAllT2(false); setShowAllT3(false);
+            }}>Collapse ↑</button>
+          </div>
           <div className={visT2.length > 1 ? 'oct-row multi' : 'oct-row'}>
             {visT2.map(p => (
               <div key={p.id} className="oct-col">
                 <OcNodeDisc p={p} tierIdx={1} onPerson={onPerson}
                   canDrill={tier3.length > 0}
-                  isDrill={drillNode?.id === p.id}
-                  onDrill={() => { setDrillNode(drillNode?.id === p.id ? null : p); setShowAllT3(false); }} />
+                  isDrill={t2OpenId === p.id}
+                  onDrill={() => {
+                    setT2OpenId(t2OpenId === p.id ? null : p.id);
+                    setShowAllT3(false);
+                  }} />
               </div>
             ))}
             {!showAllT2 && tier2.length > T2_INIT && <MoreBtn count={tier2.length - T2_INIT} onClick={() => setShowAllT2(true)} />}
@@ -277,10 +254,16 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
         </div>
       )}
 
-      {/* Tier 3 */}
-      {tier3.length > 0 && (
+      {/* Tier 3 — expands inline below T2 section */}
+      {t2OpenId && tier3.length > 0 && (
         <div className="oct-level">
           <div className="oct-vline" />
+          <div className="oct-section-hd">
+            <span className="oct-section-who">{t2Person?.name}</span>
+            <button className="oct-collapse-hd" onClick={() => { setT2OpenId(null); setShowAllT3(false); }}>
+              Collapse ↑
+            </button>
+          </div>
           <div className={visT3.length > 1 ? 'oct-row multi' : 'oct-row'}>
             {visT3.map(p => (
               <div key={p.id} className="oct-col">
