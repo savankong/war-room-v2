@@ -147,6 +147,23 @@ export async function POST(req: NextRequest) {
         inserted += (result as any).rowCount ?? 1;
       } catch (e: any) { errors.push(`link ${r.awardee}: ${getErr(e)}`); }
     }
+  } else if (type === 'patch_contracts') {
+    // records: [{ id, title?, award_date?, naics_code?, service_branch?, agency_or_lab?, description? }]
+    for (const r of records) {
+      try {
+        await db.sql`
+          UPDATE contracts SET
+            title          = COALESCE(${r.title || null}, title),
+            award_date     = COALESCE(${r.award_date || null}::date, award_date),
+            naics_code     = COALESCE(${r.naics_code || null}, naics_code),
+            service_branch = COALESCE(${r.service_branch || null}, service_branch),
+            agency_or_lab  = COALESCE(${r.agency_or_lab || null}, agency_or_lab),
+            description    = COALESCE(${r.description || null}, description)
+          WHERE id = ${r.id}::uuid
+        `;
+        inserted++;
+      } catch (e: any) { errors.push(`patch ${r.id}: ${getErr(e)}`); }
+    }
   } else if (type === 'delete_contacts_by_id_prefix') {
     const prefix = body.prefix;
     if (!prefix) return NextResponse.json({ error: 'prefix required' }, { status: 400 });
