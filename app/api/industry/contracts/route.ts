@@ -11,14 +11,14 @@ export async function GET(req: NextRequest) {
   const rows = await db`
     SELECT
       c.id, c.title, c.signal_type, c.source,
-      c.value, c.award_amt, c.award_date, c.set_aside,
-      c.org_id, c.naics, c.poc_email, c.description,
+      c.value, c.award_date, c.status,
+      c.org_id, c.naics_code, c.description,
       o.full_name AS org_name
     FROM contracts c
-    LEFT JOIN orgs o ON o.id = c.org_id
-    WHERE c.recipient = ${recipient}
+    LEFT JOIN orgs o ON o.id = c.org_id::text
+    WHERE c.awardee = ${recipient}
       AND c.signal_type IS NOT NULL
-    ORDER BY c.award_amt DESC NULLS LAST, c.created_at DESC
+    ORDER BY c.value DESC NULLS LAST, c.created_at DESC
     LIMIT 200
   `;
   return NextResponse.json(rows);

@@ -9,7 +9,7 @@ export async function GET() {
   const rows = await db`
     SELECT * FROM (
       SELECT
-        c.recipient                                              AS name,
+        c.awardee                                                AS name,
         ic.name                                                  AS display_name,
         ic.legal_name,
         ic.logo_url,
@@ -18,22 +18,22 @@ export async function GET() {
         ic.website,
         ic.description,
         COUNT(*)::int                                            AS contract_count,
-        SUM(c.award_amt)::bigint                                 AS total_value,
-        COUNT(*) FILTER (WHERE c.set_aside IS NOT NULL)::int     AS set_aside_count,
-        ARRAY_AGG(DISTINCT COALESCE(c.sub_agency, c.agency))
-          FILTER (WHERE COALESCE(c.sub_agency, c.agency) IS NOT NULL) AS agencies,
+        SUM(c.value)::bigint                                     AS total_value,
+        COUNT(*) FILTER (WHERE c.status IS NOT NULL)::int        AS set_aside_count,
+        ARRAY_AGG(DISTINCT COALESCE(c.agency_or_lab, c.service_branch))
+          FILTER (WHERE COALESCE(c.agency_or_lab, c.service_branch) IS NOT NULL) AS agencies,
         ARRAY_AGG(DISTINCT c.source)                             AS sources,
         o.sbir_phase,
         o.sbir_capabilities,
         o.sbir_designations,
         o.sbir_award_count
       FROM contracts c
-      LEFT JOIN industry_companies ic ON ic.legal_name = c.recipient
-      LEFT JOIN orgs o ON LOWER(o.full_name) = LOWER(c.recipient) AND o.sbir_phase IS NOT NULL
-      WHERE c.recipient IS NOT NULL
+      LEFT JOIN industry_companies ic ON ic.legal_name = c.awardee
+      LEFT JOIN orgs o ON LOWER(o.full_name) = LOWER(c.awardee) AND o.sbir_phase IS NOT NULL
+      WHERE c.awardee IS NOT NULL
         AND c.signal_type = 'Award'
-        AND c.award_amt   > 0
-      GROUP BY c.recipient, ic.name, ic.legal_name, ic.logo_url, ic.ticker, ic.headquarters, ic.website, ic.description, o.sbir_phase, o.sbir_capabilities, o.sbir_designations, o.sbir_award_count
+        AND c.value       > 0
+      GROUP BY c.awardee, ic.name, ic.legal_name, ic.logo_url, ic.ticker, ic.headquarters, ic.website, ic.description, o.sbir_phase, o.sbir_capabilities, o.sbir_designations, o.sbir_award_count
       ORDER BY total_value DESC NULLS LAST
       LIMIT 500
     ) primes
