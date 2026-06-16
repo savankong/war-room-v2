@@ -149,7 +149,7 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
   const visT2 = showAllT2 ? tier2 : tier2.slice(0, T2_INIT);
   const visT3 = showAllT3 ? tier3 : tier3.slice(0, T3_INIT);
 
-  const OrgNode = ({ p, root = false }: { p: any; root?: boolean }) => {
+  const OrgNode = ({ p, root = false, canDrill = false }: { p: any; root?: boolean; canDrill?: boolean }) => {
     const color = execColorFor(p.name);
     const ini   = execInitials(p.name);
     const isDrill = drillNode?.id === p.id;
@@ -163,7 +163,7 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
         <div className="wr-ot-av" style={{ background: color }}>{ini}</div>
         <div className="wr-ot-nm">{p.name}</div>
         {p.title && <div className="wr-ot-rl">{p.title}</div>}
-        {!root && tier3.length > 0 && (
+        {canDrill && tier3.length > 0 && (
           <button
             onClick={e => { e.stopPropagation(); setDrillNode(isDrill ? null : p); setShowAllT3(false); }}
             style={{ marginTop: 6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'IBM Plex Mono', fontSize: 9.5, color: isDrill ? 'var(--accent)' : 'var(--ink-3)', padding: 0 }}
@@ -190,7 +190,7 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
         {/* Drill target */}
         <div className="wr-ot-row">
           <div className="wr-ot-col">
-            <OrgNode p={drillNode} />
+            <OrgNode p={drillNode} canDrill />
           </div>
         </div>
         {/* Tier 3 under drill target */}
@@ -198,9 +198,9 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
           <>
             <div className="wr-ot-vline" />
             <div className="wr-ot-label"><span className="dot" />Senior Leadership <span style={{ color:'var(--ink-3)', marginLeft:4 }}>{tier3.length} people</span></div>
-            <div className="wr-ot-row" style={{ flexWrap: 'wrap', justifyContent: 'center', gap: 0, maxWidth: 780 }}>
+            <div className="wr-ot-row">
               {(showAllT3 ? tier3 : tier3.slice(0, T3_INIT)).map(p => (
-                <div key={p.id} className="wr-ot-col" style={{ marginBottom: 8 }}>
+                <div key={p.id} className="wr-ot-col">
                   <OrgNode p={p} />
                 </div>
               ))}
@@ -235,10 +235,10 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
         <>
           <div className="wr-ot-vline" />
           <div className="wr-ot-label"><span className="dot" />Division Presidents <span style={{ color:'var(--ink-3)', marginLeft:4 }}>{tier2.length} people</span></div>
-          <div className="wr-ot-row" style={{ flexWrap: 'wrap', justifyContent: 'center', maxWidth: 900 }}>
+          <div className="wr-ot-row">
             {visT2.map(p => (
-              <div key={p.id} className="wr-ot-col" style={{ marginBottom: 8 }}>
-                <OrgNode p={p} />
+              <div key={p.id} className="wr-ot-col">
+                <OrgNode p={p} canDrill />
               </div>
             ))}
             {!showAllT2 && tier2.length > T2_INIT && (
@@ -263,9 +263,9 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
         <>
           <div className="wr-ot-vline" />
           <div className="wr-ot-label"><span className="dot" />Senior Leadership <span style={{ color:'var(--ink-3)', marginLeft:4 }}>{tier3.length} people</span></div>
-          <div className="wr-ot-row" style={{ flexWrap: 'wrap', justifyContent: 'center', maxWidth: 900 }}>
+          <div className="wr-ot-row">
             {visT3.map(p => (
-              <div key={p.id} className="wr-ot-col" style={{ marginBottom: 8 }}>
+              <div key={p.id} className="wr-ot-col">
                 <OrgNode p={p} />
               </div>
             ))}
