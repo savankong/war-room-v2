@@ -46,7 +46,7 @@ export async function GET() {
     readDb`
       SELECT
         o.id, o.full_name AS legal_name, o.full_name AS display_name,
-        o.location AS headquarters, o.website,
+        o.loc AS headquarters, o.website,
         COUNT(c.id)::int                                                          AS contract_count,
         COALESCE(SUM(c.value) FILTER (WHERE c.value > 0), 0)::bigint             AS total_value,
         ARRAY_AGG(DISTINCT COALESCE(c.agency_or_lab, c.service_branch))
@@ -55,7 +55,7 @@ export async function GET() {
       FROM orgs o
       LEFT JOIN contracts c ON c.canonical_org_id = o.id AND c.signal_type = 'Award'
       WHERE o.branch = 'Industry'
-      GROUP BY o.id, o.full_name, o.location, o.website
+      GROUP BY o.id, o.full_name, o.loc, o.website
     `,
   ]);
 
