@@ -217,9 +217,11 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
                 PRIME · {(company.sources??[]).join(' · ').replace('usaspending','USASpending').replace('sam_gov','SAM.gov')}
               </div>
               <div className="orgd-title">{company.display_name ?? displayName}</div>
-              <div style={{display:'flex',alignItems:'center',gap:8,marginTop:4}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginTop:4,flexWrap:'wrap'}}>
                 <span style={{padding:'2px 8px',borderRadius:4,border:'1px solid #283a6b',background:'rgba(40,58,107,.07)',fontFamily:'IBM Plex Mono',fontSize:10,color:'#283a6b',fontWeight:600}}>PRIME</span>
-                <span style={{fontFamily:'IBM Plex Mono',fontSize:11,color:'var(--ink-3)'}}>Direct DoD prime contractor</span>
+                {company.ticker && <span style={{padding:'2px 8px',borderRadius:4,border:'1px solid var(--card-border)',background:'var(--field)',fontFamily:'IBM Plex Mono',fontSize:10,color:'var(--ink-2)',fontWeight:600}}>{company.ticker}</span>}
+                {company.headquarters && <span style={{fontFamily:'IBM Plex Mono',fontSize:11,color:'var(--ink-3)'}}>📍 {company.headquarters}</span>}
+                {company.website && <a href={company.website} target="_blank" rel="noreferrer" style={{fontFamily:'IBM Plex Mono',fontSize:11,color:'var(--accent)',textDecoration:'none'}}>↗ Website</a>}
               </div>
             </div>
           </div>
@@ -228,6 +230,15 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
           {company.description && (
             <div style={{ padding:'14px 28px', borderBottom:'1px solid var(--card-border)', fontSize:13, color:'var(--ink-2)', lineHeight:1.65 }}>
               {company.description}
+            </div>
+          )}
+
+          {/* Focus areas */}
+          {(company.focus_areas ?? []).length > 0 && (
+            <div style={{ padding:'10px 28px', borderBottom:'1px solid var(--card-border)', display:'flex', gap:6, flexWrap:'wrap' }}>
+              {(company.focus_areas as string[]).map((f: string) => (
+                <span key={f} style={{padding:'3px 10px',borderRadius:20,fontFamily:'IBM Plex Mono',fontSize:10,fontWeight:600,background:'rgba(40,58,107,.07)',border:'1px solid rgba(40,58,107,.2)',color:'#283a6b'}}>{f}</span>
+              ))}
             </div>
           )}
 
@@ -245,6 +256,18 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
               <div className="mlbl">Executives</div>
               <div className="mval">{loadingP ? '…' : people.length}</div>
             </div>
+            {company.employees && (
+              <div className="orgd-meta">
+                <div className="mlbl">Employees</div>
+                <div className="mval">{Number(company.employees).toLocaleString()}</div>
+              </div>
+            )}
+            {company.revenue_b && (
+              <div className="orgd-meta">
+                <div className="mlbl">Annual Revenue</div>
+                <div className="mval">${Number(company.revenue_b).toFixed(1)}B</div>
+              </div>
+            )}
             <div className="orgd-meta">
               <div className="mlbl">Top Agencies</div>
               <div className="mval sm">{(company.agencies??[]).slice(0,2).join(', ') || '—'}</div>
@@ -836,8 +859,10 @@ function IndustryList({
               }
               <div className="tx">
                 <div className="on" style={{ cursor:'pointer', color:'var(--ink)' }} title={c.name}>{c.display_name ?? c.name}</div>
-                <div className="os">
-                  {c.sources?.join(' · ').replace('usaspending','USASpending').replace('sam_gov','SAM.gov')}
+                <div className="os" style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                  {c.headquarters && <span>{c.headquarters}</span>}
+                  {c.ticker && <span style={{fontWeight:600,color:'var(--ink-2)'}}>{c.ticker}</span>}
+                  {c.employees && <span>{Number(c.employees).toLocaleString()} employees</span>}
                 </div>
                 <SbirBadges company={c} compact />
               </div>

@@ -9,13 +9,16 @@ export async function GET() {
   const rows = await db`
     SELECT
       c.awardee                                                AS name,
-      NULL::text                                               AS display_name,
-      NULL::text                                               AS legal_name,
-      NULL::text                                               AS logo_url,
-      NULL::text                                               AS ticker,
-      NULL::text                                               AS headquarters,
-      NULL::text                                               AS website,
-      NULL::text                                               AS description,
+      ic.name                                                  AS display_name,
+      ic.legal_name,
+      ic.logo_url,
+      ic.ticker,
+      ic.headquarters,
+      ic.website,
+      ic.description,
+      ic.employees,
+      ic.revenue_b,
+      ic.focus_areas,
       COUNT(*)::int                                            AS contract_count,
       SUM(c.value)::bigint                                     AS total_value,
       COUNT(*) FILTER (WHERE c.status IS NOT NULL)::int        AS set_aside_count,
@@ -27,10 +30,12 @@ export async function GET() {
       NULL::text[]                                             AS sbir_designations,
       NULL::int                                                AS sbir_award_count
     FROM contracts c
+    LEFT JOIN industry_companies ic ON ic.legal_name = c.awardee
     WHERE c.awardee IS NOT NULL
       AND c.signal_type = 'Award'
       AND c.value > 0
-    GROUP BY c.awardee
+    GROUP BY c.awardee, ic.name, ic.legal_name, ic.logo_url, ic.ticker,
+             ic.headquarters, ic.website, ic.description, ic.employees, ic.revenue_b, ic.focus_areas
     ORDER BY total_value DESC NULLS LAST
     LIMIT 500
   `;
