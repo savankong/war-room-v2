@@ -135,6 +135,160 @@ function SbirBadges({ company, compact = false }: { company: any; compact?: bool
   );
 }
 
+const T2_INIT = 6;
+const T3_INIT = 8;
+
+function OrgTree({ tier1, tier2, tier3, onPerson }: {
+  tier1: any[]; tier2: any[]; tier3: any[];
+  onPerson(p: any): void;
+}) {
+  const [showAllT2, setShowAllT2] = useState(false);
+  const [showAllT3, setShowAllT3] = useState(false);
+  const [drillNode, setDrillNode] = useState<any|null>(null);
+
+  const visT2 = showAllT2 ? tier2 : tier2.slice(0, T2_INIT);
+  const visT3 = showAllT3 ? tier3 : tier3.slice(0, T3_INIT);
+
+  const OrgNode = ({ p, root = false }: { p: any; root?: boolean }) => {
+    const color = execColorFor(p.name);
+    const ini   = execInitials(p.name);
+    const isDrill = drillNode?.id === p.id;
+    return (
+      <div
+        className={'wr-ot-node' + (isDrill ? ' active' : '')}
+        style={root ? { width: 164, borderWidth: 2, borderColor: 'var(--accent)', boxShadow: '0 2px 14px rgba(37,99,184,.14)' } : {}}
+        onClick={() => onPerson(p)}
+      >
+        {root && <span className="rk">CEO</span>}
+        <div className="wr-ot-av" style={{ background: color }}>{ini}</div>
+        <div className="wr-ot-nm">{p.name}</div>
+        {p.title && <div className="wr-ot-rl">{p.title}</div>}
+        {!root && tier3.length > 0 && (
+          <button
+            onClick={e => { e.stopPropagation(); setDrillNode(isDrill ? null : p); setShowAllT3(false); }}
+            style={{ marginTop: 6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'IBM Plex Mono', fontSize: 9.5, color: isDrill ? 'var(--accent)' : 'var(--ink-3)', padding: 0 }}
+          >
+            {isDrill ? '↑ collapse' : '↓ expand'}
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  /* Drill-down: show CEO → selected tier2 → all tier3 */
+  if (drillNode) {
+    return (
+      <div className="wr-orgtree">
+        <button className="wr-ot-back" onClick={() => setDrillNode(null)}>← All people</button>
+        {/* CEO (dimmed) */}
+        {tier1.map(p => (
+          <div key={p.id} style={{ opacity: 0.45 }} onClick={() => onPerson(p)}>
+            <OrgNode p={p} root />
+          </div>
+        ))}
+        <div className="wr-ot-vline" />
+        {/* Drill target */}
+        <div className="wr-ot-row">
+          <div className="wr-ot-col">
+            <OrgNode p={drillNode} />
+          </div>
+        </div>
+        {/* Tier 3 under drill target */}
+        {tier3.length > 0 && (
+          <>
+            <div className="wr-ot-vline" />
+            <div className="wr-ot-label"><span className="dot" />Senior Leadership <span style={{ color:'var(--ink-3)', marginLeft:4 }}>{tier3.length} people</span></div>
+            <div className="wr-ot-row" style={{ flexWrap: 'wrap', justifyContent: 'center', gap: 0, maxWidth: 780 }}>
+              {(showAllT3 ? tier3 : tier3.slice(0, T3_INIT)).map(p => (
+                <div key={p.id} className="wr-ot-col" style={{ marginBottom: 8 }}>
+                  <OrgNode p={p} />
+                </div>
+              ))}
+              {!showAllT3 && tier3.length > T3_INIT && (
+                <div className="wr-ot-col">
+                  <button className="wr-ot-more" onClick={() => setShowAllT3(true)}>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>+{tier3.length - T3_INIT}</span>
+                    more
+                  </button>
+                </div>
+              )}
+              {showAllT3 && tier3.length > T3_INIT && (
+                <div className="wr-ot-col">
+                  <button className="wr-ot-more" onClick={() => setShowAllT3(false)}>↑ less</button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  /* Full tree view */
+  return (
+    <div className="wr-orgtree">
+      {/* CEO */}
+      {tier1.map(p => <OrgNode key={p.id} p={p} root />)}
+
+      {/* Tier 2 */}
+      {tier2.length > 0 && (
+        <>
+          <div className="wr-ot-vline" />
+          <div className="wr-ot-label"><span className="dot" />Division Presidents <span style={{ color:'var(--ink-3)', marginLeft:4 }}>{tier2.length} people</span></div>
+          <div className="wr-ot-row" style={{ flexWrap: 'wrap', justifyContent: 'center', maxWidth: 900 }}>
+            {visT2.map(p => (
+              <div key={p.id} className="wr-ot-col" style={{ marginBottom: 8 }}>
+                <OrgNode p={p} />
+              </div>
+            ))}
+            {!showAllT2 && tier2.length > T2_INIT && (
+              <div className="wr-ot-col">
+                <button className="wr-ot-more" onClick={() => setShowAllT2(true)}>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>+{tier2.length - T2_INIT}</span>
+                  more
+                </button>
+              </div>
+            )}
+            {showAllT2 && tier2.length > T2_INIT && (
+              <div className="wr-ot-col">
+                <button className="wr-ot-more" onClick={() => setShowAllT2(false)}>↑ less</button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Tier 3 */}
+      {tier3.length > 0 && (
+        <>
+          <div className="wr-ot-vline" />
+          <div className="wr-ot-label"><span className="dot" />Senior Leadership <span style={{ color:'var(--ink-3)', marginLeft:4 }}>{tier3.length} people</span></div>
+          <div className="wr-ot-row" style={{ flexWrap: 'wrap', justifyContent: 'center', maxWidth: 900 }}>
+            {visT3.map(p => (
+              <div key={p.id} className="wr-ot-col" style={{ marginBottom: 8 }}>
+                <OrgNode p={p} />
+              </div>
+            ))}
+            {!showAllT3 && tier3.length > T3_INIT && (
+              <div className="wr-ot-col">
+                <button className="wr-ot-more" onClick={() => setShowAllT3(true)}>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>+{tier3.length - T3_INIT}</span>
+                  more
+                </button>
+              </div>
+            )}
+            {showAllT3 && tier3.length > T3_INIT && (
+              <div className="wr-ot-col">
+                <button className="wr-ot-more" onClick={() => setShowAllT3(false)}>↑ less</button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
   const [tab, setTab]           = useState<'people'|'contracts'|'subs'>('people');
   const [contracts, setContracts] = useState<any[]>([]);
@@ -331,63 +485,12 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
                   ))}
                 </div>
               ) : (
-                <div className="wr-broad">
-                  {/* Tier 1 — CEO/Chairman */}
-                  {tier1.length > 0 && (
-                    <div className="wr-broad-root">
-                      {tier1.map(p => (
-                        <div key={p.id} className="wr-node-root" onClick={() => setPanelPerson(p)} style={{cursor:'pointer'}}>
-                          <span className="rk">CEO</span>
-                          <div className="ava" style={{background:execColorFor(p.name)}}>{execInitials(p.name)}</div>
-                          <div className="nm">{p.name}</div>
-                          {p.title && <div className="rl">{p.title}</div>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {tier2.length > 0 && (
-                    <>
-                      <div className="wr-stem" />
-                      <div className="wr-tierbox">
-                        <div className="wr-tierhead">
-                          <span className="dot"/><span className="tl">Division Presidents</span>
-                          <span className="tc">{tier2.length} people</span>
-                        </div>
-                        <div className="wr-grid">
-                          {tier2.map(p => (
-                            <div key={p.id} className="wr-cc" onClick={() => setPanelPerson(p)}>
-                              <div className="ava" style={{background:execColorFor(p.name)}}>{execInitials(p.name)}</div>
-                              <div className="nm">{p.name}</div>
-                              {p.title && <div className="rl">{p.title}</div>}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {tier3.length > 0 && (
-                    <>
-                      <div className="wr-stem" />
-                      <div className="wr-tierbox">
-                        <div className="wr-tierhead">
-                          <span className="dot"/><span className="tl">Senior Leadership</span>
-                          <span className="tc">{tier3.length} people</span>
-                        </div>
-                        <div className="wr-grid">
-                          {tier3.map(p => (
-                            <div key={p.id} className="wr-cc" onClick={() => setPanelPerson(p)}>
-                              <div className="ava" style={{background:execColorFor(p.name)}}>{execInitials(p.name)}</div>
-                              <div className="nm">{p.name}</div>
-                              {p.title && <div className="rl">{p.title}</div>}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
+                <OrgTree
+                  tier1={tier1}
+                  tier2={tier2}
+                  tier3={tier3}
+                  onPerson={setPanelPerson}
+                />
               )}
             </div>
           )}

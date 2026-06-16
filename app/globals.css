@@ -473,6 +473,34 @@ body[data-page="account"] .main { overflow-y: auto; }
   text-transform: uppercase; color: var(--ink-3);
 }
 
+/* ── Org chart tree (main detail page) ───────────────────────────── */
+.wr-orgtree { display: flex; flex-direction: column; align-items: center; padding: 28px 24px 36px; overflow-x: auto; min-width: 0; width: 100%; box-sizing: border-box; }
+.wr-ot-vline { width: 2px; height: 28px; background: var(--line); flex-shrink: 0; align-self: center; }
+.wr-ot-row { display: flex; gap: 0; }
+/* branch connector: horizontal bar + vertical drop per column */
+.wr-ot-col { display: flex; flex-direction: column; align-items: center; position: relative; padding: 0 7px; }
+.wr-ot-col::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--line); }
+.wr-ot-col:first-child::after { left: 50%; }
+.wr-ot-col:last-child::after { right: 50%; }
+.wr-ot-col:only-child::after { display: none; }
+.wr-ot-col::before { content: ''; position: absolute; top: 0; width: 2px; height: 22px; background: var(--line); }
+/* card node */
+.wr-ot-node { margin-top: 22px; cursor: pointer; width: 122px; text-align: center; background: var(--card); border: 1px solid var(--card-border); border-radius: 9px; padding: 12px 8px 10px; transition: border-color .12s, box-shadow .12s; position: relative; }
+.wr-ot-node:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(37,99,184,.1); }
+.wr-ot-node.active { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,184,.12); }
+.wr-ot-node .rk { position: absolute; top: 7px; right: 7px; font-family: 'IBM Plex Mono',monospace; font-size: 7.5px; letter-spacing: .5px; color: var(--ink-3); border: 1px solid var(--card-border); border-radius: 3px; padding: 1px 4px; }
+.wr-ot-av { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 13px; margin: 0 auto 8px; font-family: 'Archivo', sans-serif; }
+.wr-ot-nm { font-size: 11.5px; font-weight: 700; color: var(--ink); line-height: 1.25; margin-bottom: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.wr-ot-rl { font-size: 9.5px; font-family: 'IBM Plex Mono',monospace; color: var(--ink-3); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* expand more button (as a column in the row) */
+.wr-ot-more { margin-top: 22px; width: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: none; border: 1.5px dashed var(--card-border); border-radius: 9px; padding: 12px 4px; cursor: pointer; font-family: 'IBM Plex Mono',monospace; font-size: 10px; color: var(--accent); min-height: 88px; transition: border-color .12s; }
+.wr-ot-more:hover { border-color: var(--accent); }
+/* tier label */
+.wr-ot-label { font-family: 'IBM Plex Mono',monospace; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 7px; margin-top: 18px; padding-bottom: 2px; align-self: flex-start; margin-left: 4px; }
+.wr-ot-label .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+/* drill-down back link */
+.wr-ot-back { display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono',monospace; font-size: 11px; color: var(--accent); cursor: pointer; background: none; border: none; padding: 0 0 12px; align-self: flex-start; }
+
 /* no-contacts state */
 .oc-empty {
   color: var(--ink-3); font-family: 'IBM Plex Mono', monospace;
