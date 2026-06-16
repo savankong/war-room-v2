@@ -63,11 +63,11 @@ export async function GET() {
   const aggMap = new Map<string, any>();
   for (const row of contractAggs) aggMap.set(row.awardee, row);
 
-  // Build set of known prime legal names for exclusion (catalog + orgs table)
-  const primeNames = new Set(catalog.map((ic: any) => ic.legal_name));
-  const orgLegalNames = new Set(industryOrgs.map((o: any) => o.legal_name));
+  // Build case-insensitive sets of known names for deduplication
+  const primeNamesLower   = new Set(catalog.map((ic: any) => (ic.legal_name ?? '').toLowerCase()));
+  const orgLegalNamesLower = new Set((industryOrgs as any[]).map((o: any) => (o.legal_name ?? '').toLowerCase()));
 
-  // Arm 1: known primes merged with contract data
+  // Arm 1: known catalog primes merged with contract data
   const primes = catalog.map((ic: any) => {
     const agg = aggMap.get(ic.legal_name);
     return {
@@ -96,7 +96,7 @@ export async function GET() {
 
   // Arm 2: industry orgs from orgs table not already in catalog
   const orgRows = (industryOrgs as any[])
-    .filter((o: any) => !primeNames.has(o.legal_name))
+    .filter((o: any) => !primeNamesLower.has((o.legal_name ?? '').toLowerCase()))
     .map((o: any) => ({
       name:            o.legal_name,
       display_name:    o.display_name,
@@ -120,9 +120,9 @@ export async function GET() {
       sbir_award_count:   null,
     }));
 
-  // Arm 3: other awardees not in catalog or orgs table
+  // Arm 3: other awardees not in catalog or orgs table (case-insensitive dedup)
   const others = (otherAwardees as any[])
-    .filter((r: any) => !primeNames.has(r.name) && !orgLegalNames.has(r.name))
+    .filter((r: any) => !primeNamesLower.has((r.name ?? '').toLowerCase()) && !orgLegalNamesLower.has((r.name ?? '').toLowerCase()))
     .map((r: any) => ({
       name:            r.name,
       display_name:    null,
