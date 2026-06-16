@@ -29,7 +29,7 @@ async function getOrgs() {
       ) AS top_leader_title
     FROM orgs o
     LEFT JOIN contacts c  ON c.org_id = o.id
-    LEFT JOIN contracts ct ON ct.org_id::text = o.id
+    LEFT JOIN contracts ct ON ct.canonical_org_id = o.id
     WHERE o.is_active = true
     GROUP BY o.id
     ORDER BY o.hierarchy_level NULLS LAST, o.full_name
