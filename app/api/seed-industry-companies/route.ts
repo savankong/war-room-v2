@@ -38,25 +38,28 @@ export async function GET(req: NextRequest) {
 
   const db = getDb();
 
-  await db`
-    CREATE TABLE IF NOT EXISTS industry_companies (
-      id                   SERIAL PRIMARY KEY,
-      legal_name           TEXT NOT NULL UNIQUE,
-      name                 TEXT NOT NULL,
-      ticker               TEXT,
-      headquarters         TEXT,
-      website              TEXT,
-      employees            INT,
-      revenue_b            NUMERIC(8,1),
-      dod_contract_value_b NUMERIC(8,1),
-      description          TEXT,
-      logo_url             TEXT,
-      focus_areas          TEXT[],
-      created_at           TIMESTAMPTZ DEFAULT NOW()
-    )
-  `;
-
-  await db`ALTER TABLE industry_companies ADD COLUMN IF NOT EXISTS dod_contract_value_b NUMERIC(8,1)`;
+  try {
+    await db`
+      CREATE TABLE IF NOT EXISTS industry_companies (
+        id                   SERIAL PRIMARY KEY,
+        legal_name           TEXT NOT NULL UNIQUE,
+        name                 TEXT NOT NULL,
+        ticker               TEXT,
+        headquarters         TEXT,
+        website              TEXT,
+        employees            INT,
+        revenue_b            NUMERIC(8,1),
+        dod_contract_value_b NUMERIC(8,1),
+        description          TEXT,
+        logo_url             TEXT,
+        focus_areas          TEXT[],
+        created_at           TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await db`ALTER TABLE industry_companies ADD COLUMN IF NOT EXISTS dod_contract_value_b NUMERIC(8,1)`;
+  } catch (e: unknown) {
+    return NextResponse.json({ error: 'DDL failed', detail: e instanceof Error ? e.message : String(e) }, { status: 500 });
+  }
 
   let upserted = 0;
   const errors: string[] = [];
