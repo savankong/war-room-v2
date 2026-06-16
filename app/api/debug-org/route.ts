@@ -35,10 +35,10 @@ export async function GET(req: NextRequest) {
   `);
 
   await run('contracts', () => db`
-    SELECT id, title, value,
-           set_aside AS status, signal_type, award_date,
+    SELECT id::text, title, value,
+           status, signal_type, award_date,
            COALESCE(source, 'sam') AS source
-    FROM contracts WHERE org_id::text = ${slug} AND signal_type IS NOT NULL
+    FROM contracts WHERE signal_type IS NOT NULL
     ORDER BY award_date DESC NULLS LAST, created_at DESC LIMIT 5
   `);
 

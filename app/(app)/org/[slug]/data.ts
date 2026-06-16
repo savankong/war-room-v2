@@ -127,7 +127,7 @@ export const getOrgContracts = unstable_cache(
     const rows = await db`
       SELECT id, title,
              value,
-             set_aside AS status,
+             status,
              signal_type, award_date,
              COALESCE(source, 'sam') AS source
       FROM contracts
