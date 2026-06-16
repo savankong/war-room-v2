@@ -6,6 +6,25 @@ export const dynamic = 'force-dynamic';
 async function getOrgs() {
   const db = getDb();
   const rows = await db`
+    WITH
+      contact_counts AS (
+        SELECT org_id, COUNT(*)::int AS cnt
+        FROM contacts
+        GROUP BY org_id
+      ),
+      contract_counts AS (
+        SELECT canonical_org_id, COUNT(*)::int AS cnt
+        FROM contracts
+        WHERE canonical_org_id IS NOT NULL
+        GROUP BY canonical_org_id
+      ),
+      top_leaders AS (
+        SELECT DISTINCT ON (org_id)
+          org_id, name AS top_leader_name, title AS top_leader_title
+        FROM contacts
+        WHERE hierarchy_order IS NOT NULL
+        ORDER BY org_id, hierarchy_order ASC, name ASC
+      )
     SELECT
       o.id,
       COALESCE(o.full_name, o.id) AS name,
@@ -16,23 +35,16 @@ async function getOrgs() {
       o.hierarchy_level      AS abs_hierarchy_level,
       o.hierarchy_level,
       o.parent_id,
-      COUNT(DISTINCT c.id)::int   AS contact_count,
-      COUNT(DISTINCT ct.id)::int  AS contract_count,
-      (
-        SELECT c2.name FROM contacts c2
-        WHERE c2.org_id = o.id AND c2.hierarchy_order = 1
-        ORDER BY c2.name LIMIT 1
-      ) AS top_leader_name,
-      (
-        SELECT c2.title FROM contacts c2
-        WHERE c2.org_id = o.id AND c2.hierarchy_order = 1
-        ORDER BY c2.name LIMIT 1
-      ) AS top_leader_title
+      COALESCE(cc.cnt, 0)    AS contact_count,
+      COALESCE(ct.cnt, 0)    AS contract_count,
+      tl.top_leader_name,
+      tl.top_leader_title
     FROM orgs o
-    LEFT JOIN contacts c  ON c.org_id = o.id
-    LEFT JOIN contracts ct ON ct.canonical_org_id = o.id
+    LEFT JOIN contact_counts  cc ON cc.org_id          = o.id
+    LEFT JOIN contract_counts ct ON ct.canonical_org_id = o.id
+    LEFT JOIN top_leaders     tl ON tl.org_id           = o.id
     WHERE o.is_active = true
-    GROUP BY o.id
+      AND o.branch != 'Industry'
     ORDER BY o.hierarchy_level NULLS LAST, o.full_name
   `;
   return rows as Array<{
