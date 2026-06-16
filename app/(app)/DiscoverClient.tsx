@@ -823,6 +823,20 @@ function IndustryList({
   agency: string | null; sbirOnly: boolean; sbirPhase: string | null; desig: string | null;
   page: number; onPageChange(p: number): void; onSelectCompany(c: any): void;
 }) {
+  const [sortCol, setSortCol] = useState<'name'|'contracts'|'value'>('value');
+  const [sortDir, setSortDir] = useState<'asc'|'desc'>('desc');
+
+  const sortBy = (col: 'name'|'contracts'|'value') => {
+    if (sortCol === col) { setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }
+    else { setSortCol(col); setSortDir(col === 'name' ? 'asc' : 'desc'); }
+    onPageChange(1);
+  };
+
+  const SortArrow = ({ col }: { col: string }) => {
+    if (sortCol !== col) return <span style={{ opacity:0.25, fontSize:9 }}>↕</span>;
+    return <span style={{ fontSize:9 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
+
   const filtered = useMemo(() => {
     let list = companies;
     if (search.trim()) {
@@ -848,7 +862,21 @@ function IndustryList({
     return list;
   }, [companies, search, valueTier, agency, sbirOnly, sbirPhase, desig]);
 
-  const paged = filtered.slice((page-1)*IND_PER_PAGE, page*IND_PER_PAGE);
+  const sorted = useMemo(() => {
+    const s = [...filtered];
+    s.sort((a, b) => {
+      let av: any, bv: any;
+      if (sortCol === 'name') { av = (a.display_name ?? a.name ?? '').toLowerCase(); bv = (b.display_name ?? b.name ?? '').toLowerCase(); }
+      else if (sortCol === 'contracts') { av = Number(a.contract_count) || 0; bv = Number(b.contract_count) || 0; }
+      else { av = Number(a.total_value) || 0; bv = Number(b.total_value) || 0; }
+      if (av < bv) return sortDir === 'asc' ? -1 : 1;
+      if (av > bv) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return s;
+  }, [filtered, sortCol, sortDir]);
+
+  const paged = sorted.slice((page-1)*IND_PER_PAGE, page*IND_PER_PAGE);
 
   return (
     <div className="wr-hmain" style={{ display:'flex', flexDirection:'column', overflow:'hidden' }}>
@@ -857,6 +885,7 @@ function IndustryList({
         <div style={{ fontFamily:'IBM Plex Mono', fontSize:11, color:'var(--ink-3)' }}>
           {filtered.length.toLocaleString()} companies · DoD prime contractors
         </div>
+
         <div style={{ marginLeft:'auto', fontFamily:'IBM Plex Mono', fontSize:10, color:'var(--ink-3)', letterSpacing:'1px' }}>
           SOURCE: USASPENDING.GOV · SAM.GOV
         </div>
@@ -864,8 +893,10 @@ function IndustryList({
 
       {/* Column headers */}
       <div className="wr-dhead" style={{ gridTemplateColumns:'1fr 80px 80px 130px 260px' }}>
-        <div>Company</div><div>Role</div>
-        <div className="r">Contracts</div><div className="r">Total Awarded</div>
+        <div onClick={() => sortBy('name')} style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>Company <SortArrow col="name" /></div>
+        <div>Role</div>
+        <div className="r" onClick={() => sortBy('contracts')} style={{ cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}><SortArrow col="contracts" /> Contracts</div>
+        <div className="r" onClick={() => sortBy('value')} style={{ cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}><SortArrow col="value" /> Total Awarded</div>
         <div>Awarding Agencies</div>
       </div>
 
@@ -910,7 +941,7 @@ function IndustryList({
             </div>
           </div>
         ))}
-        <Pagination total={filtered.length} page={page} perPage={IND_PER_PAGE} onChange={onPageChange} />
+        <Pagination total={sorted.length} page={page} perPage={IND_PER_PAGE} onChange={onPageChange} />
       </div>
     </div>
   );
@@ -923,13 +954,41 @@ function SubList({ subs, search, page, onPageChange, onSelectSub, loaded }: {
   subs: any[]; search: string; page: number; loaded: boolean;
   onPageChange(p: number): void; onSelectSub(s: any): void;
 }) {
+  const [sortCol, setSortCol] = useState<'name'|'value'|'awards'>('value');
+  const [sortDir, setSortDir] = useState<'asc'|'desc'>('desc');
+
+  const sortBy = (col: 'name'|'value'|'awards') => {
+    if (sortCol === col) { setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }
+    else { setSortCol(col); setSortDir(col === 'name' ? 'asc' : 'desc'); }
+    onPageChange(1);
+  };
+
+  const SortArrow = ({ col }: { col: string }) => {
+    if (sortCol !== col) return <span style={{ opacity:0.25, fontSize:9 }}>↕</span>;
+    return <span style={{ fontSize:9 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
+
   const filtered = useMemo(() => {
     if (!search.trim()) return subs;
     const q = search.toLowerCase();
     return subs.filter(s => s.name?.toLowerCase().includes(q) || (s.display_name ?? '').toLowerCase().includes(q));
   }, [subs, search]);
 
-  const paged = filtered.slice((page-1)*SUB_PER_PAGE, page*SUB_PER_PAGE);
+  const sorted = useMemo(() => {
+    const s = [...filtered];
+    s.sort((a, b) => {
+      let av: any, bv: any;
+      if (sortCol === 'name') { av = (a.display_name ?? a.name ?? '').toLowerCase(); bv = (b.display_name ?? b.name ?? '').toLowerCase(); }
+      else if (sortCol === 'awards') { av = Number(a.award_count) || 0; bv = Number(b.award_count) || 0; }
+      else { av = Number(a.total_value) || 0; bv = Number(b.total_value) || 0; }
+      if (av < bv) return sortDir === 'asc' ? -1 : 1;
+      if (av > bv) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return s;
+  }, [filtered, sortCol, sortDir]);
+
+  const paged = sorted.slice((page-1)*SUB_PER_PAGE, page*SUB_PER_PAGE);
 
   return (
     <div className="wr-hmain" style={{ display:'flex', flexDirection:'column', overflow:'hidden' }}>
@@ -942,10 +1001,10 @@ function SubList({ subs, search, page, onPageChange, onSelectSub, loaded }: {
         </div>
       </div>
       <div className="wr-dhead" style={{ gridTemplateColumns:'1fr 70px 130px 80px' }}>
-        <div>Subcontractor</div>
+        <div onClick={() => sortBy('name')} style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>Subcontractor <SortArrow col="name" /></div>
         <div>Primes</div>
-        <div className="r">Total Value</div>
-        <div className="r">Awards</div>
+        <div className="r" onClick={() => sortBy('value')} style={{ cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}><SortArrow col="value" /> Total Value</div>
+        <div className="r" onClick={() => sortBy('awards')} style={{ cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}><SortArrow col="awards" /> Awards</div>
       </div>
       <div className="wr-dscroll">
         {!loaded && <div style={{ padding:'40px 26px', color:'var(--ink-3)', fontFamily:'IBM Plex Mono', fontSize:11 }}>Loading subcontractors…</div>}
@@ -975,7 +1034,7 @@ function SubList({ subs, search, page, onPageChange, onSelectSub, loaded }: {
           );
         })}
       </div>
-      <Pagination total={filtered.length} page={page} perPage={SUB_PER_PAGE} onChange={onPageChange} />
+      <Pagination total={sorted.length} page={page} perPage={SUB_PER_PAGE} onChange={onPageChange} />
     </div>
   );
 }
@@ -1098,6 +1157,7 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
   const [indDesig,      setIndDesig]      = useState<string|null>(null);
   const [openSections,  setOpenSections]  = useState<Set<string>>(new Set(['value','agency']));
   const toggleSection = (s: string) => setOpenSections(prev => { const n = new Set(prev); n.has(s) ? n.delete(s) : n.add(s); return n; });
+  const [showAllAgencies, setShowAllAgencies] = useState(false);
 
   /* Subcontractor state */
   const [indRole,        setIndRole]        = useState<'primes'|'subs'>('primes');
@@ -1237,7 +1297,6 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
           />
         </div>
 
-        <button className="wr-sort"><SortIc /> Most active</button>
       </div>
 
       {/* ── 2-column body (no right rail) ── */}
@@ -1325,7 +1384,7 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
                   <span>All agencies</span>
                   <span className="c">{companies.length}</span>
                 </div>
-                {agencyCounts.map(a => (
+                {(showAllAgencies ? agencyCounts : agencyCounts.slice(0, 5)).map(a => (
                   <div
                     key={a.label}
                     className={'wr-idx'+(indAgency===a.label?' on':'')}
@@ -1337,6 +1396,11 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
                     <span className="c">{a.count}</span>
                   </div>
                 ))}
+                {agencyCounts.length > 5 && (
+                  <button onClick={() => setShowAllAgencies(v=>!v)} style={{ background:'none',border:'none',cursor:'pointer',padding:'4px 0 2px 28px',fontFamily:'IBM Plex Mono',fontSize:11,color:'var(--accent)',textAlign:'left',width:'100%' }}>
+                    {showAllAgencies ? '↑ Less' : `+ ${agencyCounts.length - 5} more`}
+                  </button>
+                )}
               </>}
 
               {/* SBIR */}

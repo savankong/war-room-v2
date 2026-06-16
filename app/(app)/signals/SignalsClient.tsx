@@ -214,6 +214,11 @@ export default function SignalsClient({ contracts, orgs, stats, indStats, indFil
   const [openSignal, setOpenSignal] = useState<any>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
+  /* "Show more" toggles for filter lists */
+  const [showAllOrgs,      setShowAllOrgs]      = useState(false);
+  const [showAllCompanies, setShowAllCompanies] = useState(false);
+  const [showAllBranches,  setShowAllBranches]  = useState(false);
+
   /* ── Industry API fetch ──────────────────────────────────────── */
   const fetchIndustry = useCallback(async (page: number) => {
     setIndLoading(true);
@@ -424,14 +429,18 @@ export default function SignalsClient({ contracts, orgs, stats, indStats, indFil
               </FilterSection>
 
               <FilterSection label="Organization" isOpen={orgSectionOpen} onToggle={()=>setOrgSectionOpen(v=>!v)} onClear={()=>setOrgFilter(null)} showClear={!!orgFilter}>
-                {topOrgsForFilter.map(o => (
+                {(showAllOrgs ? topOrgsForFilter : topOrgsForFilter.slice(0, 5)).map(o => (
                   <div key={o.id} className={'wr-chk'+(orgFilter===o.id?' on':'')} onClick={()=>setOrgFilter(orgFilter===o.id?null:o.id)}>
                     <span className="box">{orgFilter===o.id?<IcTick />:null}</span>
                     <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:12.5 }}>{o.name}</span>
-                    {o.sub && <span style={{ fontFamily:'IBM Plex Mono',fontSize:9,color:'var(--ink-3)',background:'var(--row-bg)',border:'1px solid var(--card-border)',borderRadius:3,padding:'1px 4px',whiteSpace:'nowrap',flexShrink:0,maxWidth:90,overflow:'hidden',textOverflow:'ellipsis' }}>{o.sub}</span>}
                     <span className="c">{orgCounts[o.id]??0}</span>
                   </div>
                 ))}
+                {topOrgsForFilter.length > 5 && (
+                  <button onClick={()=>setShowAllOrgs(v=>!v)} style={{ background:'none',border:'none',cursor:'pointer',padding:'4px 0 2px 26px',fontFamily:'IBM Plex Mono',fontSize:11,color:'var(--accent)',textAlign:'left',width:'100%' }}>
+                    {showAllOrgs ? '↑ Less' : `+ ${topOrgsForFilter.length - 5} more`}
+                  </button>
+                )}
               </FilterSection>
 
               <FilterSection label="Source" isOpen={sourceSectionOpen} onToggle={()=>setSourceSectionOpen(v=>!v)} onClear={()=>setSourceFilter(null)} showClear={!!sourceFilter}>
@@ -452,13 +461,18 @@ export default function SignalsClient({ contracts, orgs, stats, indStats, indFil
               </div>
 
               <FilterSection label="Company" isOpen={compSectionOpen} onToggle={()=>setCompSectionOpen(v=>!v)} onClear={()=>setCompFilter(null)} showClear={!!compFilter}>
-                {indFilterOptions.companies.map(([name, cnt]) => (
+                {(showAllCompanies ? indFilterOptions.companies : indFilterOptions.companies.slice(0, 5)).map(([name, cnt]) => (
                   <div key={name} className={'wr-chk'+(compFilter===name?' on':'')} onClick={()=>setCompFilter(compFilter===name?null:name)}>
                     <span className="box">{compFilter===name?<IcTick />:null}</span>
                     <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:12.5 }}>{name}</span>
                     <span className="c">{cnt}</span>
                   </div>
                 ))}
+                {indFilterOptions.companies.length > 5 && (
+                  <button onClick={()=>setShowAllCompanies(v=>!v)} style={{ background:'none',border:'none',cursor:'pointer',padding:'4px 0 2px 26px',fontFamily:'IBM Plex Mono',fontSize:11,color:'var(--accent)',textAlign:'left',width:'100%' }}>
+                    {showAllCompanies ? '↑ Less' : `+ ${indFilterOptions.companies.length - 5} more`}
+                  </button>
+                )}
               </FilterSection>
 
               <FilterSection label="Value" isOpen={valueSectionOpen} onToggle={()=>setValueSectionOpen(v=>!v)} onClear={()=>setValueTier(null)} showClear={!!valueTier}>
@@ -471,13 +485,18 @@ export default function SignalsClient({ contracts, orgs, stats, indStats, indFil
               </FilterSection>
 
               <FilterSection label="Branch" isOpen={agencySectionOpen} onToggle={()=>setAgencySectionOpen(v=>!v)} onClear={()=>setAgencyFilter(null)} showClear={!!agencyFilter}>
-                {indFilterOptions.agencies.map(([name, cnt]) => (
+                {(showAllBranches ? indFilterOptions.agencies : indFilterOptions.agencies.slice(0, 5)).map(([name, cnt]) => (
                   <div key={name} className={'wr-chk'+(agencyFilter===name?' on':'')} onClick={()=>setAgencyFilter(agencyFilter===name?null:name)}>
                     <span className="box">{agencyFilter===name?<IcTick />:null}</span>
                     <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:12.5 }}>{name}</span>
                     <span className="c">{cnt}</span>
                   </div>
                 ))}
+                {indFilterOptions.agencies.length > 5 && (
+                  <button onClick={()=>setShowAllBranches(v=>!v)} style={{ background:'none',border:'none',cursor:'pointer',padding:'4px 0 2px 26px',fontFamily:'IBM Plex Mono',fontSize:11,color:'var(--accent)',textAlign:'left',width:'100%' }}>
+                    {showAllBranches ? '↑ Less' : `+ ${indFilterOptions.agencies.length - 5} more`}
+                  </button>
+                )}
               </FilterSection>
             </>
           )}
