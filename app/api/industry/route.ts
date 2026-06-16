@@ -7,8 +7,9 @@ export async function GET() {
   const readDb  = getDb();       // Neon read-only: has contracts, orgs
   const writeDb = getWriteDb();  // Owner DB: has industry_companies
 
-  // Fetch in parallel: catalog from write DB, contract aggregates from read DB
-  const [catalog, contractAggs, otherAwardees] = await Promise.all([
+  // Fetch in parallel: catalog from write DB, contract aggregates from read DB,
+  // and industry orgs seeded directly to orgs table (e.g. Granicus)
+  const [catalog, contractAggs, otherAwardees, industryOrgs] = await Promise.all([
     writeDb`
       SELECT id, legal_name, name, logo_url, ticker, headquarters, website,
              description, employees, revenue_b, focus_areas, dod_contract_value_b
@@ -41,14 +42,30 @@ export async function GET() {
         AND c.value > 0
       GROUP BY c.awardee
     `,
+    // Arm 3: orgs seeded directly with branch='Industry' (e.g. Granicus)
+    readDb`
+      SELECT
+        o.id, o.full_name AS legal_name, o.full_name AS display_name,
+        o.location AS headquarters, o.website,
+        COUNT(c.id)::int                                                          AS contract_count,
+        COALESCE(SUM(c.value) FILTER (WHERE c.value > 0), 0)::bigint             AS total_value,
+        ARRAY_AGG(DISTINCT COALESCE(c.agency_or_lab, c.service_branch))
+          FILTER (WHERE COALESCE(c.agency_or_lab, c.service_branch) IS NOT NULL) AS agencies,
+        ARRAY_AGG(DISTINCT c.source) FILTER (WHERE c.source IS NOT NULL)         AS sources
+      FROM orgs o
+      LEFT JOIN contracts c ON c.canonical_org_id = o.id AND c.signal_type = 'Award'
+      WHERE o.branch = 'Industry'
+      GROUP BY o.id, o.full_name, o.location, o.website
+    `,
   ]);
 
   // Build a lookup map of contract aggregates by awardee name
   const aggMap = new Map<string, any>();
   for (const row of contractAggs) aggMap.set(row.awardee, row);
 
-  // Build set of known prime legal names for exclusion
+  // Build set of known prime legal names for exclusion (catalog + orgs table)
   const primeNames = new Set(catalog.map((ic: any) => ic.legal_name));
+  const orgLegalNames = new Set(industryOrgs.map((o: any) => o.legal_name));
 
   // Arm 1: known primes merged with contract data
   const primes = catalog.map((ic: any) => {
@@ -77,9 +94,35 @@ export async function GET() {
     };
   });
 
-  // Arm 2: other awardees not in catalog
-  const others = otherAwardees
-    .filter((r: any) => !primeNames.has(r.name))
+  // Arm 2: industry orgs from orgs table not already in catalog
+  const orgRows = (industryOrgs as any[])
+    .filter((o: any) => !primeNames.has(o.legal_name))
+    .map((o: any) => ({
+      name:            o.legal_name,
+      display_name:    o.display_name,
+      legal_name:      o.legal_name,
+      logo_url:        null,
+      ticker:          null,
+      headquarters:    o.headquarters,
+      website:         o.website,
+      description:     null,
+      employees:       null,
+      revenue_b:       null,
+      focus_areas:     null,
+      contract_count:  o.contract_count,
+      total_value:     o.total_value,
+      set_aside_count: 0,
+      agencies:        o.agencies ?? [],
+      sources:         o.sources  ?? [],
+      sbir_phase:      null,
+      sbir_capabilities:  null,
+      sbir_designations:  null,
+      sbir_award_count:   null,
+    }));
+
+  // Arm 3: other awardees not in catalog or orgs table
+  const others = (otherAwardees as any[])
+    .filter((r: any) => !primeNames.has(r.name) && !orgLegalNames.has(r.name))
     .map((r: any) => ({
       name:            r.name,
       display_name:    null,
@@ -103,9 +146,9 @@ export async function GET() {
       sbir_award_count:   null,
     }));
 
-  const combined = [...primes, ...others]
+  const combined = [...primes, ...orgRows, ...others]
     .sort((a, b) => (Number(b.total_value) || 0) - (Number(a.total_value) || 0))
-    .slice(0, 500);
+    .slice(0, 2000);
 
   return NextResponse.json(combined);
 }
