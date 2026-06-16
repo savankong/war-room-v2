@@ -147,8 +147,7 @@ export async function GET() {
     }));
 
   const combined = [...primes, ...orgRows, ...others]
-    .sort((a, b) => (Number(b.total_value) || 0) - (Number(a.total_value) || 0))
-    .slice(0, 2000);
+    .sort((a, b) => (Number(b.total_value) || 0) - (Number(a.total_value) || 0));
 
   return NextResponse.json(combined);
 }
