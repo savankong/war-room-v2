@@ -42,7 +42,9 @@ export const getOrgProfile = unstable_cache(
     const db = getDb();
     const rows = await db`
       SELECT
-        o.id, o.full_name AS name, o.id AS slug,
+        o.id,
+        COALESCE(o.full_name, o.sub, o.id) AS name,
+        o.id AS slug,
         o.organization_type AS badge_text, NULL::text AS badge_color,
         o.description, NULL::text AS sector, o.loc AS hq_address,
         NULL::int AS personnel_count, 0::int AS follower_count,
@@ -63,7 +65,7 @@ export const getNavOrgs = unstable_cache(
   async (): Promise<NavOrg[]> => {
     const db = getDb();
     const rows = await db`
-      SELECT o.id, o.full_name AS name, o.parent_id,
+      SELECT o.id, COALESCE(o.full_name, o.sub, o.id) AS name, o.parent_id,
         COALESCE(o.hierarchy_level, 2)::int AS hierarchy_level,
         o.abs_hierarchy_level,
         o.branch,
@@ -84,7 +86,7 @@ export const getChildOrgs = unstable_cache(
   async (orgId: string): Promise<ChildOrg[]> => {
     const db = getDb();
     const rows = await db`
-      SELECT o.id, o.full_name AS name, o.branch, o.organization_type,
+      SELECT o.id, COALESCE(o.full_name, o.sub, o.id) AS name, o.branch, o.organization_type,
         COUNT(DISTINCT c.id)::int  AS contact_count,
         COUNT(DISTINCT ct.id)::int AS contract_count
       FROM orgs o
@@ -122,8 +124,11 @@ export const getOrgContracts = unstable_cache(
   async (orgId: string): Promise<Contract[]> => {
     const db = getDb();
     const rows = await db`
-      SELECT id, title, value::numeric AS value, set_aside AS status,
-             signal_type, award_date, source
+      SELECT id, title,
+             NULLIF(value, '')::numeric AS value,
+             set_aside AS status,
+             signal_type, award_date,
+             COALESCE(source, 'sam') AS source
       FROM contracts
       WHERE org_id::text = ${orgId} AND signal_type IS NOT NULL
       ORDER BY award_date DESC NULLS LAST, created_at DESC

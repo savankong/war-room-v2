@@ -6,8 +6,8 @@ import type { OrgProfile, NavOrg, ChildOrg, Contact, Contract } from './data';
 
 /* ── helpers ─────────────────────────────────────────────────────────── */
 const COLORS = ['#283a6b','#c8502d','#2f8676','#e0a32e','#7c4dbc','#1d6b8a'];
-function colorFor(n: string) { return COLORS[Math.abs(n.charCodeAt(0) + (n.charCodeAt(1)||0)) % COLORS.length]; }
-function initials(n: string) { return n.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+function colorFor(n: string | null | undefined) { const s = n || '?'; return COLORS[Math.abs(s.charCodeAt(0) + (s.charCodeAt(1)||0)) % COLORS.length]; }
+function initials(n: string | null | undefined) { return (n || '?').split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
 function fmtMoney(v: number|null) {
   if (!v) return '—';
   if (v>=1e9) return `$${(v/1e9).toFixed(1)}B`;
