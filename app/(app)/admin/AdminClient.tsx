@@ -784,7 +784,7 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
     setSyncRunning(true); setSyncDone(false); setSyncError(null);
     setSyncPage(0); setSyncTotal(0);
 
-    const base = '/api/sync-usaspending?token=warroom-seed-2026&startDate=2023-01-01&endDate=2026-06-15';
+    const base = '/api/sync-usaspending?token=warroom-seed-2026&startDate=2025-06-01&endDate=2026-06-15&minAmount=10000000';
     let url = base + '&page=1';
 
     while (url && !syncAbort.current) {
