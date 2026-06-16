@@ -1,9 +1,10 @@
 'use client';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Pagination from '@/app/components/Pagination';
 import SignalDetailPanel from './SignalDetailPanel';
 
-const SIGNALS_PER_PAGE = 50;
+const GOV_PER_PAGE = 50;
+const IND_PER_PAGE = 50;
 
 /* ── helpers ─────────────────────────────────────────────────────── */
 const COLORS = ['#283a6b','#c8502d','#2f8676','#e0a32e','#7c4dbc','#1d6b8a','#2563B8','#3B7DB0'];
@@ -26,28 +27,6 @@ function fmtBig(n: number) {
   if (n >= 1e9) return `$${(n/1e9).toFixed(1)}B`;
   if (n >= 1e6) return `$${(n/1e6).toFixed(1)}M`;
   return `$${n.toLocaleString()}`;
-}
-
-/* Normalize raw recipient names to canonical company display names */
-function normalizeCompany(r: string): string {
-  if (!r) return r;
-  const u = r.toUpperCase();
-  if (u.includes('LOCKHEED MARTIN'))    return 'Lockheed Martin';
-  if (u.includes('BOEING'))            return 'Boeing';
-  if (u.includes('RAYTHEON') || u.startsWith('RTX ')) return 'RTX / Raytheon';
-  if (u.includes('NORTHROP GRUMMAN'))  return 'Northrop Grumman';
-  if (u.includes('HUNTINGTON INGALLS'))return 'Huntington Ingalls';
-  if (u.includes('GENERAL DYNAMICS'))  return 'General Dynamics';
-  if (u.includes('LEIDOS'))            return 'Leidos';
-  if (u.includes('SCIENCE APPLICATIONS')) return 'SAIC';
-  if (u.includes('BAE SYSTEMS'))       return 'BAE Systems';
-  if (u.includes('KBR'))               return 'KBR';
-  if (u.includes('AMENTUM'))           return 'Amentum';
-  if (u.includes('ELECTRIC BOAT'))     return 'Electric Boat';
-  if (u.includes('BATH IRON WORKS'))   return 'Bath Iron Works';
-  if (u.includes('SIKORSKY'))          return 'Sikorsky';
-  if (u.includes('GENERAL ATOMICS'))   return 'General Atomics';
-  return r.replace(/ CORPORATION$| INCORPORATED$| INC\.$| LLC$| CORP$/i, '').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
 
 const TYPE_COLOR: Record<string, string> = {
@@ -124,11 +103,11 @@ function SignalCard({ sig, onOpen }: { sig: any; onOpen: () => void }) {
 
 /* ── Industry Award card ─────────────────────────────────────────── */
 function IndCard({ sig, onOpen }: { sig: any; onOpen: () => void }) {
-  const company = normalizeCompany(sig.recipient ?? '');
+  const company = sig.org_name ?? sig.recipient ?? '';
   const companyColor = colorFor(company);
   const money = fmtMoney(sig.award_amt);
   const date  = fmtDate(sig.award_date);
-  const agency = sig.sub_agency ?? sig.org_name ?? null;
+  const agency = sig.sub_agency ?? sig.agency ?? null;
 
   return (
     <div className="wr-scard">
@@ -189,14 +168,17 @@ interface Props {
   contracts: any[];
   orgs: any[];
   stats: { total: number; opps: number; awards: number; total_value: number };
-  industryContracts: any[];
   indStats: { total: number; companies: number; total_value: number };
+  indFilterOptions: {
+    companies: [string, number][];
+    agencies:  [string, number][];
+  };
 }
 
 const GOV_SORTS = ['Newest', 'Highest Value', 'Title A–Z'];
 const IND_SORTS = ['Highest Value', 'Newest', 'Title A–Z'];
 
-export default function SignalsClient({ contracts, orgs, stats, industryContracts, indStats }: Props) {
+export default function SignalsClient({ contracts, orgs, stats, indStats, indFilterOptions }: Props) {
   const [seg, setSeg] = useState<'dow'|'ind'>('dow');
 
   /* Gov filters */
@@ -205,6 +187,7 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
   const [orgFilter,    setOrgFilter]    = useState<string|null>(null);
   const [sourceFilter, setSourceFilter] = useState<string|null>(null);
   const [govSort,      setGovSort]      = useState('Newest');
+  const [govPage,      setGovPage]      = useState(1);
 
   /* Industry filters */
   const [indSearch,    setIndSearch]    = useState('');
@@ -212,6 +195,13 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
   const [valueTier,    setValueTier]    = useState<string|null>(null);
   const [agencyFilter, setAgencyFilter] = useState<string|null>(null);
   const [indSort,      setIndSort]      = useState('Highest Value');
+
+  /* Industry server-paginated data */
+  const [indContracts, setIndContracts] = useState<any[]>([]);
+  const [indTotal,     setIndTotal]     = useState(0);
+  const [indPage,      setIndPage]      = useState(1);
+  const [indLoading,   setIndLoading]   = useState(false);
+  const indLoaded = useRef(false);
 
   /* Section open state */
   const [typeSectionOpen,   setTypeSectionOpen]   = useState(true);
@@ -224,8 +214,48 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
   const [openSignal, setOpenSignal] = useState<any>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  /* Reset to page 1 on filter change */
-  const [page, setPage] = useState(1);
+  /* ── Industry API fetch ──────────────────────────────────────── */
+  const fetchIndustry = useCallback(async (page: number) => {
+    setIndLoading(true);
+    try {
+      const p = new URLSearchParams({ page: String(page), per: String(IND_PER_PAGE) });
+      if (indSearch.trim()) p.set('search', indSearch.trim());
+      if (compFilter)       p.set('company', compFilter);
+      if (agencyFilter)     p.set('agency', agencyFilter);
+      if (valueTier)        p.set('tier', valueTier);
+      if (indSort === 'Newest')    p.set('sort', 'date');
+      if (indSort === 'Title A–Z') p.set('sort', 'title');
+      const res  = await fetch(`/api/signals/industry?${p}`);
+      const data = await res.json();
+      setIndContracts(data.contracts ?? []);
+      setIndTotal(data.total ?? 0);
+      setIndPage(page);
+    } finally {
+      setIndLoading(false);
+    }
+  }, [indSearch, compFilter, agencyFilter, valueTier, indSort]);
+
+  /* Load industry on first tab switch */
+  useEffect(() => {
+    if (seg === 'ind' && !indLoaded.current) {
+      indLoaded.current = true;
+      fetchIndustry(1);
+    }
+  }, [seg, fetchIndustry]);
+
+  /* Reload when filters/sort change (debounce search) */
+  useEffect(() => {
+    if (seg !== 'ind' || !indLoaded.current) return;
+    fetchIndustry(1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compFilter, agencyFilter, valueTier, indSort]);
+
+  useEffect(() => {
+    if (seg !== 'ind' || !indLoaded.current) return;
+    const t = setTimeout(() => fetchIndustry(1), 400);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [indSearch]);
 
   /* ── Gov segment data ─────────────────────────────────────────── */
   const typeCounts = useMemo(() => {
@@ -273,78 +303,13 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
     return list;
   }, [contracts, search, typeFilters, orgFilter, sourceFilter, govSort]);
 
-  /* ── Industry segment data ───────────────────────────────────── */
-
-  /* Attach normalized company name to each industry contract */
-  const indWithCompany = useMemo(() =>
-    industryContracts.map(c => ({ ...c, company: normalizeCompany(c.recipient ?? '') })),
-    [industryContracts]
-  );
-
-  const companyCounts = useMemo(() => {
-    const m: Record<string, number> = {};
-    indWithCompany.forEach(c => { m[c.company] = (m[c.company]??0)+1; });
-    return m;
-  }, [indWithCompany]);
-
-  const topCompanies = useMemo(() =>
-    Object.entries(companyCounts).sort((a,b) => b[1]-a[1]).slice(0, 20),
-    [companyCounts]
-  );
-
-  const agencyCounts = useMemo(() => {
-    const m: Record<string, number> = {};
-    indWithCompany.forEach(c => {
-      const a = c.sub_agency ?? c.org_name;
-      if (a) m[a] = (m[a]??0)+1;
-    });
-    return Object.entries(m).sort((a,b) => b[1]-a[1]).slice(0, 12);
-  }, [indWithCompany]);
-
-  const indFiltered = useMemo(() => {
-    let list = indWithCompany;
-    if (indSearch.trim()) {
-      const q = indSearch.toLowerCase();
-      list = list.filter(c =>
-        (c.title??'').toLowerCase().includes(q) ||
-        (c.company??'').toLowerCase().includes(q) ||
-        (c.sub_agency??'').toLowerCase().includes(q)
-      );
-    }
-    if (compFilter)   list = list.filter(c => c.company === compFilter);
-    if (agencyFilter) list = list.filter(c => (c.sub_agency ?? c.org_name) === agencyFilter);
-    if (valueTier) {
-      const tier = VALUE_TIERS.find(t => t.label === valueTier);
-      if (tier) list = list.filter(c => {
-        const v = Number(c.award_amt ?? 0);
-        return v >= tier.min && v < tier.max;
-      });
-    }
-    if (indSort === 'Newest')      list = [...list].sort((a,b) => (b.award_date??'').localeCompare(a.award_date??''));
-    if (indSort === 'Title A–Z')   list = [...list].sort((a,b) => (a.title??'').localeCompare(b.title??''));
-    // 'Highest Value' is already ordered from server
-    return list;
-  }, [indWithCompany, indSearch, compFilter, agencyFilter, valueTier, indSort]);
-
-  const valueTierCounts = useMemo(() => {
-    const m: Record<string, number> = {};
-    indWithCompany.forEach(c => {
-      const v = Number(c.award_amt ?? 0);
-      const tier = VALUE_TIERS.find(t => v >= t.min && v < t.max);
-      if (tier) m[tier.label] = (m[tier.label]??0)+1;
-    });
-    return m;
-  }, [indWithCompany]);
-
   /* ── Page resets ─────────────────────────────────────────────── */
-  useEffect(() => setPage(1), [search, typeFilters, orgFilter, sourceFilter, govSort]);
-  useEffect(() => setPage(1), [indSearch, compFilter, agencyFilter, valueTier, indSort]);
-  useEffect(() => { setPage(1); }, [seg]);
+  useEffect(() => setGovPage(1), [search, typeFilters, orgFilter, sourceFilter, govSort]);
+  useEffect(() => setGovPage(1), [seg]);
 
-  const activeList = seg === 'ind' ? indFiltered : govFiltered;
-  const paged = useMemo(
-    () => activeList.slice((page-1)*SIGNALS_PER_PAGE, page*SIGNALS_PER_PAGE),
-    [activeList, page]
+  const govPaged = useMemo(
+    () => govFiltered.slice((govPage-1)*GOV_PER_PAGE, govPage*GOV_PER_PAGE),
+    [govFiltered, govPage]
   );
 
   const toggleType = (t: string) =>
@@ -358,7 +323,8 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
   const currentSort = seg === 'ind' ? indSort : govSort;
 
   /* ── Render ──────────────────────────────────────────────────── */
-  const activeFilterCount = typeFilters.length + (orgFilter ? 1 : 0) + (sourceFilter ? 1 : 0) + (compFilter ? 1 : 0) + (valueTier ? 1 : 0) + (agencyFilter ? 1 : 0);
+  const activeFilterCount = typeFilters.length + (orgFilter ? 1 : 0) + (sourceFilter ? 1 : 0)
+    + (compFilter ? 1 : 0) + (valueTier ? 1 : 0) + (agencyFilter ? 1 : 0);
 
   return (
     <div className="wr-page-root">
@@ -369,7 +335,7 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
           <h1>Signals</h1>
           <div className="meta">
             {seg === 'ind'
-              ? `${indFiltered.length.toLocaleString()} of ${indWithCompany.length.toLocaleString()} awards · Defense prime contractors`
+              ? `${indTotal.toLocaleString()} awards · Defense industry`
               : `${govFiltered.length.toLocaleString()} of ${contracts.length.toLocaleString()} signals · Gov contracts`}
           </div>
         </div>
@@ -382,7 +348,7 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
               <span className="l">Awards</span>
             </div>
             <div className="wr-s-stat">
-              <span className="v" style={{ color: TYPE_COLOR.Budget }}>{Number(indStats.companies)}</span>
+              <span className="v" style={{ color: TYPE_COLOR.Budget }}>{Number(indStats.companies).toLocaleString()}</span>
               <span className="l">Companies</span>
             </div>
             <div className="wr-s-stat">
@@ -482,38 +448,33 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
             <>
               <div className="wr-fsearch">
                 <IcSearch />
-                <input placeholder="Filter awards…" value={indSearch} onChange={e=>setIndSearch(e.target.value)} />
+                <input placeholder="Search awards…" value={indSearch} onChange={e=>setIndSearch(e.target.value)} />
               </div>
 
               <FilterSection label="Company" isOpen={compSectionOpen} onToggle={()=>setCompSectionOpen(v=>!v)} onClear={()=>setCompFilter(null)} showClear={!!compFilter}>
-                {topCompanies.map(([company, cnt]) => (
-                  <div key={company} className={'wr-chk'+(compFilter===company?' on':'')} onClick={()=>setCompFilter(compFilter===company?null:company)}>
-                    <span className="box">{compFilter===company?<IcTick />:null}</span>
-                    <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:12.5 }}>{company}</span>
+                {indFilterOptions.companies.map(([name, cnt]) => (
+                  <div key={name} className={'wr-chk'+(compFilter===name?' on':'')} onClick={()=>setCompFilter(compFilter===name?null:name)}>
+                    <span className="box">{compFilter===name?<IcTick />:null}</span>
+                    <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:12.5 }}>{name}</span>
                     <span className="c">{cnt}</span>
                   </div>
                 ))}
               </FilterSection>
 
               <FilterSection label="Value" isOpen={valueSectionOpen} onToggle={()=>setValueSectionOpen(v=>!v)} onClear={()=>setValueTier(null)} showClear={!!valueTier}>
-                {VALUE_TIERS.map(t => {
-                  const cnt = valueTierCounts[t.label] ?? 0;
-                  if (!cnt) return null;
-                  return (
-                    <div key={t.label} className={'wr-chk'+(valueTier===t.label?' on':'')} onClick={()=>setValueTier(valueTier===t.label?null:t.label)}>
-                      <span className="box">{valueTier===t.label?<IcTick />:null}</span>
-                      <span style={{ flex:1,fontSize:12.5 }}>{t.label}</span>
-                      <span className="c">{cnt}</span>
-                    </div>
-                  );
-                })}
+                {VALUE_TIERS.map(t => (
+                  <div key={t.label} className={'wr-chk'+(valueTier===t.label?' on':'')} onClick={()=>setValueTier(valueTier===t.label?null:t.label)}>
+                    <span className="box">{valueTier===t.label?<IcTick />:null}</span>
+                    <span style={{ flex:1,fontSize:12.5 }}>{t.label}</span>
+                  </div>
+                ))}
               </FilterSection>
 
-              <FilterSection label="Agency" isOpen={agencySectionOpen} onToggle={()=>setAgencySectionOpen(v=>!v)} onClear={()=>setAgencyFilter(null)} showClear={!!agencyFilter}>
-                {agencyCounts.map(([agency, cnt]) => (
-                  <div key={agency} className={'wr-chk'+(agencyFilter===agency?' on':'')} onClick={()=>setAgencyFilter(agencyFilter===agency?null:agency)}>
-                    <span className="box">{agencyFilter===agency?<IcTick />:null}</span>
-                    <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:12.5 }}>{agency}</span>
+              <FilterSection label="Branch" isOpen={agencySectionOpen} onToggle={()=>setAgencySectionOpen(v=>!v)} onClear={()=>setAgencyFilter(null)} showClear={!!agencyFilter}>
+                {indFilterOptions.agencies.map(([name, cnt]) => (
+                  <div key={name} className={'wr-chk'+(agencyFilter===name?' on':'')} onClick={()=>setAgencyFilter(agencyFilter===name?null:name)}>
+                    <span className="box">{agencyFilter===name?<IcTick />:null}</span>
+                    <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:12.5 }}>{name}</span>
                     <span className="c">{cnt}</span>
                   </div>
                 ))}
@@ -527,73 +488,90 @@ export default function SignalsClient({ contracts, orgs, stats, industryContract
 
           {/* Toolbar */}
           <div className="wr-ptool">
-            <span className="cnt">{activeList.length} {activeList.length===1?'signal':'signals'}</span>
-            {seg === 'dow' && <>
-              {typeFilters.map(t => (
-                <span className="wr-achip" key={t}>
-                  <span className="dot" style={{ background: TYPE_COLOR[t] }} />{t}
-                  <span className="x" onClick={()=>toggleType(t)}>✕</span>
+            {seg === 'dow' ? (
+              <>
+                <span className="cnt">{govFiltered.length} {govFiltered.length===1?'signal':'signals'}</span>
+                {typeFilters.map(t => (
+                  <span className="wr-achip" key={t}>
+                    <span className="dot" style={{ background: TYPE_COLOR[t] }} />{t}
+                    <span className="x" onClick={()=>toggleType(t)}>✕</span>
+                  </span>
+                ))}
+                {orgFilter && (
+                  <span className="wr-achip">
+                    <span className="dot" style={{ background:'var(--accent)' }} />
+                    {orgs.find(o=>o.id===orgFilter)?.name}
+                    <span className="x" onClick={()=>setOrgFilter(null)}>✕</span>
+                  </span>
+                )}
+                {sourceFilter && (
+                  <span className="wr-achip">
+                    <span className="dot" style={{ background:'var(--ink-3)' }} />
+                    {sourceFilter}
+                    <span className="x" onClick={()=>setSourceFilter(null)}>✕</span>
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <span className="cnt">
+                  {indLoading ? 'Loading…' : `${indTotal.toLocaleString()} awards`}
                 </span>
-              ))}
-              {orgFilter && (
-                <span className="wr-achip">
-                  <span className="dot" style={{ background:'var(--accent)' }} />
-                  {orgs.find(o=>o.id===orgFilter)?.name}
-                  <span className="x" onClick={()=>setOrgFilter(null)}>✕</span>
-                </span>
-              )}
-              {sourceFilter && (
-                <span className="wr-achip">
-                  <span className="dot" style={{ background:'var(--ink-3)' }} />
-                  {sourceFilter}
-                  <span className="x" onClick={()=>setSourceFilter(null)}>✕</span>
-                </span>
-              )}
-            </>}
-            {seg === 'ind' && <>
-              {compFilter && (
-                <span className="wr-achip">
-                  <span className="dot" style={{ background: colorFor(compFilter) }} />
-                  {compFilter}
-                  <span className="x" onClick={()=>setCompFilter(null)}>✕</span>
-                </span>
-              )}
-              {valueTier && (
-                <span className="wr-achip">
-                  <span className="dot" style={{ background: TYPE_COLOR.Award }} />
-                  {valueTier}
-                  <span className="x" onClick={()=>setValueTier(null)}>✕</span>
-                </span>
-              )}
-              {agencyFilter && (
-                <span className="wr-achip">
-                  <span className="dot" style={{ background:'var(--accent)' }} />
-                  {agencyFilter}
-                  <span className="x" onClick={()=>setAgencyFilter(null)}>✕</span>
-                </span>
-              )}
-            </>}
+                {compFilter && (
+                  <span className="wr-achip">
+                    <span className="dot" style={{ background: colorFor(compFilter) }} />
+                    {compFilter}
+                    <span className="x" onClick={()=>setCompFilter(null)}>✕</span>
+                  </span>
+                )}
+                {valueTier && (
+                  <span className="wr-achip">
+                    <span className="dot" style={{ background: TYPE_COLOR.Award }} />
+                    {valueTier}
+                    <span className="x" onClick={()=>setValueTier(null)}>✕</span>
+                  </span>
+                )}
+                {agencyFilter && (
+                  <span className="wr-achip">
+                    <span className="dot" style={{ background:'var(--accent)' }} />
+                    {agencyFilter}
+                    <span className="x" onClick={()=>setAgencyFilter(null)}>✕</span>
+                  </span>
+                )}
+              </>
+            )}
           </div>
 
           <div className="wr-pscroll">
-            {activeList.length === 0 ? (
-              <div className="wr-pempty">No signals match these filters.</div>
+            {seg === 'dow' ? (
+              govFiltered.length === 0 ? (
+                <div className="wr-pempty">No signals match these filters.</div>
+              ) : (
+                <>
+                  <div className="wr-sgrid">
+                    {govPaged.map(sig => <SignalCard key={sig.id} sig={sig} onOpen={()=>setOpenSignal(sig)} />)}
+                  </div>
+                  <Pagination total={govFiltered.length} page={govPage} perPage={GOV_PER_PAGE} onChange={setGovPage} />
+                </>
+              )
             ) : (
-              <>
-                <div className="wr-sgrid">
-                  {paged.map(sig =>
-                    seg === 'ind'
-                      ? <IndCard key={sig.id} sig={sig} onOpen={()=>setOpenSignal(sig)} />
-                      : <SignalCard key={sig.id} sig={sig} onOpen={()=>setOpenSignal(sig)} />
-                  )}
-                </div>
-                <Pagination
-                  total={activeList.length}
-                  page={page}
-                  perPage={SIGNALS_PER_PAGE}
-                  onChange={setPage}
-                />
-              </>
+              indLoading ? (
+                <div className="wr-pempty" style={{ opacity:.6 }}>Loading awards…</div>
+              ) : indContracts.length === 0 ? (
+                <div className="wr-pempty">No awards match these filters.</div>
+              ) : (
+                <>
+                  <div className="wr-sgrid">
+                    {indContracts.map(sig => <IndCard key={sig.id} sig={sig} onOpen={()=>setOpenSignal(sig)} />)}
+                  </div>
+                  <Pagination
+                    total={indTotal}
+                    page={indPage}
+                    perPage={IND_PER_PAGE}
+                    onChange={p => fetchIndustry(p)}
+                  />
+                </>
+              )
             )}
           </div>
         </main>

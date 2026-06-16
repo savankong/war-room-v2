@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 async function getSignalsData() {
   const db = getDb();
 
-  const [contracts, orgs, stats, industryContracts, indStats] = await Promise.all([
+  const [contracts, orgs, stats, indStats, [indCompanies, indAgencies]] = await Promise.all([
     // Gov contracts: only contracts linked to gov orgs (branch != 'Industry') or unlinked
     db`
       SELECT
@@ -23,7 +23,7 @@ async function getSignalsData() {
       WHERE c.signal_type IS NOT NULL
         AND (o.id IS NULL OR o.branch IS DISTINCT FROM 'Industry')
       ORDER BY c.created_at DESC NULLS LAST
-      LIMIT 5000
+      LIMIT 10000
     `,
     // Only gov orgs for the Organization filter
     db`
@@ -45,20 +45,7 @@ async function getSignalsData() {
       WHERE c.signal_type IS NOT NULL
         AND (o.id IS NULL OR o.branch IS DISTINCT FROM 'Industry')
     `,
-    // Industry contracts: contracts linked to industry orgs, ordered by value
-    db`
-      SELECT
-        c.id, c.title, c.value AS award_amt, c.award_date, c.awardee AS recipient,
-        c.agency_or_lab AS sub_agency, c.service_branch AS agency,
-        c.naics_code AS naics, c.status AS set_aside, c.source,
-        c.canonical_org_id AS org_id, o.full_name AS org_name
-      FROM contracts c
-      JOIN orgs o ON o.id = c.canonical_org_id AND o.branch = 'Industry'
-      WHERE c.signal_type = 'Award'
-      ORDER BY c.value DESC NULLS LAST
-      LIMIT 2000
-    `,
-    // Industry stats
+    // Industry stats (lightweight — no contract rows loaded here)
     db`
       SELECT
         COUNT(*)::int AS total,
@@ -68,14 +55,39 @@ async function getSignalsData() {
       JOIN orgs o ON o.id = c.canonical_org_id AND o.branch = 'Industry'
       WHERE c.signal_type = 'Award'
     `,
+    // Industry filter options: top companies + top agencies
+    Promise.all([
+      db`
+        SELECT o.full_name AS name, COUNT(*)::int AS cnt
+        FROM contracts c
+        JOIN orgs o ON o.id = c.canonical_org_id AND o.branch = 'Industry'
+        WHERE c.signal_type = 'Award'
+        GROUP BY o.full_name
+        ORDER BY cnt DESC
+        LIMIT 20
+      `,
+      db`
+        SELECT c.service_branch AS name, COUNT(*)::int AS cnt
+        FROM contracts c
+        JOIN orgs o ON o.id = c.canonical_org_id AND o.branch = 'Industry'
+        WHERE c.signal_type = 'Award'
+          AND c.service_branch IS NOT NULL
+        GROUP BY c.service_branch
+        ORDER BY cnt DESC
+        LIMIT 12
+      `,
+    ]),
   ]);
 
   return {
     contracts: contracts as any[],
     orgs: orgs as any[],
     stats: (stats[0] ?? { total: 0, opps: 0, awards: 0, total_value: 0 }) as any,
-    industryContracts: industryContracts as any[],
     indStats: (indStats[0] ?? { total: 0, companies: 0, total_value: 0 }) as any,
+    indFilterOptions: {
+      companies: (indCompanies as any[]).map(r => [r.name, r.cnt] as [string, number]),
+      agencies:  (indAgencies  as any[]).map(r => [r.name, r.cnt] as [string, number]),
+    },
   };
 }
 
