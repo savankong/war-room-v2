@@ -14,10 +14,7 @@ INSERT INTO org_types (id, name, category, sort_order) VALUES
   ('research',       'Research & Innovation',      'research',      6),
   ('support',        'Defense Support Agency',     'support',       7),
   ('field_activity', 'DoD Field Activity',         'support',       8)
-ON CONFLICT (id) DO UPDATE SET
-  name       = EXCLUDED.name,
-  category   = EXCLUDED.category,
-  sort_order = EXCLUDED.sort_order;
+ON CONFLICT DO NOTHING;
 
 -- ── BRANCH ───────────────────────────────────────────────────────────────────
 
@@ -29,13 +26,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, org_
    NULL, NULL, NULL,
    'civilian', true,
    'United States Department of Defense. Secondary name "Department of War" authorized under EO 14347 (Sept 5, 2025) for non-statutory/ceremonial use.')
-ON CONFLICT (id) DO UPDATE SET
-  full_name    = EXCLUDED.full_name,
-  abbreviation = EXCLUDED.abbreviation,
-  branch       = EXCLUDED.branch,
-  org_type_id  = EXCLUDED.org_type_id,
-  description  = EXCLUDED.description,
-  is_active    = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- ── SUB: Office of the Secretary of Defense ──────────────────────────────────
 
@@ -47,10 +38,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    'Office of the Secretary of Defense',
    NULL, NULL,
    'dod', 'civilian', true)
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, parent_id = EXCLUDED.parent_id,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- MAJOR: Office of the Secretary of Defense (principal)
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
@@ -63,10 +51,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    NULL,
    'osd', 'civilian', true,
    'Secretary of Defense: Pete Hegseth. Deputy Secretary: Steve Feinberg (secondary title "Deputy Secretary of War" per EO 14347).')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, branch = EXCLUDED.branch, sub = EXCLUDED.sub,
-  major = EXCLUDED.major, parent_id = EXCLUDED.parent_id, description = EXCLUDED.description,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- MAJOR: USD Research & Engineering / CTO
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
@@ -79,11 +64,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    NULL,
    'osd', 'civilian', true,
    'Also serves as DoD Chief Technology Officer. Incumbent: Emil Michael (since May 20, 2025). Per Jan 9 2026 SecDef memo, has unified authority over the full DoW innovation ecosystem (DARPA, CDAO, DIU, SCO, OSC, TRMC, MEIA). Previous three-body oversight structure dissolved; replaced by single CTO Action Group.')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  parent_id = EXCLUDED.parent_id, description = EXCLUDED.description,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- SUBTIER: Innovation Ecosystem under USD(R&E)
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
@@ -187,12 +168,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    'usd-re', 'civilian', true,
    'Operational capability innovation. Established Jan 9 2026 USD(R&E) internal restructure.')
 
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  subtier = EXCLUDED.subtier, parent_id = EXCLUDED.parent_id,
-  description = EXCLUDED.description, org_type_id = EXCLUDED.org_type_id,
-  is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- MAJOR: USD Acquisition & Sustainment
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
@@ -205,11 +181,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    NULL,
    'osd', 'acquisition', true,
    'Defense procurement, contracting policy, sustainment. Oversight of major defense acquisition programs.')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  parent_id = EXCLUDED.parent_id, description = EXCLUDED.description,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- MAJOR: USD Personnel & Readiness
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
@@ -222,11 +194,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    NULL,
    'osd', 'civilian', true,
    'Incumbent: Anthony Tata (since Jul 18 2025). Personnel, readiness, health, education policy.')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  parent_id = EXCLUDED.parent_id, description = EXCLUDED.description,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- MAJOR: USD Comptroller / CFO
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
@@ -239,11 +207,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    NULL,
    'osd', 'civilian', true,
    'Budget, financial management, Future Years Defense Program (FYDP).')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  parent_id = EXCLUDED.parent_id, description = EXCLUDED.description,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- MAJOR: USD Intelligence & Security
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
@@ -256,11 +220,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    NULL,
    'osd', 'intelligence', true,
    'Intelligence oversight and security policy.')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  parent_id = EXCLUDED.parent_id, description = EXCLUDED.description,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- MAJOR: Joint Chiefs of Staff
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
@@ -273,11 +233,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    NULL,
    'osd', 'military', true,
    'Chairman (CJCS) — advisory to SecDef; not in chain of command. VCJCS, and Service Chiefs: CSA (Army), CNO (Navy), CMC (Marines), CSAF (Air Force), CSO (Space Force), CSNG (National Guard).')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  parent_id = EXCLUDED.parent_id, description = EXCLUDED.description,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- ── SUB: Military Departments ─────────────────────────────────────────────────
 
@@ -289,9 +245,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    'Military Departments',
    NULL, NULL,
    'dod', 'military', true)
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, branch = EXCLUDED.branch, sub = EXCLUDED.sub,
-  parent_id = EXCLUDED.parent_id, org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- MAJOR: Department of the Army
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
@@ -304,11 +258,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    NULL,
    'mil-depts', 'military', true,
    'Secretary of the Army (SecArmy), Chief of Staff of the Army (CSA). Subtiers: HQDA, FORSCOM, TRADOC, AMC, USARPAC, USAREUR-AF, ARNORTH, ARSOUTH, USACC, USARC.')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  parent_id = EXCLUDED.parent_id, description = EXCLUDED.description,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- Army subtiers
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active) VALUES
@@ -322,11 +272,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
   ('arsouth',    'U.S. Army South',                                   'ARSOUTH',    'Army', 'Military Departments', 'Department of the Army', 'ARSOUTH',    'army', 'operational',  true),
   ('usacc',      'U.S. Army Contracting Command',                     'USACC',      'Army', 'Military Departments', 'Department of the Army', 'USACC',      'army', 'acquisition',  true),
   ('usarc',      'U.S. Army Reserve Command',                         'USARC',      'Army', 'Military Departments', 'Department of the Army', 'USARC',      'army', 'military',     true)
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  subtier = EXCLUDED.subtier, parent_id = EXCLUDED.parent_id,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- MAJOR: Department of the Navy
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
@@ -339,22 +285,14 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    NULL,
    'mil-depts', 'military', true,
    'Secretary of the Navy (SecNav), Chief of Naval Operations (CNO), Commandant of the Marine Corps (CMC). Subtiers: OPNAV, HQMC, USFFC, USPACFLT.')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  parent_id = EXCLUDED.parent_id, description = EXCLUDED.description,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active) VALUES
   ('opnav',    'Office of the Chief of Naval Operations', 'OPNAV',    'Navy', 'Military Departments', 'Department of the Navy', 'OPNAV',    'navy', 'military',    true),
   ('hqmc',     'Headquarters, Marine Corps',              'HQMC',     'Navy', 'Military Departments', 'Department of the Navy', 'HQMC',     'navy', 'military',    true),
   ('usffc',    'U.S. Fleet Forces Command',               'USFFC',    'Navy', 'Military Departments', 'Department of the Navy', 'USFFC',    'navy', 'operational', true),
   ('uspacflt', 'U.S. Pacific Fleet',                      'USPACFLT', 'Navy', 'Military Departments', 'Department of the Navy', 'USPACFLT', 'navy', 'operational', true)
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  subtier = EXCLUDED.subtier, parent_id = EXCLUDED.parent_id,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- MAJOR: Department of the Air Force (includes Space Force)
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
@@ -367,11 +305,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    NULL,
    'mil-depts', 'military', true,
    'Secretary of the Air Force (SecAF), Chief of Staff of the Air Force (CSAF), Chief of Space Operations (CSO — Space Force). Subtiers: HAF, SF HQ, ACC, AMC, AFSOC, AETC, AFGSC, AFMC, AFRC, ANG.')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  parent_id = EXCLUDED.parent_id, description = EXCLUDED.description,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active) VALUES
   ('haf',         'Headquarters Air Force',                  'HAF',         'Air Force',   'Military Departments', 'Department of the Air Force', 'HAF',         'af', 'military',    true),
@@ -384,11 +318,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
   ('afmc',        'Air Force Materiel Command',              'AFMC',        'Air Force',   'Military Departments', 'Department of the Air Force', 'AFMC',        'af', 'acquisition', true),
   ('afrc',        'Air Force Reserve Command',               'AFRC',        'Air Force',   'Military Departments', 'Department of the Air Force', 'AFRC',        'af', 'military',    true),
   ('ang',         'Air National Guard',                      'ANG',         'Air Force',   'Military Departments', 'Department of the Air Force', 'ANG',         'af', 'military',    true)
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  subtier = EXCLUDED.subtier, parent_id = EXCLUDED.parent_id,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- ── SUB: Combatant Commands ───────────────────────────────────────────────────
 
@@ -401,9 +331,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    NULL, NULL,
    'dod', 'operational', true,
    'Report to SecDef via CJCS; Title 10 chain of command.')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, branch = EXCLUDED.branch, sub = EXCLUDED.sub,
-  parent_id = EXCLUDED.parent_id, org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- Geographic CCMDs
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
@@ -413,12 +341,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
   ('usnorthcom',  'U.S. Northern Command',           'USNORTHCOM',  'Department of Defense', 'Combatant Commands', 'Geographic Combatant Commands', 'USNORTHCOM',  'ccmds', 'operational', true, 'North America; dual-hat with NORAD.'),
   ('ussouthcom',  'U.S. Southern Command',           'USSOUTHCOM',  'Department of Defense', 'Combatant Commands', 'Geographic Combatant Commands', 'USSOUTHCOM',  'ccmds', 'operational', true, 'Latin America.'),
   ('usafricom',   'U.S. Africa Command',             'USAFRICOM',   'Department of Defense', 'Combatant Commands', 'Geographic Combatant Commands', 'USAFRICOM',   'ccmds', 'operational', true, 'Africa region.')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  subtier = EXCLUDED.subtier, parent_id = EXCLUDED.parent_id,
-  description = EXCLUDED.description, org_type_id = EXCLUDED.org_type_id,
-  is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- Functional CCMDs
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
@@ -427,12 +350,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
   ('ustranscom', 'U.S. Transportation Command',       'USTRANSCOM', 'Department of Defense', 'Combatant Commands', 'Functional Combatant Commands', 'USTRANSCOM', 'ccmds', 'operational', true, 'Global Strategic Transport.'),
   ('uscybercom', 'U.S. Cyber Command',                'USCYBERCOM', 'Department of Defense', 'Combatant Commands', 'Functional Combatant Commands', 'USCYBERCOM', 'ccmds', 'operational', true, 'Cyber Operations; dual-hat with NSA Director.'),
   ('usspacecom', 'U.S. Space Command',                'USSPACECOM', 'Department of Defense', 'Combatant Commands', 'Functional Combatant Commands', 'USSPACECOM', 'ccmds', 'operational', true, 'Space Operations.')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  subtier = EXCLUDED.subtier, parent_id = EXCLUDED.parent_id,
-  description = EXCLUDED.description, org_type_id = EXCLUDED.org_type_id,
-  is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- ── SUB: Defense Agencies & DoD Field Activities ─────────────────────────────
 
@@ -444,9 +362,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    'Defense Agencies and DoD Field Activities',
    NULL, NULL,
    'dod', 'support', true)
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, branch = EXCLUDED.branch, sub = EXCLUDED.sub,
-  parent_id = EXCLUDED.parent_id, org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- Defense Agencies
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
@@ -461,12 +377,7 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
   ('dha',   'Defense Health Agency',                     'DHA',   'Department of Defense', 'Defense Agencies and DoD Field Activities', 'Defense Agencies', 'DHA',   'defense-agencies', 'support',       true, 'Military healthcare.'),
   ('dsca',  'Defense Security Cooperation Agency',       'DSCA',  'Department of Defense', 'Defense Agencies and DoD Field Activities', 'Defense Agencies', 'DSCA',  'defense-agencies', 'support',       true, 'Foreign military sales.'),
   ('dtra',  'Defense Threat Reduction Agency',           'DTRA',  'Department of Defense', 'Defense Agencies and DoD Field Activities', 'Defense Agencies', 'DTRA',  'defense-agencies', 'research',      true, 'WMD/CBRN threat reduction.')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  subtier = EXCLUDED.subtier, parent_id = EXCLUDED.parent_id,
-  description = EXCLUDED.description, org_type_id = EXCLUDED.org_type_id,
-  is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- DoD Field Activities
 -- DIU and SCO already inserted under USD(R&E); set canonical_org_id for dedup
@@ -487,24 +398,14 @@ INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, pare
    'DoD Field Activities',
    'SCO',
    'defense-agencies', 'field_activity', true, true, 'sco')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  subtier = EXCLUDED.subtier, parent_id = EXCLUDED.parent_id,
-  org_type_id = EXCLUDED.org_type_id, is_active = EXCLUDED.is_active,
-  is_alias = EXCLUDED.is_alias, canonical_org_id = EXCLUDED.canonical_org_id;
+ON CONFLICT DO NOTHING;
 
 -- Other Field Activities
 INSERT INTO orgs (id, full_name, abbreviation, branch, sub, major, subtier, parent_id, org_type_id, is_active, description) VALUES
   ('whs',  'Washington Headquarters Services',  'WHS',  'Department of Defense', 'Defense Agencies and DoD Field Activities', 'DoD Field Activities', 'WHS',  'defense-agencies', 'support', true, 'Administrative support for OSD.'),
   ('tma',  'TRICARE Management Activity',       'TMA',  'Department of Defense', 'Defense Agencies and DoD Field Activities', 'DoD Field Activities', 'TMA',  'defense-agencies', 'support', true, 'Under DHA.'),
   ('dam',  'Director of Administration and Management', 'DA&M', 'Department of Defense', 'Defense Agencies and DoD Field Activities', 'DoD Field Activities', 'DA&M', 'defense-agencies', 'support', true, 'OSD administrative management.')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name, abbreviation = EXCLUDED.abbreviation,
-  branch = EXCLUDED.branch, sub = EXCLUDED.sub, major = EXCLUDED.major,
-  subtier = EXCLUDED.subtier, parent_id = EXCLUDED.parent_id,
-  description = EXCLUDED.description, org_type_id = EXCLUDED.org_type_id,
-  is_active = EXCLUDED.is_active;
+ON CONFLICT DO NOTHING;
 
 -- ── EO 14347 secondary names stored in org descriptions ─────────────────────
 -- Note: org_aliases has a CHECK (canonical_org_id != alias_org_id) constraint,
