@@ -239,12 +239,8 @@ export async function GET(req: NextRequest) {
   for (const c of CONTRACTS) {
     const newId = crypto.randomUUID();
     try {
-      await db.sql`INSERT INTO contracts (id, title, raw_payload) VALUES (${newId}::uuid, ${c.title}, '{}')`;
-      await db.sql`UPDATE contracts SET external_id = ${c.id} WHERE id = ${newId}::uuid`;
-      await db.sql`UPDATE contracts SET signal_type = ${signalType} WHERE id = ${newId}::uuid`;
-      await db.sql`UPDATE contracts SET awardee = ${awardee} WHERE id = ${newId}::uuid`;
-      await db.sql`UPDATE contracts SET description = ${c.description} WHERE id = ${newId}::uuid`;
-      await db.sql`UPDATE contracts SET canonical_org_id = ${canonicalOrgId} WHERE id = ${newId}::uuid`;
+      await db.sql`INSERT INTO contracts (id, title, raw_payload) VALUES (${newId}, ${c.title}, '{}')`;
+      await db.sql`UPDATE contracts SET external_id = ${c.id}, signal_type = ${signalType}, awardee = ${awardee}, description = ${c.description}, canonical_org_id = ${canonicalOrgId} WHERE id = ${newId}`;
       inserted++;
     } catch (e: any) {
       errors.push(`${c.id}: ${String(e?.message ?? e).slice(0, 300)}`);
