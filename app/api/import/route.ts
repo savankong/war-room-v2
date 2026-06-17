@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         const ext_id = c.id || null;
         const title = (c.title || '').slice(0, 500) || null;
         const rawSigType = c.type === 'award' ? 'Award' : c.type === 'opp' ? 'Opportunity' : c.signal_type || '';
-        const VALID_SIG = new Set(['Opportunity', 'Award', 'Budget']);
+        const VALID_SIG = new Set(['Opportunity', 'Award', 'Budget', 'Contract Vehicle']);
         const signal_type = VALID_SIG.has(rawSigType) ? rawSigType : null;
         const raw = c.value || c.award_amt || null;
         const value = raw && raw !== 'TBD' ? (parseFloat(String(raw).replace(/[^0-9.]/g, '')) || null) : null;
@@ -112,11 +112,12 @@ export async function POST(req: NextRequest) {
         const service_branch = c.agency || c.service_branch || null;
         const agency_or_lab = c.sub_agency || c.agency_or_lab || null;
         const description = c.description ? c.description.slice(0, 2000) : null;
+        const canonical_org_id = c.canonical_org_id || null;
         const exists = await db.sql`SELECT 1 FROM contracts WHERE external_id = ${ext_id} LIMIT 1`;
         if (exists.length === 0) {
           await db.sql`
-            INSERT INTO contracts (id, org_id, external_id, title, signal_type, value, status, award_date, source, naics_code, awardee, service_branch, agency_or_lab, description, raw_payload)
-            VALUES (gen_random_uuid(), NULL::uuid, ${ext_id}, ${title}, ${signal_type}, ${value}, ${status}, ${award_date}, ${source}, ${naics_code}, ${awardee}, ${service_branch}, ${agency_or_lab}, ${description}, '{}'::jsonb)
+            INSERT INTO contracts (id, org_id, external_id, title, signal_type, value, status, award_date, source, naics_code, awardee, service_branch, agency_or_lab, description, canonical_org_id, raw_payload)
+            VALUES (gen_random_uuid(), NULL::uuid, ${ext_id}, ${title}, ${signal_type}, ${value}, ${status}, ${award_date}, ${source}, ${naics_code}, ${awardee}, ${service_branch}, ${agency_or_lab}, ${description}, ${canonical_org_id}, '{}'::jsonb)
           `;
         }
         inserted++;
