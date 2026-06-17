@@ -47,6 +47,13 @@ export async function GET(req: NextRequest) {
     results.contracts_write_err = e?.message?.slice(0, 200);
   }
 
+  // test if any UPDATE on contracts works at all (no-op)
+  try {
+    const wdb2 = (getDatabase() as any).sql;
+    await wdb2`UPDATE contracts SET title = title WHERE title = 'NOOP_NOTHING'`;
+    results.contracts_update_noop = 'ok';
+  } catch(e: any) { results.contracts_update_noop_err = e?.message?.slice(0, 200); }
+
   // test inserting with source='carahsoft'
   try {
     const wdb = (getDatabase() as any).sql;
