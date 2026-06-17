@@ -304,7 +304,6 @@ function OcCard({ c, tier, onSelect, canDrill, isDrill, onDrill }: {
 
 function OrgChartBroad({ contacts, onSelect }: { contacts: Contact[]; onSelect: (c: Contact) => void }) {
   const [visibleDepth, setVisibleDepth] = useState(99);
-  const [expandedTiers, setExpandedTiers] = useState<Set<number>>(new Set());
 
   const levelMap = new Map<number, Contact[]>();
   for (const c of contacts) {
@@ -322,7 +321,6 @@ function OrgChartBroad({ contacts, onSelect }: { contacts: Contact[]; onSelect: 
     <div className="oct-wrap">
       {visLevels.map(([tier, members], idx) => {
         const shown = idx === 0 ? members.slice(0, 1) : members;
-        const overflow = 0;
         const multi = shown.length > 1;
         const isLastVisible = idx === visLevels.length - 1;
         const hasNextLevel = idx < levels.length - 1;
@@ -334,10 +332,7 @@ function OrgChartBroad({ contacts, onSelect }: { contacts: Contact[]; onSelect: 
             {idx > 0 && (
               <div className="oct-section-hd">
                 <span className="oct-section-who">{parentName}</span>
-                <button className="oct-collapse-hd" onClick={() => {
-                  setVisibleDepth(idx);
-                  setExpandedTiers(prev => { const n = new Set(prev); n.delete(tier); return n; });
-                }}>Collapse ↑</button>
+                <button className="oct-collapse-hd" onClick={() => setVisibleDepth(idx)}>Collapse ↑</button>
               </div>
             )}
             <div className={multi ? 'oct-row multi' : 'oct-row'}>
@@ -348,20 +343,7 @@ function OrgChartBroad({ contacts, onSelect }: { contacts: Contact[]; onSelect: 
                     onDrill={isLastVisible && hasNextLevel ? () => setVisibleDepth(idx + 2) : undefined} />
                 </div>
               ))}
-              {overflow > 0 && (
-                <div className="oct-col">
-                  <button className="oct-more" onClick={() => setExpandedTiers(prev => { const n = new Set(prev); n.add(tier); return n; })}>
-                    <span className="oct-more-n">+{overflow}</span>
-                    <span className="oct-more-l">more</span>
-                  </button>
-                </div>
-              )}
             </div>
-            {isExpanded && members.length > CARDS_PER_TIER && (
-              <button className="oct-collapse" onClick={() => setExpandedTiers(prev => { const n = new Set(prev); n.delete(tier); return n; })}>
-                Show less ↑
-              </button>
-            )}
           </div>
         );
       })}
