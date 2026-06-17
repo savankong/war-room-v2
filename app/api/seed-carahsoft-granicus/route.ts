@@ -228,64 +228,31 @@ export async function GET(req: NextRequest) {
   let inserted = 0;
   const errors: string[] = [];
 
-  // ── Parameterized INSERT probes ───────────────────────────────────
-  const probes: Record<string, string> = {};
+  // Wipe previous carahsoft/granicus vehicles for idempotency
+  await wdb`DELETE FROM contracts WHERE source = 'carahsoft' AND canonical_org_id = 'granicus'`;
 
-  // Test 1: parameterized id only (raw_payload + title as literals)
-  try {
-    const pid1 = crypto.randomUUID();
-    await wdb`INSERT INTO contracts (id, title, raw_payload) VALUES (${pid1}, 'PROBE', '{}')`;
-    await wdb`DELETE FROM contracts WHERE title = 'PROBE'`;
-    probes['param_id_only'] = 'ok';
-  } catch (e: any) { probes['param_id_only'] = e?.message?.slice(-150) ?? String(e); }
-
-  // Test 2: parameterized id + title
-  try {
-    const pid2 = crypto.randomUUID();
-    const t2 = 'PROBE2';
-    await wdb`INSERT INTO contracts (id, title, raw_payload) VALUES (${pid2}, ${t2}, '{}')`;
-    await wdb`DELETE FROM contracts WHERE title = 'PROBE2'`;
-    probes['param_id_title'] = 'ok';
-  } catch (e: any) { probes['param_id_title'] = e?.message?.slice(-150) ?? String(e); }
-
-  // Test 3: parameterized id + title + description
-  try {
-    const pid3 = crypto.randomUUID();
-    const t3 = 'PROBE3';
-    const d3 = 'test description';
-    await wdb`INSERT INTO contracts (id, title, description, raw_payload) VALUES (${pid3}, ${t3}, ${d3}, '{}')`;
-    await wdb`DELETE FROM contracts WHERE title = 'PROBE3'`;
-    probes['param_id_title_desc'] = 'ok';
-  } catch (e: any) { probes['param_id_title_desc'] = e?.message?.slice(-150) ?? String(e); }
-
-  // Test 4a: 4 params without external_id (add a 4th non-external_id param)
-  try {
-    const pid4a = crypto.randomUUID();
-    const t4a = 'PROBE4a'; const d4a = 'desc4a'; const s4a = 'carahsoft';
-    await wdb`INSERT INTO contracts (id, title, description, source, raw_payload) VALUES (${pid4a}, ${t4a}, ${d4a}, ${s4a}, '{}')`;
-    await wdb`DELETE FROM contracts WHERE title = 'PROBE4a'`;
-    probes['param_4_no_extid'] = 'ok';
-  } catch (e: any) { probes['param_4_no_extid'] = e?.message?.slice(-150) ?? String(e); }
-
-  // Test 4b: 4 params WITH external_id, no other extra columns
-  try {
-    const pid4b = crypto.randomUUID();
-    const extId = 'probe-extb'; const t4b = 'PROBE4b'; const d4b = 'desc4b';
-    await wdb`INSERT INTO contracts (id, external_id, title, description, raw_payload) VALUES (${pid4b}, ${extId}, ${t4b}, ${d4b}, '{}')`;
-    await wdb`DELETE FROM contracts WHERE title = 'PROBE4b'`;
-    probes['param_4_with_extid'] = 'ok';
-  } catch (e: any) { probes['param_4_with_extid'] = e?.message?.slice(-150) ?? String(e); }
-
-  // Test 4c: all target columns but without external_id
-  try {
-    const pid4c = crypto.randomUUID();
-    const t4c = 'PROBE4c'; const d4c = 'test desc c';
-    await wdb`INSERT INTO contracts (id, title, description, signal_type, source, awardee, canonical_org_id, raw_payload) VALUES (${pid4c}, ${t4c}, ${d4c}, 'Contract Vehicle', 'carahsoft', 'Carahsoft Technology Corp', 'granicus', '{}')`;
-    await wdb`DELETE FROM contracts WHERE title = 'PROBE4c'`;
-    probes['param_all_no_extid'] = 'ok';
-  } catch (e: any) { probes['param_all_no_extid'] = e?.message?.slice(-150) ?? String(e); }
-
-  return NextResponse.json({ probes, inserted: 0, total: 0, errors: [] });
+  for (const c of CONTRACTS) {
+    const newId = crypto.randomUUID();
+    try {
+      // Step 1: INSERT with only the 4 params that are known-safe
+      await wdb`
+        INSERT INTO contracts (id, external_id, title, description, raw_payload)
+        VALUES (${newId}, ${c.id}, ${c.title}, ${c.description}, '{}')
+      `;
+      // Step 2: UPDATE remaining columns using only external_id as param (1-param queries work)
+      await wdb`
+        UPDATE contracts
+        SET signal_type      = 'Contract Vehicle',
+            source           = 'carahsoft',
+            awardee          = 'Carahsoft Technology Corp',
+            canonical_org_id = 'granicus'
+        WHERE external_id = ${c.id}
+      `;
+      inserted++;
+    } catch (e: any) {
+      errors.push(`${c.id}: code=${e?.code} tail=${e?.message?.slice(-120)}`);
+    }
+  }
 
   for (const c of CONTRACTS) {
     const newId = crypto.randomUUID();
