@@ -231,26 +231,31 @@ export async function GET(req: NextRequest) {
   // Wipe previous carahsoft/granicus vehicles (identified by external_id prefix)
   await wdb`DELETE FROM contracts WHERE external_id LIKE 'carah-gran-%'`;
 
+  // Step 1: INSERT each row with the 4 known-safe params
   for (const c of CONTRACTS) {
     const newId = crypto.randomUUID();
     try {
-      // Step 1: INSERT with only the 4 params that are known-safe
       await wdb`
         INSERT INTO contracts (id, external_id, title, description, raw_payload)
         VALUES (${newId}, ${c.id}, ${c.title}, ${c.description}, '{}')
       `;
-      // Step 2: UPDATE remaining columns (skip source — has DB CHECK constraint)
-      await wdb`
-        UPDATE contracts
-        SET signal_type      = 'Contract Vehicle',
-            awardee          = 'Carahsoft Technology Corp',
-            canonical_org_id = 'granicus'
-        WHERE external_id = ${c.id}
-      `;
       inserted++;
     } catch (e: any) {
-      errors.push(`${c.id}: code=${e?.code} tail=${e?.message?.slice(-120)}`);
+      errors.push(`INSERT ${c.id}: ${e?.message?.slice(-120)}`);
     }
+  }
+
+  // Step 2: Bulk UPDATE with zero params (literals only — same as DELETE which works)
+  try {
+    await wdb`
+      UPDATE contracts
+      SET signal_type      = 'Contract Vehicle',
+          awardee          = 'Carahsoft Technology Corp',
+          canonical_org_id = 'granicus'
+      WHERE external_id LIKE 'carah-gran-%'
+    `;
+  } catch (e: any) {
+    errors.push(`BULK_UPDATE: ${e?.message?.slice(-120)}`);
   }
 
   return NextResponse.json({ ok: true, inserted, total: CONTRACTS.length, errors });
