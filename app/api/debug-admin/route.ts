@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getDatabase } from '@netlify/database';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,28 @@ export async function GET(req: NextRequest) {
     const cols = await db`SELECT column_name FROM information_schema.columns WHERE table_name = 'contacts' ORDER BY ordinal_position`;
     results.contact_cols = cols.map((r: any) => r.column_name);
   } catch(e: any) { results.contact_cols_err = e.message; }
+
+  // test minimal write to contracts via @netlify/database
+  try {
+    const wdb = (getDatabase() as any).sql;
+    const testId = crypto.randomUUID();
+    await wdb`
+      INSERT INTO contracts (id, title, raw_payload)
+      VALUES (${testId}::uuid, 'DEBUG_TEST', '{}')
+    `;
+    await wdb`DELETE FROM contracts WHERE title = 'DEBUG_TEST'`;
+    results.contracts_write = 'ok';
+  } catch(e: any) {
+    const x = e as any;
+    results.contracts_write_err = {
+      message: x?.message?.slice(0, 400),
+      code: x?.code,
+      detail: x?.detail,
+      hint: x?.hint,
+      where: x?.where,
+      keys: Object.keys(x ?? {}),
+    };
+  }
 
   return NextResponse.json(results);
 }
