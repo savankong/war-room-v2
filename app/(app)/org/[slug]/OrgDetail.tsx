@@ -321,9 +321,8 @@ function OrgChartBroad({ contacts, onSelect }: { contacts: Contact[]; onSelect: 
   return (
     <div className="oct-wrap">
       {visLevels.map(([tier, members], idx) => {
-        const isExpanded = expandedTiers.has(tier);
-        const shown = idx === 0 ? members.slice(0, 1) : (isExpanded ? members : members.slice(0, CARDS_PER_TIER));
-        const overflow = members.length - shown.length;
+        const shown = idx === 0 ? members.slice(0, 1) : members;
+        const overflow = 0;
         const multi = shown.length > 1;
         const isLastVisible = idx === visLevels.length - 1;
         const hasNextLevel = idx < levels.length - 1;
