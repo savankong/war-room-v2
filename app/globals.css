@@ -311,8 +311,10 @@ body[data-page="account"] .main { overflow-y: auto; }
 /* Identity block */
 .orgd-identity { display: flex; align-items: flex-start; gap: 22px; }
 .orgd-logo {
-  height: 52px; max-width: 180px; object-fit: contain;
+  width: 80px; height: 80px; object-fit: contain;
   filter: var(--logo-filter, none); flex-shrink: 0;
+  background: #fff; border: 1px solid var(--card-border);
+  border-radius: 12px; padding: 10px; box-sizing: border-box;
 }
 .orgd-mission {
   font-size: 14px; color: var(--ink-3); font-style: italic;
