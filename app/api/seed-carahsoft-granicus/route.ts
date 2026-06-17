@@ -228,39 +228,32 @@ export async function GET(req: NextRequest) {
   let inserted = 0;
   const errors: string[] = [];
 
+  // Wipe previous carahsoft/granicus vehicles for idempotency
+  await db`DELETE FROM contracts WHERE source = 'carahsoft' AND canonical_org_id = 'granicus'`;
+
   for (const c of CONTRACTS) {
     try {
       await db`
         INSERT INTO contracts (
-          id, title, description, signal_type, source, awardee, org_id
+          id, external_id, title, description,
+          signal_type, source, awardee, canonical_org_id,
+          raw_payload
         ) VALUES (
+          gen_random_uuid(),
           ${c.id},
           ${c.title},
           ${c.description},
           'Contract Vehicle',
           ${c.source},
           ${c.recipient},
-          ${c.org_id}
+          ${c.org_id},
+          '{}'
         )
-        ON CONFLICT (id) DO UPDATE SET
-          title       = EXCLUDED.title,
-          description = EXCLUDED.description,
-          signal_type = EXCLUDED.signal_type,
-          source      = EXCLUDED.source,
-          awardee     = EXCLUDED.awardee,
-          org_id      = EXCLUDED.org_id
       `;
       inserted++;
     } catch (e: unknown) {
       const x = e as any;
-      const detail = JSON.stringify({
-        code: x?.code,
-        detail: x?.detail,
-        constraint: x?.constraint,
-        severity: x?.severity,
-        tail: x?.message?.slice(-200),
-      });
-      errors.push(`${c.id}: ${detail}`);
+      errors.push(`${c.id}: code=${x?.code} detail=${x?.detail} tail=${x?.message?.slice(-150)}`);
     }
   }
 
