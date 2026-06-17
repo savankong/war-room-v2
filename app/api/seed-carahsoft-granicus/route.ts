@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getWriteDb } from '@/lib/db';
+import { getDatabase } from '@netlify/database';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -223,7 +223,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
-  const db = getWriteDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (getDatabase() as any).sql;
   let inserted = 0;
   const errors: string[] = [];
 
@@ -235,7 +236,7 @@ export async function GET(req: NextRequest) {
           recipient, description, source, org_id
         ) VALUES (
           ${c.id}, ${c.title}, ${c.type}, ${c.agency},
-          ${c.sub_agency ?? null}, ${c.sol_num}, ${c.deadline},
+          ${c.sub_agency ?? ''}, ${c.sol_num}, ${c.deadline},
           ${c.recipient}, ${c.description}, ${c.source}, ${c.org_id}
         )
         ON CONFLICT (id) DO UPDATE SET
