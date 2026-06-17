@@ -232,28 +232,30 @@ export async function GET(req: NextRequest) {
     try {
       await db`
         INSERT INTO contracts (
-          id, title, type, agency, sub_agency, sol_num, deadline,
-          recipient, description, source, org_id
+          id, title, description, signal_type, source, awardee, org_id
         ) VALUES (
-          ${c.id}, ${c.title}, ${c.type}, ${c.agency},
-          ${c.sub_agency ?? ''}, ${c.sol_num}, ${c.deadline},
-          ${c.recipient}, ${c.description}, ${c.source}, ${c.org_id}
+          ${c.id},
+          ${c.title},
+          ${c.description},
+          'Contract Vehicle',
+          ${c.source},
+          ${c.recipient},
+          ${c.org_id}
         )
         ON CONFLICT (id) DO UPDATE SET
           title       = EXCLUDED.title,
-          type        = EXCLUDED.type,
-          agency      = EXCLUDED.agency,
-          sub_agency  = EXCLUDED.sub_agency,
-          sol_num     = EXCLUDED.sol_num,
-          deadline    = EXCLUDED.deadline,
-          recipient   = EXCLUDED.recipient,
           description = EXCLUDED.description,
+          signal_type = EXCLUDED.signal_type,
           source      = EXCLUDED.source,
+          awardee     = EXCLUDED.awardee,
           org_id      = EXCLUDED.org_id
       `;
       inserted++;
     } catch (e: unknown) {
-      errors.push(`${c.id}: ${e instanceof Error ? e.message.slice(0, 100) : String(e)}`);
+      const msg = e instanceof Error
+        ? `${e.message} | cause: ${JSON.stringify((e as any).cause ?? null)}`
+        : String(e);
+      errors.push(`${c.id}: ${msg.slice(0, 300)}`);
     }
   }
 
