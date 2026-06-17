@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -91,6 +92,7 @@ export async function POST(req: NextRequest) {
         inserted++;
       } catch (e: any) { errors.push(`contact ${c.id}: ${getErr(e)}`); }
     }
+    revalidateTag('org-contacts');
   } else if (type === 'contracts') {
     for (const c of records) {
       try {
@@ -123,6 +125,7 @@ export async function POST(req: NextRequest) {
         inserted++;
       } catch (e: any) { errors.push(`contract ${c.id}: ${getErr(e)}`); }
     }
+    revalidateTag('org-contracts');
   } else if (type === 'org_types') {
     // Insert industry (or any) org_type rows
     for (const t of records) {
