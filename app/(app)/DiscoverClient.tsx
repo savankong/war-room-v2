@@ -177,15 +177,14 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
   tier1: any[]; tier2: any[]; tier3: any[];
   onPerson(p: any): void;
 }) {
-  const [t1Open,     setT1Open]     = useState(false);
-  const [t2OpenId,   setT2OpenId]   = useState<string|null>(null);
-  const [showAllT2,  setShowAllT2]  = useState(false);
-  const [showAllT3,  setShowAllT3]  = useState(false);
+  const [t1Open,    setT1Open]    = useState(tier2.length > 0);
+  const [t2Open,    setT2Open]    = useState(tier3.length > 0);
+  const [showAllT2, setShowAllT2] = useState(false);
+  const [showAllT3, setShowAllT3] = useState(false);
 
   const visT2 = showAllT2 ? tier2 : tier2.slice(0, T2_INIT);
   const visT3 = showAllT3 ? tier3 : tier3.slice(0, T3_INIT);
   const t1Person = tier1[0];
-  const t2Person = tier2.find(p => p.id === t2OpenId);
 
   function MoreBtn({ count, onClick }: { count: number; onClick(): void }) {
     return (
@@ -233,7 +232,7 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
           <div className="oct-section-hd">
             <span className="oct-section-who">{t1Person?.name}</span>
             <button className="oct-collapse-hd" onClick={() => {
-              setT1Open(false); setT2OpenId(null); setShowAllT2(false); setShowAllT3(false);
+              setT1Open(false); setT2Open(false); setShowAllT2(false); setShowAllT3(false);
             }}>Collapse ↑</button>
           </div>
           <div className={visT2.length > 1 ? 'oct-row multi' : 'oct-row'}>
@@ -241,11 +240,8 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
               <div key={p.id} className="oct-col">
                 <OcNodeDisc p={p} tierIdx={1} onPerson={onPerson}
                   canDrill={tier3.length > 0}
-                  isDrill={t2OpenId === p.id}
-                  onDrill={() => {
-                    setT2OpenId(t2OpenId === p.id ? null : p.id);
-                    setShowAllT3(false);
-                  }} />
+                  isDrill={t2Open}
+                  onDrill={() => { setT2Open(!t2Open); setShowAllT3(false); }} />
               </div>
             ))}
             {!showAllT2 && tier2.length > T2_INIT && <MoreBtn count={tier2.length - T2_INIT} onClick={() => setShowAllT2(true)} />}
@@ -255,12 +251,12 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
       )}
 
       {/* Tier 3 — expands inline below T2 section */}
-      {t2OpenId && tier3.length > 0 && (
+      {t1Open && t2Open && tier3.length > 0 && (
         <div className="oct-level">
           <div className="oct-vline" />
           <div className="oct-section-hd">
-            <span className="oct-section-who">{t2Person?.name}</span>
-            <button className="oct-collapse-hd" onClick={() => { setT2OpenId(null); setShowAllT3(false); }}>
+            <span className="oct-section-who">Leadership Team</span>
+            <button className="oct-collapse-hd" onClick={() => { setT2Open(false); setShowAllT3(false); }}>
               Collapse ↑
             </button>
           </div>

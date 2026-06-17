@@ -303,7 +303,7 @@ function OcCard({ c, tier, onSelect, canDrill, isDrill, onDrill }: {
 }
 
 function OrgChartBroad({ contacts, onSelect }: { contacts: Contact[]; onSelect: (c: Contact) => void }) {
-  const [visibleDepth, setVisibleDepth] = useState(1);
+  const [visibleDepth, setVisibleDepth] = useState(99);
   const [expandedTiers, setExpandedTiers] = useState<Set<number>>(new Set());
 
   const levelMap = new Map<number, Contact[]>();
