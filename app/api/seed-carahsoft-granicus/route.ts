@@ -252,10 +252,15 @@ export async function GET(req: NextRequest) {
       `;
       inserted++;
     } catch (e: unknown) {
-      const msg = e instanceof Error
-        ? `${e.message} | cause: ${JSON.stringify((e as any).cause ?? null)}`
-        : String(e);
-      errors.push(`${c.id}: ${msg.slice(0, 300)}`);
+      const x = e as any;
+      const detail = JSON.stringify({
+        code: x?.code,
+        detail: x?.detail,
+        constraint: x?.constraint,
+        severity: x?.severity,
+        tail: x?.message?.slice(-200),
+      });
+      errors.push(`${c.id}: ${detail}`);
     }
   }
 
