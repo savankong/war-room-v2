@@ -329,7 +329,7 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
   ];
 
   /* Group execs by seniority tier */
-  const tier1 = people.filter(p => p.hierarchy_order === 1);
+  const tier1 = people.filter(p => p.hierarchy_order === 1).slice(0, 1);
   const tier2 = people.filter(p => p.hierarchy_order === 2);
   const tier3 = people.filter(p => (p.hierarchy_order ?? 99) >= 3);
 
