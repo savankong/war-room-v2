@@ -223,12 +223,33 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
-  const db = getWriteDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wdb = (getWriteDb() as any);
   let inserted = 0;
   const errors: string[] = [];
 
-  // Wipe previous carahsoft/granicus vehicles for idempotency
-  await db`DELETE FROM contracts WHERE source = 'carahsoft' AND canonical_org_id = 'granicus'`;
+  // ── Column existence probe ────────────────────────────────────────
+  const probeId = crypto.randomUUID();
+  const probes: Record<string, string> = {};
+  const cols = [
+    ['id, title, raw_payload', `('${probeId}', 'PROBE', '{}')`],
+    ['id, title, description, raw_payload', `('${probeId}', 'PROBE', 'desc', '{}')`],
+    ['id, title, signal_type, raw_payload', `('${probeId}', 'PROBE', 'Contract Vehicle', '{}')`],
+    ['id, title, source, raw_payload', `('${probeId}', 'PROBE', 'carahsoft', '{}')`],
+    ['id, title, awardee, raw_payload', `('${probeId}', 'PROBE', 'Carahsoft Technology Corp', '{}')`],
+    ['id, title, canonical_org_id, raw_payload', `('${probeId}', 'PROBE', 'granicus', '{}')`],
+    ['id, title, external_id, raw_payload', `('${probeId}', 'PROBE', 'test-ext', '{}')`],
+  ];
+  for (const [colList, valList] of cols) {
+    try {
+      await wdb`DELETE FROM contracts WHERE title = 'PROBE'`;
+      await wdb.unsafe(`INSERT INTO contracts (${colList}) VALUES ${valList}`);
+      probes[colList] = 'ok';
+    } catch (e: any) { probes[colList] = e?.message?.slice(0, 120) ?? String(e); }
+  }
+  await wdb`DELETE FROM contracts WHERE title = 'PROBE'`;
+
+  return NextResponse.json({ probes, inserted: 0, total: 0, errors: [] });
 
   for (const c of CONTRACTS) {
     const newId = crypto.randomUUID();
