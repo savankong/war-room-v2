@@ -224,23 +224,25 @@ export async function GET(req: NextRequest) {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const wdb = (getDatabase() as any).sql;
+  const db = getDatabase() as any;
   let inserted = 0;
   const errors: string[] = [];
 
-  // Wipe previous carahsoft/granicus vehicles (identified by external_id prefix)
-  await wdb`DELETE FROM contracts WHERE external_id LIKE 'carah-gran-%'`;
-
-  const db = getDatabase() as any;
   const signalType = 'Contract Vehicle';
   const awardee = 'Carahsoft Technology Corp';
   const canonicalOrgId = 'granicus';
+  const likePrefix = 'carah-gran-%';
+
+  // Wipe previous carahsoft/granicus vehicles (identified by external_id prefix)
+  await db.sql`DELETE FROM contracts WHERE external_id LIKE ${likePrefix}`;
 
   for (const c of CONTRACTS) {
-    const newId = crypto.randomUUID();
     try {
-      await db.sql`INSERT INTO contracts (id, title, raw_payload) VALUES (${newId}, ${c.title}, '{}')`;
-      await db.sql`UPDATE contracts SET external_id = ${c.id}, signal_type = ${signalType}, awardee = ${awardee}, description = ${c.description}, canonical_org_id = ${canonicalOrgId} WHERE id = ${newId}`;
+      await db.sql`
+        INSERT INTO contracts (id, external_id, title, signal_type, awardee, description, canonical_org_id, raw_payload)
+        VALUES (gen_random_uuid(), ${c.id}, ${c.title}, ${signalType}, ${awardee}, ${c.description}, ${canonicalOrgId}, '{}'::jsonb)
+        ON CONFLICT (id) DO NOTHING
+      `;
       inserted++;
     } catch (e: any) {
       errors.push(`${c.id}: ${String(e?.message ?? e).slice(0, 300)}`);
