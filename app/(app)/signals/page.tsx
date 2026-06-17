@@ -14,7 +14,8 @@ async function getSignalsData() {
         COALESCE(c.award_date, c.created_at::date) AS award_date,
         c.source, c.status AS set_aside, NULL::text AS deadline,
         c.canonical_org_id AS org_id, c.awardee AS recipient,
-        NULL::numeric AS award_amt, NULL::text AS poc_email,
+        NULL::numeric AS award_amt,
+        c.poc AS poc_name, c.poc_email, c.alt_poc AS alt_poc_name, c.alt_poc_email,
         c.naics_code AS naics, c.agency_or_lab AS sub_agency,
         o.full_name AS org_name, o.id::text AS org_slug,
         o.org_type_id AS badge_text, NULL::text AS badge_color

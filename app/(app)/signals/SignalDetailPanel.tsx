@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 function fmtMoney(v: number | string | null) {
   const n = v == null ? null : Number(v);
   if (!n) return '—';
@@ -31,16 +33,75 @@ const SOURCE_LABEL: Record<string, string> = {
 
 const IcX    = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>;
 const IcLink = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>;
+const IcMail = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>;
+const IcLI   = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>;
+
+interface Contact {
+  id: string;
+  name: string;
+  initials?: string;
+  title?: string;
+  email?: string;
+  phone?: string;
+  color?: string;
+  photo_url?: string;
+  linkedin?: string;
+  hierarchy_order?: number;
+  tags?: string[];
+}
 
 interface Props {
   signal: any;
   onClose: () => void;
 }
 
+function PersonCard({ c }: { c: Contact }) {
+  const initials = c.initials ?? c.name.split(' ').map((p:string)=>p[0]).join('').slice(0,2).toUpperCase();
+  const bg = c.color ?? '#283a6b';
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', background: 'var(--field)', border: '1px solid var(--card-border)', borderRadius: 8, marginBottom: 6 }}>
+      {c.photo_url ? (
+        <img src={c.photo_url} alt={c.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+      ) : (
+        <div style={{ width: 36, height: 36, borderRadius: '50%', background: bg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'IBM Plex Mono', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+          {initials}
+        </div>
+      )}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: 'Archivo', fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
+        {c.title && <div style={{ fontSize: 11, color: 'var(--ink-2)', marginBottom: 4 }}>{c.title}</div>}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {c.email && (
+            <a href={`mailto:${c.email}`} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}>
+              <IcMail />{c.email}
+            </a>
+          )}
+          {c.linkedin && (
+            <a href={c.linkedin} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}>
+              <IcLI />LinkedIn
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SignalDetailPanel({ signal, onClose }: Props) {
+  const [contacts, setContacts] = useState<Contact[]>([]);
+
+  useEffect(() => {
+    if (!signal?.org_id) return;
+    fetch(`/api/signal-contacts?org_id=${encodeURIComponent(signal.org_id)}`)
+      .then(r => r.json())
+      .then(setContacts)
+      .catch(() => {});
+  }, [signal?.org_id]);
+
   const typeColor = TYPE_COLOR[signal.signal_type] ?? '#4A5666';
-  const typeBg    = TYPE_BG[signal.signal_type]    ?? 'rgba(74,86,102,.12)';
   const src = SOURCE_LABEL[signal.source] ?? signal.source ?? '';
+
+  const hasPoc = signal.poc_name || signal.poc_email || signal.alt_poc_name || signal.alt_poc_email;
 
   return (
     <div className="wr-pf-back" onClick={onClose}>
@@ -71,7 +132,6 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
               {signal.external_id ?? signal.id}
             </div>
           )}
-          {/* Value prominently in header */}
           {(signal.value || signal.award_amt) && (
             <div style={{ fontFamily: 'Archivo', fontSize: 22, fontWeight: 800, color: '#EDF1F6', letterSpacing: '-.01em' }}>
               {fmtMoney(signal.value ?? signal.award_amt)}
@@ -126,15 +186,43 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
           )}
 
           {/* POC */}
-          {signal.poc_email && (
+          {hasPoc && (
             <div className="wr-pf-sec">
               <div className="wr-pf-sh"><span className="t">Point of contact</span><span className="ln" /></div>
               <div className="wr-pf-sam-contact">
-                <div className="wr-pf-sam-contact-row">
-                  <span className="wr-pf-sam-contact-type">Email</span>
-                  <a href={`mailto:${signal.poc_email}`} className="wr-pf-sam-contact-val">{signal.poc_email}</a>
-                </div>
+                {signal.poc_name && (
+                  <div className="wr-pf-sam-contact-row">
+                    <span className="wr-pf-sam-contact-type">Primary</span>
+                    <span className="wr-pf-sam-contact-val">{signal.poc_name}</span>
+                  </div>
+                )}
+                {signal.poc_email && (
+                  <div className="wr-pf-sam-contact-row">
+                    <span className="wr-pf-sam-contact-type">Email</span>
+                    <a href={`mailto:${signal.poc_email}`} className="wr-pf-sam-contact-val">{signal.poc_email}</a>
+                  </div>
+                )}
+                {signal.alt_poc_name && (
+                  <div className="wr-pf-sam-contact-row">
+                    <span className="wr-pf-sam-contact-type">Alt POC</span>
+                    <span className="wr-pf-sam-contact-val">{signal.alt_poc_name}</span>
+                  </div>
+                )}
+                {signal.alt_poc_email && (
+                  <div className="wr-pf-sam-contact-row">
+                    <span className="wr-pf-sam-contact-type">Alt Email</span>
+                    <a href={`mailto:${signal.alt_poc_email}`} className="wr-pf-sam-contact-val">{signal.alt_poc_email}</a>
+                  </div>
+                )}
               </div>
+            </div>
+          )}
+
+          {/* People / Org chart */}
+          {contacts.length > 0 && (
+            <div className="wr-pf-sec">
+              <div className="wr-pf-sh"><span className="t">People</span><span className="ln" /></div>
+              {contacts.map(c => <PersonCard key={c.id} c={c} />)}
             </div>
           )}
 
