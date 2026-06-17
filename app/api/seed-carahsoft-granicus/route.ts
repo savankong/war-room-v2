@@ -234,15 +234,12 @@ export async function GET(req: NextRequest) {
   for (const c of CONTRACTS) {
     const newId = crypto.randomUUID();
     try {
+      // Interleave literals between params — Neon client breaks when literals trail after last param
       await wdb`
         INSERT INTO contracts (
-          id, external_id, title, description,
-          canonical_org_id, signal_type, awardee,
-          raw_payload
+          id, canonical_org_id, external_id, signal_type, title, awardee, description, raw_payload
         ) VALUES (
-          ${newId}, ${c.id}, ${c.title}, ${c.description},
-          'granicus', 'Contract Vehicle', 'Carahsoft Technology Corp',
-          '{}'
+          ${newId}, 'granicus', ${c.id}, 'Contract Vehicle', ${c.title}, 'Carahsoft Technology Corp', ${c.description}, '{}'
         )
       `;
       inserted++;
