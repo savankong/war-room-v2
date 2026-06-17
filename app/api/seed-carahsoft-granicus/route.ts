@@ -232,18 +232,19 @@ export async function GET(req: NextRequest) {
   await wdb`DELETE FROM contracts WHERE external_id LIKE 'carah-gran-%'`;
 
   const db = getDatabase() as any;
+  const signalType = 'Contract Vehicle';
+  const awardee = 'Carahsoft Technology Corp';
+  const canonicalOrgId = 'granicus';
 
   for (const c of CONTRACTS) {
     const newId = crypto.randomUUID();
     try {
-      // Step 1: minimal INSERT identical to the working debug-admin pattern
       await db.sql`INSERT INTO contracts (id, title, raw_payload) VALUES (${newId}::uuid, ${c.title}, '{}')`;
-      // Step 2: UPDATE the remaining columns one at a time to isolate any failures
       await db.sql`UPDATE contracts SET external_id = ${c.id} WHERE id = ${newId}::uuid`;
-      await db.sql`UPDATE contracts SET signal_type = 'Contract Vehicle' WHERE id = ${newId}::uuid`;
-      await db.sql`UPDATE contracts SET awardee = 'Carahsoft Technology Corp' WHERE id = ${newId}::uuid`;
+      await db.sql`UPDATE contracts SET signal_type = ${signalType} WHERE id = ${newId}::uuid`;
+      await db.sql`UPDATE contracts SET awardee = ${awardee} WHERE id = ${newId}::uuid`;
       await db.sql`UPDATE contracts SET description = ${c.description} WHERE id = ${newId}::uuid`;
-      await db.sql`UPDATE contracts SET canonical_org_id = 'granicus' WHERE id = ${newId}::uuid`;
+      await db.sql`UPDATE contracts SET canonical_org_id = ${canonicalOrgId} WHERE id = ${newId}::uuid`;
       inserted++;
     } catch (e: any) {
       errors.push(`${c.id}: ${String(e?.message ?? e).slice(0, 300)}`);
