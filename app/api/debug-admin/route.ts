@@ -40,22 +40,22 @@ export async function GET(req: NextRequest) {
   try {
     const wdb = (getDatabase() as any).sql;
     const testId = crypto.randomUUID();
-    await wdb`
-      INSERT INTO contracts (id, title, raw_payload)
-      VALUES (${testId}::uuid, 'DEBUG_TEST', '{}')
-    `;
+    await wdb`INSERT INTO contracts (id, title, raw_payload) VALUES (${testId}::uuid, 'DEBUG_TEST', '{}')`;
     await wdb`DELETE FROM contracts WHERE title = 'DEBUG_TEST'`;
     results.contracts_write = 'ok';
   } catch(e: any) {
-    const x = e as any;
-    results.contracts_write_err = {
-      message: x?.message?.slice(0, 400),
-      code: x?.code,
-      detail: x?.detail,
-      hint: x?.hint,
-      where: x?.where,
-      keys: Object.keys(x ?? {}),
-    };
+    results.contracts_write_err = e?.message?.slice(0, 200);
+  }
+
+  // test inserting with source='carahsoft'
+  try {
+    const wdb = (getDatabase() as any).sql;
+    const testId2 = crypto.randomUUID();
+    await wdb`INSERT INTO contracts (id, title, source, raw_payload) VALUES (${testId2}::uuid, 'DEBUG_SOURCE', 'carahsoft', '{}')`;
+    await wdb`DELETE FROM contracts WHERE title = 'DEBUG_SOURCE'`;
+    results.source_carahsoft_write = 'ok';
+  } catch(e: any) {
+    results.source_carahsoft_err = e?.message?.slice(0, 400);
   }
 
   return NextResponse.json(results);

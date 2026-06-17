@@ -254,32 +254,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  for (const c of CONTRACTS) {
-    const newId = crypto.randomUUID();
-    try {
-      await db`
-        INSERT INTO contracts (
-          id, external_id, title, description,
-          signal_type, source, awardee, canonical_org_id,
-          raw_payload
-        ) VALUES (
-          ${newId},
-          ${c.id},
-          ${c.title},
-          ${c.description},
-          'Contract Vehicle',
-          'carahsoft',
-          'Carahsoft Technology Corp',
-          'granicus',
-          '{}'
-        )
-      `;
-      inserted++;
-    } catch (e: unknown) {
-      const x = e as any;
-      errors.push(`${c.id}: code=${x?.code} detail=${x?.detail} tail=${x?.message?.slice(-150)}`);
-    }
-  }
-
   return NextResponse.json({ ok: true, inserted, total: CONTRACTS.length, errors });
 }
