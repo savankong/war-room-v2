@@ -228,8 +228,8 @@ export async function GET(req: NextRequest) {
   let inserted = 0;
   const errors: string[] = [];
 
-  // Wipe previous carahsoft/granicus vehicles for idempotency
-  await wdb`DELETE FROM contracts WHERE source = 'carahsoft' AND canonical_org_id = 'granicus'`;
+  // Wipe previous carahsoft/granicus vehicles (identified by external_id prefix)
+  await wdb`DELETE FROM contracts WHERE external_id LIKE 'carah-gran-%'`;
 
   for (const c of CONTRACTS) {
     const newId = crypto.randomUUID();
@@ -239,11 +239,10 @@ export async function GET(req: NextRequest) {
         INSERT INTO contracts (id, external_id, title, description, raw_payload)
         VALUES (${newId}, ${c.id}, ${c.title}, ${c.description}, '{}')
       `;
-      // Step 2: UPDATE remaining columns using only external_id as param (1-param queries work)
+      // Step 2: UPDATE remaining columns (skip source — has DB CHECK constraint)
       await wdb`
         UPDATE contracts
         SET signal_type      = 'Contract Vehicle',
-            source           = 'carahsoft',
             awardee          = 'Carahsoft Technology Corp',
             canonical_org_id = 'granicus'
         WHERE external_id = ${c.id}
