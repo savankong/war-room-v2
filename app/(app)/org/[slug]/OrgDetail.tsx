@@ -592,7 +592,7 @@ export default function OrgDetail({ org, navOrgs, childOrgs, contacts, contracts
                 <FactRow icon={<IcBuilding />} label="Offices" value={`${p.offices} Offices`} />
               )}
               {(p?.industry || org.branch) && (
-                <FactRow icon={<IcBriefcase />} label="Industry" value={p?.industry ?? org.branch ?? ''} />
+                <FactRow icon={<IcBriefcase />} label={p?.industry ? 'Industry' : 'Branch'} value={p?.industry ?? org.branch ?? ''} />
               )}
               {p?.awards && (
                 <FactRow icon={<IcAward2 />} label="Awards" value={p.awards} />
@@ -610,19 +610,15 @@ export default function OrgDetail({ org, navOrgs, childOrgs, contacts, contracts
                 <FactRow icon={<IcCompany />} label="Company" value={p.company_type} />
               )}
               {org.hq_address && (
-                <FactRow icon={<IcMapPin />} label="Headquarters" value={org.hq_address} />
+                <FactRow icon={<IcMapPin />} label="Address" value={org.hq_address} />
               )}
               {p?.founded && (
                 <FactRow icon={<IcCalendar />} label="Founded" value={p.founded} />
               )}
-              {!p && (
-                <>
-                  {org.hq_address && <FactRow icon={<IcMapPin />} label="Headquarters" value={org.hq_address} />}
-                  {org.abs_hierarchy_level != null && <FactRow icon={<IcBuilding />} label="DoD Level" value={`L${org.abs_hierarchy_level}`} />}
-                  {org.website && <FactRow icon={<IcGlobe />} label="Website" value="View site" href={org.website} />}
-                  <FactRow icon={<IcUsers />} label="Contacts" value={`${org.contact_count}`} />
-                </>
+              {org.abs_hierarchy_level != null && (
+                <FactRow icon={<IcBuilding />} label="DoD Level" value={`L${org.abs_hierarchy_level}`} />
               )}
+              <FactRow icon={<IcUsers />} label="Contacts" value={`${org.contact_count}`} />
             </div>
           </aside>
         </div>
