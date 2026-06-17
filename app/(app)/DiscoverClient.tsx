@@ -285,6 +285,7 @@ const IcPpl  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
 const IcCmp  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>;
 const IcPin3 = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
 const IcCal  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+const IcPhone = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.76a16 16 0 0 0 6.15 6.15l.94-.87a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
 
 function CompanyFactRow({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: React.ReactNode; href?: string }) {
   return (
@@ -654,37 +655,50 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
           {/* ── Right sidebar ────────────────────────────────────────── */}
           <aside className="orgd-sidebar">
             <div className="orgd-sidebar-card">
-              {pr?.offices != null && (
-                <CompanyFactRow icon={<IcBldg />} label="Offices" value={`${pr.offices} Offices`} />
-              )}
-              {(pr?.industry || company.focus_areas?.[0]) && (
-                <CompanyFactRow icon={<IcCase />} label="Industry" value={pr?.industry ?? company.focus_areas[0]} />
-              )}
-              {pr?.awards && (
-                <CompanyFactRow icon={<IcAwd />} label="Awards" value={pr.awards} />
-              )}
-              {(company.website || pr) && (
-                <CompanyFactRow icon={<IcGlb />} label="Website" value="View site" href={company.website ?? undefined} />
-              )}
-              {(pr?.revenue || company.revenue_b) && (
-                <CompanyFactRow icon={<IcDol />} label="Revenue" value={pr?.revenue ?? `$${Number(company.revenue_b).toFixed(1)}B`} />
-              )}
-              {(pr?.employees || company.employees) && (
-                <CompanyFactRow icon={<IcPpl />} label="Employees" value={pr?.employees ?? Number(company.employees).toLocaleString()} />
-              )}
-              {pr?.company_type && (
-                <CompanyFactRow icon={<IcCmp />} label="Company" value={pr.company_type} />
+              {(company.website || pr?.website) && (
+                <CompanyFactRow icon={<IcGlb />} label="Website" value={(company.website ?? pr?.website ?? '').replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')} href={company.website ?? pr?.website ?? undefined} />
               )}
               {company.headquarters && (
-                <CompanyFactRow icon={<IcPin3 />} label="Headquarters" value={company.headquarters} />
+                <CompanyFactRow icon={<IcPin3 />} label="Address" value={company.headquarters} />
               )}
-              {pr?.founded && (
-                <CompanyFactRow icon={<IcCal />} label="Founded" value={pr.founded} />
-              )}
-              {company.ticker && (
-                <CompanyFactRow icon={<IcDol />} label="Ticker" value={company.ticker} />
+              {pr?.phone && (
+                <CompanyFactRow icon={<IcPhone />} label="Phone" value={pr.phone} href={`tel:${pr.phone}`} />
               )}
             </div>
+
+            {/* Featured case study */}
+            {pr?.case_studies?.[0] && (() => {
+              const cs = pr.case_studies[0];
+              return (
+                <div className="orgd-cs-card">
+                  <div className="orgd-cs-label">Featured Project</div>
+                  <div className="orgd-cs-title">{cs.title}</div>
+                  {cs.problem && (
+                    <div className="orgd-cs-row">
+                      <div className="orgd-cs-row-label">Challenge</div>
+                      <div className="orgd-cs-row-val">{cs.problem}</div>
+                    </div>
+                  )}
+                  {cs.approach && (
+                    <div className="orgd-cs-row">
+                      <div className="orgd-cs-row-label">Approach</div>
+                      <div className="orgd-cs-row-val">{cs.approach}</div>
+                    </div>
+                  )}
+                  {cs.outcome && (
+                    <div className="orgd-cs-row">
+                      <div className="orgd-cs-row-label">Outcome</div>
+                      <div className="orgd-cs-row-val">{cs.outcome}</div>
+                    </div>
+                  )}
+                  {cs.url && (
+                    <a href={cs.url} target="_blank" rel="noopener noreferrer" className="orgd-cs-link">
+                      Read case study ↗
+                    </a>
+                  )}
+                </div>
+              );
+            })()}
           </aside>
 
         </div>{/* orgd-layout */}
@@ -1497,7 +1511,7 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
       <div className="wr-hbody">
 
         {/* ── Left index ── */}
-        <aside className={`wr-hindex${mobileSidebarOpen ? ' mobile-open' : ''}`}>
+        <aside className={`wr-hindex${mobileSidebarOpen ? ' mobile-open' : ''}${seg === 'ind' && (selectedCompany || selectedSub) ? ' ind-hidden' : ''}`}>
 
           {/* GOV sidebar */}
           {seg === 'gov' && <>
@@ -1663,7 +1677,11 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
         {seg === 'gov' ? (
           <Directory groups={groups} activeSection={activeSection} />
         ) : selectedCompany ? (
-          <CompanyDetail company={selectedCompany} onBack={() => { setSelectedCompany(null); }} />
+          <div className="ind-detail-wrap ind-detail-enter">
+            <div className="ind-detail-inner">
+              <CompanyDetail company={selectedCompany} onBack={() => { setSelectedCompany(null); }} />
+            </div>
+          </div>
         ) : selectedSub ? (
           <SubDetail sub={selectedSub} onBack={() => setSelectedSub(null)} />
         ) : indRole === 'subs' ? (
