@@ -228,26 +228,46 @@ export async function GET(req: NextRequest) {
   let inserted = 0;
   const errors: string[] = [];
 
-  // ── Column existence probe ────────────────────────────────────────
-  const probeId = crypto.randomUUID();
+  // ── Parameterized INSERT probes ───────────────────────────────────
   const probes: Record<string, string> = {};
-  const cols = [
-    ['id, title, raw_payload', `('${probeId}', 'PROBE', '{}')`],
-    ['id, title, description, raw_payload', `('${probeId}', 'PROBE', 'desc', '{}')`],
-    ['id, title, signal_type, raw_payload', `('${probeId}', 'PROBE', 'Contract Vehicle', '{}')`],
-    ['id, title, source, raw_payload', `('${probeId}', 'PROBE', 'carahsoft', '{}')`],
-    ['id, title, awardee, raw_payload', `('${probeId}', 'PROBE', 'Carahsoft Technology Corp', '{}')`],
-    ['id, title, canonical_org_id, raw_payload', `('${probeId}', 'PROBE', 'granicus', '{}')`],
-    ['id, title, external_id, raw_payload', `('${probeId}', 'PROBE', 'test-ext', '{}')`],
-  ];
-  for (const [colList, valList] of cols) {
-    try {
-      await wdb`DELETE FROM contracts WHERE title = 'PROBE'`;
-      await wdb.unsafe(`INSERT INTO contracts (${colList}) VALUES ${valList}`);
-      probes[colList] = 'ok';
-    } catch (e: any) { probes[colList] = e?.message?.slice(0, 120) ?? String(e); }
-  }
-  await wdb`DELETE FROM contracts WHERE title = 'PROBE'`;
+
+  // Test 1: parameterized id only (raw_payload + title as literals)
+  try {
+    const pid1 = crypto.randomUUID();
+    await wdb`INSERT INTO contracts (id, title, raw_payload) VALUES (${pid1}, 'PROBE', '{}')`;
+    await wdb`DELETE FROM contracts WHERE title = 'PROBE'`;
+    probes['param_id_only'] = 'ok';
+  } catch (e: any) { probes['param_id_only'] = e?.message?.slice(-150) ?? String(e); }
+
+  // Test 2: parameterized id + title
+  try {
+    const pid2 = crypto.randomUUID();
+    const t2 = 'PROBE2';
+    await wdb`INSERT INTO contracts (id, title, raw_payload) VALUES (${pid2}, ${t2}, '{}')`;
+    await wdb`DELETE FROM contracts WHERE title = 'PROBE2'`;
+    probes['param_id_title'] = 'ok';
+  } catch (e: any) { probes['param_id_title'] = e?.message?.slice(-150) ?? String(e); }
+
+  // Test 3: parameterized id + title + description
+  try {
+    const pid3 = crypto.randomUUID();
+    const t3 = 'PROBE3';
+    const d3 = 'test description';
+    await wdb`INSERT INTO contracts (id, title, description, raw_payload) VALUES (${pid3}, ${t3}, ${d3}, '{}')`;
+    await wdb`DELETE FROM contracts WHERE title = 'PROBE3'`;
+    probes['param_id_title_desc'] = 'ok';
+  } catch (e: any) { probes['param_id_title_desc'] = e?.message?.slice(-150) ?? String(e); }
+
+  // Test 4: all target columns parameterized
+  try {
+    const pid4 = crypto.randomUUID();
+    const extId = 'probe-ext';
+    const title4 = 'PROBE4';
+    const desc4 = 'test desc';
+    await wdb`INSERT INTO contracts (id, external_id, title, description, signal_type, source, awardee, canonical_org_id, raw_payload) VALUES (${pid4}, ${extId}, ${title4}, ${desc4}, 'Contract Vehicle', 'carahsoft', 'Carahsoft Technology Corp', 'granicus', '{}')`;
+    await wdb`DELETE FROM contracts WHERE title = 'PROBE4'`;
+    probes['param_all_cols'] = 'ok';
+  } catch (e: any) { probes['param_all_cols'] = e?.message?.slice(-150) ?? String(e); }
 
   return NextResponse.json({ probes, inserted: 0, total: 0, errors: [] });
 
