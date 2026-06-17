@@ -258,16 +258,32 @@ export async function GET(req: NextRequest) {
     probes['param_id_title_desc'] = 'ok';
   } catch (e: any) { probes['param_id_title_desc'] = e?.message?.slice(-150) ?? String(e); }
 
-  // Test 4: all target columns parameterized
+  // Test 4a: 4 params without external_id (add a 4th non-external_id param)
   try {
-    const pid4 = crypto.randomUUID();
-    const extId = 'probe-ext';
-    const title4 = 'PROBE4';
-    const desc4 = 'test desc';
-    await wdb`INSERT INTO contracts (id, external_id, title, description, signal_type, source, awardee, canonical_org_id, raw_payload) VALUES (${pid4}, ${extId}, ${title4}, ${desc4}, 'Contract Vehicle', 'carahsoft', 'Carahsoft Technology Corp', 'granicus', '{}')`;
-    await wdb`DELETE FROM contracts WHERE title = 'PROBE4'`;
-    probes['param_all_cols'] = 'ok';
-  } catch (e: any) { probes['param_all_cols'] = e?.message?.slice(-150) ?? String(e); }
+    const pid4a = crypto.randomUUID();
+    const t4a = 'PROBE4a'; const d4a = 'desc4a'; const s4a = 'carahsoft';
+    await wdb`INSERT INTO contracts (id, title, description, source, raw_payload) VALUES (${pid4a}, ${t4a}, ${d4a}, ${s4a}, '{}')`;
+    await wdb`DELETE FROM contracts WHERE title = 'PROBE4a'`;
+    probes['param_4_no_extid'] = 'ok';
+  } catch (e: any) { probes['param_4_no_extid'] = e?.message?.slice(-150) ?? String(e); }
+
+  // Test 4b: 4 params WITH external_id, no other extra columns
+  try {
+    const pid4b = crypto.randomUUID();
+    const extId = 'probe-extb'; const t4b = 'PROBE4b'; const d4b = 'desc4b';
+    await wdb`INSERT INTO contracts (id, external_id, title, description, raw_payload) VALUES (${pid4b}, ${extId}, ${t4b}, ${d4b}, '{}')`;
+    await wdb`DELETE FROM contracts WHERE title = 'PROBE4b'`;
+    probes['param_4_with_extid'] = 'ok';
+  } catch (e: any) { probes['param_4_with_extid'] = e?.message?.slice(-150) ?? String(e); }
+
+  // Test 4c: all target columns but without external_id
+  try {
+    const pid4c = crypto.randomUUID();
+    const t4c = 'PROBE4c'; const d4c = 'test desc c';
+    await wdb`INSERT INTO contracts (id, title, description, signal_type, source, awardee, canonical_org_id, raw_payload) VALUES (${pid4c}, ${t4c}, ${d4c}, 'Contract Vehicle', 'carahsoft', 'Carahsoft Technology Corp', 'granicus', '{}')`;
+    await wdb`DELETE FROM contracts WHERE title = 'PROBE4c'`;
+    probes['param_all_no_extid'] = 'ok';
+  } catch (e: any) { probes['param_all_no_extid'] = e?.message?.slice(-150) ?? String(e); }
 
   return NextResponse.json({ probes, inserted: 0, total: 0, errors: [] });
 
