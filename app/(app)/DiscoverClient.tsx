@@ -309,7 +309,7 @@ function CompanyVehicleRow({ v }: { v: any }) {
       <button className="orgd-cv-hd" onClick={() => setOpen(o => !o)}>
         <div className="orgd-cv-hd-left">
           <span className="orgd-cv-name">{v.name}</span>
-          <span className="orgd-cv-num">{v.number}</span>
+          {v.number && <span className="orgd-cv-num">{v.number}</span>}
         </div>
         <svg className="orgd-cv-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
           <path d="M6 9l6 6 6-6"/>
@@ -317,7 +317,7 @@ function CompanyVehicleRow({ v }: { v: any }) {
       </button>
       {open && (
         <div className="orgd-cv-body">
-          <p className="orgd-cv-desc">{v.description}</p>
+          {v.description && <p className="orgd-cv-desc">{v.description}</p>}
           {v.domains && <p className="orgd-cv-domains"><strong>Domains:</strong> {v.domains}</p>}
           {v.sins && v.sins.length > 0 && (
             <div className="orgd-cv-sins">
@@ -331,6 +331,11 @@ function CompanyVehicleRow({ v }: { v: any }) {
                 </div>
               ))}
             </div>
+          )}
+          {v.url && (
+            <a href={v.url} target="_blank" rel="noopener noreferrer" className="orgd-cs-link">
+              Visit site ↗
+            </a>
           )}
         </div>
       )}
@@ -479,23 +484,6 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
               </div>
             )}
 
-            {/* Stats strip — Contracts count + Top Agencies only */}
-            {(company.contract_count > 0 || (company.agencies && company.agencies.length > 0)) && (
-              <div className="orgd-metas" style={{margin:'0 0 4px',borderTop:'1px solid var(--card-border)',borderBottom:'none'}}>
-                {company.contract_count > 0 && (
-                  <div className="orgd-meta">
-                    <div className="mlbl">Contracts</div>
-                    <div className="mval">{Number(company.contract_count).toLocaleString()}</div>
-                  </div>
-                )}
-                {company.agencies && company.agencies.length > 0 && (
-                  <div className="orgd-meta">
-                    <div className="mlbl">Top Agencies</div>
-                    <div className="mval sm">{(company.agencies as string[]).slice(0,2).join(', ')}</div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Tabs */}
             <div className="orgd-tabs">
@@ -654,6 +642,28 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
               </div>
             )}
 
+            {/* Services */}
+            {(pr?.services ?? []).length > 0 && (
+              <div className="orgd-section" style={{marginTop:8}}>
+                <div className="orgd-section-label">Services</div>
+                <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                  {(pr.services as any[]).map((svc: any, i: number) => (
+                    <div key={i} style={{padding:'18px 20px',background:'var(--card)',border:'1px solid var(--card-border)',borderRadius:10}}>
+                      <div style={{fontSize:15,fontWeight:700,color:'var(--ink)',marginBottom:6}}>{svc.name}</div>
+                      <p style={{fontSize:13,color:'var(--ink-2)',lineHeight:1.6,margin:'0 0 10px'}}>{svc.description}</p>
+                      {svc.capabilities && svc.capabilities.length > 0 && (
+                        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                          {(svc.capabilities as string[]).map((cap: string) => (
+                            <span key={cap} style={{padding:'3px 10px',borderRadius:20,fontFamily:'IBM Plex Mono',fontSize:10,fontWeight:600,background:'var(--canvas)',border:'1px solid var(--card-border)',color:'var(--ink-2)'}}>{cap}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>{/* orgd-main */}
 
           {/* ── Right sidebar ────────────────────────────────────────── */}
@@ -667,6 +677,9 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
               )}
               {pr?.phone && (
                 <CompanyFactRow icon={<IcPhone />} label="Phone" value={pr.phone} href={`tel:${pr.phone}`} />
+              )}
+              {company.total_value > 0 && (
+                <CompanyFactRow icon={<IcDol />} label="Total Awarded" value={fmtMoney(company.total_value) ?? '—'} />
               )}
             </div>
 
