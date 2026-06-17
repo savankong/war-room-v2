@@ -62,12 +62,14 @@ export async function GET(req: NextRequest) {
   } else if (type === 'contracts') {
     const rows = await db.sql`
       SELECT
-        id, external_id, title, signal_type, value, status,
+        id::text, external_id, title, signal_type, value::text, status,
         award_date, source, naics_code, awardee,
         service_branch, agency_or_lab, description,
         canonical_org_id, raw_payload
       FROM contracts
+      WHERE signal_type IS NOT NULL OR canonical_org_id IS NOT NULL
       ORDER BY award_date DESC NULLS LAST
+      LIMIT 10000
     `;
     if (format === 'json') return NextResponse.json(rows);
     return NextResponse.json({ error: 'Use format=json for contracts' }, { status: 400 });
