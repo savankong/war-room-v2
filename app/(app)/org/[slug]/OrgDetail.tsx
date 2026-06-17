@@ -434,7 +434,15 @@ export default function OrgDetail({ org, navOrgs, childOrgs, contacts, contracts
             <div style={{flex:1,minWidth:0}}>
               {org.branch && <div className="orgd-type">{org.branch}</div>}
               <div className="orgd-title">{org.name}</div>
-              {org.description && <p className="orgd-desc">{org.description}</p>}
+              {org.description && (
+                <p className="orgd-desc">
+                  {org.description.split(/(https?:\/\/[^\s]+)/).map((part, i) =>
+                    /^https?:\/\//.test(part)
+                      ? <a key={i} href={part} target="_blank" rel="noopener noreferrer">{part}</a>
+                      : part
+                  )}
+                </p>
+              )}
             </div>
           </div>
 
