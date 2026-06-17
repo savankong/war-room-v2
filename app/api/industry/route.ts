@@ -46,7 +46,7 @@ export async function GET() {
     readDb`
       SELECT
         o.id, o.full_name AS legal_name, o.full_name AS display_name,
-        o.loc AS headquarters, o.website,
+        o.loc AS headquarters, o.website, o.profile,
         COUNT(c.id)::int                                                          AS contract_count,
         COALESCE(SUM(c.value) FILTER (WHERE c.value > 0), 0)::bigint             AS total_value,
         ARRAY_AGG(DISTINCT COALESCE(c.agency_or_lab, c.service_branch))
@@ -55,7 +55,7 @@ export async function GET() {
       FROM orgs o
       LEFT JOIN contracts c ON c.canonical_org_id = o.id AND c.signal_type = 'Award'
       WHERE o.branch = 'Industry'
-      GROUP BY o.id, o.full_name, o.loc, o.website
+      GROUP BY o.id, o.full_name, o.loc, o.website, o.profile
     `,
   ]);
 
@@ -82,6 +82,7 @@ export async function GET() {
       employees:       ic.employees,
       revenue_b:       ic.revenue_b,
       focus_areas:     ic.focus_areas,
+      profile:         null,
       contract_count:  agg?.contract_count  ?? 0,
       total_value:     agg?.total_value     ?? Math.round((ic.dod_contract_value_b ?? 0) * 1e9),
       set_aside_count: agg?.set_aside_count ?? 0,
@@ -101,14 +102,15 @@ export async function GET() {
       name:            o.legal_name,
       display_name:    o.display_name,
       legal_name:      o.legal_name,
-      logo_url:        null,
+      logo_url:        o.profile?.logo_url ?? null,
       ticker:          null,
       headquarters:    o.headquarters,
       website:         o.website,
-      description:     null,
+      description:     o.profile?.full_description ?? null,
       employees:       null,
       revenue_b:       null,
       focus_areas:     null,
+      profile:         o.profile ?? null,
       contract_count:  o.contract_count,
       total_value:     o.total_value,
       set_aside_count: 0,
@@ -135,6 +137,7 @@ export async function GET() {
       employees:       null,
       revenue_b:       null,
       focus_areas:     null,
+      profile:         null,
       contract_count:  r.contract_count,
       total_value:     r.total_value,
       set_aside_count: r.set_aside_count,

@@ -275,6 +275,68 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
   );
 }
 
+/* ── Sidebar icons for CompanyDetail ───────────────────────────────── */
+const IcBldg = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M9 21V7l6-4v18M9 12h6M9 16h6M9 8h.01"/></svg>;
+const IcCase = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>;
+const IcAwd  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>;
+const IcGlb  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;
+const IcDol  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
+const IcPpl  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+const IcCmp  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>;
+const IcPin3 = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
+const IcCal  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+
+function CompanyFactRow({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: React.ReactNode; href?: string }) {
+  return (
+    <div className="orgd-fact-row">
+      <span className="orgd-fact-icon">{icon}</span>
+      <div className="orgd-fact-body">
+        <div className="orgd-fact-val">{href
+          ? <a href={href} target="_blank" rel="noopener noreferrer" className="orgd-fact-link">{value}</a>
+          : value}
+        </div>
+        <div className="orgd-fact-lbl">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+function CompanyVehicleRow({ v }: { v: any }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={`orgd-cv-row${open ? ' open' : ''}`}>
+      <button className="orgd-cv-hd" onClick={() => setOpen(o => !o)}>
+        <div className="orgd-cv-hd-left">
+          <span className="orgd-cv-name">{v.name}</span>
+          <span className="orgd-cv-num">{v.number}</span>
+        </div>
+        <svg className="orgd-cv-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="orgd-cv-body">
+          <p className="orgd-cv-desc">{v.description}</p>
+          {v.domains && <p className="orgd-cv-domains"><strong>Domains:</strong> {v.domains}</p>}
+          {v.sins && v.sins.length > 0 && (
+            <div className="orgd-cv-sins">
+              {v.sins.map((sin: any) => (
+                <div key={sin.code} className="orgd-cv-sin">
+                  <div className="orgd-cv-sin-hd">
+                    <span className="orgd-cv-sin-code">SIN {sin.code}</span>
+                    <span className="orgd-cv-sin-name">{sin.name}</span>
+                  </div>
+                  <p className="orgd-cv-sin-desc">{sin.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
   const [tab, setTab]           = useState<'people'|'contracts'|'subs'>('people');
   const [contracts, setContracts] = useState<any[]>([]);
@@ -333,6 +395,9 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
   const tier2 = people.filter(p => p.hierarchy_order === 2);
   const tier3 = people.filter(p => (p.hierarchy_order ?? 99) >= 3);
 
+  const pr = company.profile;
+  const vehicles = pr?.contract_vehicles ?? [];
+
   return (
     <>
       <div className="org-detail">
@@ -345,104 +410,106 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
           <span className="orgd-sname" style={{color:'var(--ink)',fontWeight:600,maxWidth:260,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{displayName}</span>
         </div>
 
-        <div className="org-detail-body">
-          {/* Hero */}
-          <div className="orgd-hero-top">
-            {company.logo_url
-              ? <img src={company.logo_url} alt="" style={{ width:56, height:56, borderRadius:8, objectFit:'contain', background:'#fff', border:'1px solid var(--card-border)', flexShrink:0 }} />
-              : <div className="orgd-orgmark" style={{background:color}}>{ini}</div>
-            }
-            <div style={{flex:1,minWidth:0}}>
-              <div className="orgd-type">
-                PRIME · {(company.sources??[]).join(' · ').replace('usaspending','USASpending').replace('sam_gov','SAM.gov')}
-              </div>
-              <div className="orgd-title">{company.display_name ?? displayName}</div>
-              <div style={{display:'flex',alignItems:'center',gap:8,marginTop:4,flexWrap:'wrap'}}>
-                <span style={{padding:'2px 8px',borderRadius:4,border:'1px solid #283a6b',background:'rgba(40,58,107,.07)',fontFamily:'IBM Plex Mono',fontSize:10,color:'#283a6b',fontWeight:600}}>PRIME</span>
-                {company.ticker && <span style={{padding:'2px 8px',borderRadius:4,border:'1px solid var(--card-border)',background:'var(--field)',fontFamily:'IBM Plex Mono',fontSize:10,color:'var(--ink-2)',fontWeight:600}}>{company.ticker}</span>}
-                {company.headquarters && <span style={{fontFamily:'IBM Plex Mono',fontSize:11,color:'var(--ink-3)'}}>📍 {company.headquarters}</span>}
-                {company.website && <a href={company.website} target="_blank" rel="noreferrer" style={{fontFamily:'IBM Plex Mono',fontSize:11,color:'var(--accent)',textDecoration:'none'}}>↗ Website</a>}
+        <div className="orgd-layout">
+
+          {/* ── Left column ─────────────────────────────────────────── */}
+          <div className="orgd-main">
+
+            {/* Logo + Name */}
+            <div className="orgd-identity">
+              {(company.logo_url || pr?.logo_url)
+                ? <img src={company.logo_url ?? pr?.logo_url} alt="" className="orgd-logo" />
+                : <div className="orgd-orgmark" style={{background:color,width:64,height:64,fontSize:22,borderRadius:14}}>{ini}</div>
+              }
+              <div>
+                <div className="orgd-type">
+                  PRIME · {(company.sources??[]).join(' · ').replace('usaspending','USASpending').replace('sam_gov','SAM.gov')}
+                </div>
+                <h1 className="orgd-title">{company.display_name ?? displayName}</h1>
+                {pr?.mission && <p className="orgd-mission">"{pr.mission}"</p>}
               </div>
             </div>
-          </div>
 
-          {/* Company description */}
-          {company.description && (
-            <div style={{ padding:'14px 28px', borderBottom:'1px solid var(--card-border)', fontSize:13, color:'var(--ink-2)', lineHeight:1.65 }}>
-              {company.description}
+            {/* Description */}
+            {(company.description || pr?.full_description) && (
+              <div className="orgd-section">
+                <div className="orgd-section-label">Description</div>
+                <p className="orgd-body-text">{pr?.full_description ?? company.description}</p>
+              </div>
+            )}
+
+            {/* Focus areas */}
+            {(company.focus_areas ?? []).length > 0 && (
+              <div className="orgd-section">
+                <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                  {(company.focus_areas as string[]).map((f: string) => (
+                    <span key={f} style={{padding:'3px 10px',borderRadius:20,fontFamily:'IBM Plex Mono',fontSize:10,fontWeight:600,background:'rgba(40,58,107,.07)',border:'1px solid rgba(40,58,107,.2)',color:'#283a6b'}}>{f}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Contract Vehicles */}
+            {vehicles.length > 0 && (
+              <div className="orgd-section">
+                <div className="orgd-section-label">Contract Vehicles</div>
+                <div className="orgd-cv-list">
+                  {vehicles.map((v: any, i: number) => <CompanyVehicleRow key={i} v={v} />)}
+                </div>
+              </div>
+            )}
+
+            {/* SBIR section */}
+            {company.sbir_phase && (
+              <div className="orgd-section" style={{ background: SBIR_AMBER_BG, borderRadius: 8, padding: '14px 18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <span style={{ fontFamily: 'IBM Plex Mono', fontSize: 10, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: SBIR_AMBER }}>SBIR / STTR</span>
+                  <SbirPhaseBadge phase={company.sbir_phase} />
+                  {company.sbir_award_count > 0 && (
+                    <span style={{ fontFamily: 'IBM Plex Mono', fontSize: 11, color: 'var(--ink-3)' }}>{company.sbir_award_count} awards</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {(company.sbir_designations ?? []).map((d: string) => (
+                    <span key={d} style={{ padding: '2px 7px', borderRadius: 4, fontFamily: 'IBM Plex Mono', fontSize: 10, fontWeight: 600, background: 'rgba(47,134,118,.1)', border: '1px solid rgba(47,134,118,.3)', color: '#2f8676' }}>{d}</span>
+                  ))}
+                  {(company.sbir_capabilities ?? []).map((c: string) => (
+                    <span key={c} style={{ padding: '2px 7px', borderRadius: 4, fontFamily: 'IBM Plex Mono', fontSize: 10, background: 'var(--field)', border: '1px solid var(--card-border)', color: 'var(--ink-2)' }}>{c}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Stats strip */}
+            <div className="orgd-metas" style={{margin:'0 0 4px',borderTop:'1px solid var(--card-border)',borderBottom:'none'}}>
+              <div className="orgd-meta">
+                <div className="mlbl">Total Awarded</div>
+                <div className="mval" style={{color:'var(--teal)'}}>{fmtMoney(company.total_value) ?? '—'}</div>
+              </div>
+              <div className="orgd-meta">
+                <div className="mlbl">Contracts</div>
+                <div className="mval">{Number(company.contract_count).toLocaleString()}</div>
+              </div>
+              <div className="orgd-meta">
+                <div className="mlbl">Executives</div>
+                <div className="mval">{loadingP ? '…' : people.length}</div>
+              </div>
+              {company.agencies && company.agencies.length > 0 && (
+                <div className="orgd-meta">
+                  <div className="mlbl">Top Agencies</div>
+                  <div className="mval sm">{(company.agencies as string[]).slice(0,2).join(', ')}</div>
+                </div>
+              )}
             </div>
-          )}
 
-          {/* Focus areas */}
-          {(company.focus_areas ?? []).length > 0 && (
-            <div style={{ padding:'10px 28px', borderBottom:'1px solid var(--card-border)', display:'flex', gap:6, flexWrap:'wrap' }}>
-              {(company.focus_areas as string[]).map((f: string) => (
-                <span key={f} style={{padding:'3px 10px',borderRadius:20,fontFamily:'IBM Plex Mono',fontSize:10,fontWeight:600,background:'rgba(40,58,107,.07)',border:'1px solid rgba(40,58,107,.2)',color:'#283a6b'}}>{f}</span>
+            {/* Tabs */}
+            <div className="orgd-tabs">
+              {TABS.map(t => (
+                <button key={t.key} onClick={() => setTab(t.key as 'people'|'contracts'|'subs')} className={`orgd-tab${tab===t.key?' on':''}`}>
+                  {t.label}{t.count > 0 ? ` (${t.count})` : ''}
+                </button>
               ))}
             </div>
-          )}
-
-          {/* Stats strip */}
-          <div className="orgd-metas">
-            <div className="orgd-meta">
-              <div className="mlbl">Total Awarded</div>
-              <div className="mval" style={{color:'var(--teal)'}}>{fmtMoney(company.total_value) ?? '—'}</div>
-            </div>
-            <div className="orgd-meta">
-              <div className="mlbl">Contracts</div>
-              <div className="mval">{Number(company.contract_count).toLocaleString()}</div>
-            </div>
-            <div className="orgd-meta">
-              <div className="mlbl">Executives</div>
-              <div className="mval">{loadingP ? '…' : people.length}</div>
-            </div>
-            {company.employees && (
-              <div className="orgd-meta">
-                <div className="mlbl">Employees</div>
-                <div className="mval">{Number(company.employees).toLocaleString()}</div>
-              </div>
-            )}
-            {company.revenue_b && (
-              <div className="orgd-meta">
-                <div className="mlbl">Annual Revenue</div>
-                <div className="mval">${Number(company.revenue_b).toFixed(1)}B</div>
-              </div>
-            )}
-            <div className="orgd-meta">
-              <div className="mlbl">Top Agencies</div>
-              <div className="mval sm">{(company.agencies??[]).slice(0,2).join(', ') || '—'}</div>
-            </div>
-          </div>
-
-          {/* SBIR section */}
-          {company.sbir_phase && (
-            <div style={{ padding: '16px 28px', borderBottom: '1px solid var(--card-border)', background: SBIR_AMBER_BG }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <span style={{ fontFamily: 'IBM Plex Mono', fontSize: 10, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: SBIR_AMBER }}>SBIR / STTR</span>
-                <SbirPhaseBadge phase={company.sbir_phase} />
-                {company.sbir_award_count > 0 && (
-                  <span style={{ fontFamily: 'IBM Plex Mono', fontSize: 11, color: 'var(--ink-3)' }}>{company.sbir_award_count} awards</span>
-                )}
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                {(company.sbir_designations ?? []).map((d: string) => (
-                  <span key={d} style={{ padding: '2px 7px', borderRadius: 4, fontFamily: 'IBM Plex Mono', fontSize: 10, fontWeight: 600, background: 'rgba(47,134,118,.1)', border: '1px solid rgba(47,134,118,.3)', color: '#2f8676' }}>{d}</span>
-                ))}
-                {(company.sbir_capabilities ?? []).map((c: string) => (
-                  <span key={c} style={{ padding: '2px 7px', borderRadius: 4, fontFamily: 'IBM Plex Mono', fontSize: 10, background: 'var(--field)', border: '1px solid var(--card-border)', color: 'var(--ink-2)' }}>{c}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Tabs */}
-          <div className="orgd-tabs">
-            {TABS.map(t => (
-              <button key={t.key} onClick={() => setTab(t.key as 'people'|'contracts'|'subs')} className={`orgd-tab${tab===t.key?' on':''}`}>
-                {t.label}{t.count > 0 ? ` (${t.count})` : ''}
-              </button>
-            ))}
-          </div>
 
           {/* People tab */}
           {tab === 'people' && (
@@ -582,7 +649,45 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
               )}
             </div>
           )}
-        </div>
+          </div>{/* orgd-main */}
+
+          {/* ── Right sidebar ────────────────────────────────────────── */}
+          <aside className="orgd-sidebar">
+            <div className="orgd-sidebar-card">
+              {pr?.offices != null && (
+                <CompanyFactRow icon={<IcBldg />} label="Offices" value={`${pr.offices} Offices`} />
+              )}
+              {(pr?.industry || company.focus_areas?.[0]) && (
+                <CompanyFactRow icon={<IcCase />} label="Industry" value={pr?.industry ?? company.focus_areas[0]} />
+              )}
+              {pr?.awards && (
+                <CompanyFactRow icon={<IcAwd />} label="Awards" value={pr.awards} />
+              )}
+              {(company.website || pr) && (
+                <CompanyFactRow icon={<IcGlb />} label="Website" value="View site" href={company.website ?? undefined} />
+              )}
+              {(pr?.revenue || company.revenue_b) && (
+                <CompanyFactRow icon={<IcDol />} label="Revenue" value={pr?.revenue ?? `$${Number(company.revenue_b).toFixed(1)}B`} />
+              )}
+              {(pr?.employees || company.employees) && (
+                <CompanyFactRow icon={<IcPpl />} label="Employees" value={pr?.employees ?? Number(company.employees).toLocaleString()} />
+              )}
+              {pr?.company_type && (
+                <CompanyFactRow icon={<IcCmp />} label="Company" value={pr.company_type} />
+              )}
+              {company.headquarters && (
+                <CompanyFactRow icon={<IcPin3 />} label="Headquarters" value={company.headquarters} />
+              )}
+              {pr?.founded && (
+                <CompanyFactRow icon={<IcCal />} label="Founded" value={pr.founded} />
+              )}
+              {company.ticker && (
+                <CompanyFactRow icon={<IcDol />} label="Ticker" value={company.ticker} />
+              )}
+            </div>
+          </aside>
+
+        </div>{/* orgd-layout */}
       </div>
 
       {/* Person slide-over — full wr-pf-* layout */}
