@@ -422,26 +422,18 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
           <div className="orgd-main">
 
             {/* Logo + Name */}
-            <div className="orgd-identity" style={{justifyContent:'space-between',alignItems:'flex-start'}}>
-              <div style={{display:'flex',alignItems:'flex-start',gap:22,flex:1,minWidth:0}}>
-                {(company.logo_url || pr?.logo_url)
-                  ? <img src={company.logo_url ?? pr?.logo_url} alt="" className="orgd-logo" />
-                  : <div className="orgd-orgmark" style={{background:color,width:64,height:64,fontSize:22,borderRadius:14}}>{ini}</div>
-                }
-                <div style={{minWidth:0}}>
-                  <div className="orgd-type">
-                    PRIME · {(company.sources??[]).join(' · ').replace('usaspending','USASpending').replace('sam_gov','SAM.gov')}
-                  </div>
-                  <h1 className="orgd-title">{company.display_name ?? displayName}</h1>
-                  {pr?.mission && <p className="orgd-mission">"{pr.mission}"</p>}
+            <div className="orgd-identity">
+              {(company.logo_url || pr?.logo_url)
+                ? <img src={company.logo_url ?? pr?.logo_url} alt="" className="orgd-logo" />
+                : <div className="orgd-orgmark" style={{background:color,width:64,height:64,fontSize:22,borderRadius:14}}>{ini}</div>
+              }
+              <div>
+                <div className="orgd-type">
+                  PRIME · {(company.sources??[]).join(' · ').replace('usaspending','USASpending').replace('sam_gov','SAM.gov')}
                 </div>
+                <h1 className="orgd-title">{company.display_name ?? displayName}</h1>
+                {pr?.mission && <p className="orgd-mission">"{pr.mission}"</p>}
               </div>
-              {company.total_value > 0 && (
-                <div style={{flexShrink:0,textAlign:'right',paddingLeft:16}}>
-                  <div style={{fontFamily:'IBM Plex Mono',fontSize:10,letterSpacing:'1.2px',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:4}}>Total Awarded</div>
-                  <div style={{fontSize:22,fontWeight:800,letterSpacing:'-.5px',color:'var(--teal)',fontFamily:'Archivo,sans-serif'}}>{fmtMoney(company.total_value)}</div>
-                </div>
-              )}
             </div>
 
             {/* Description */}
@@ -646,13 +638,39 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
             {(pr?.services ?? []).length > 0 && (
               <div className="orgd-section" style={{marginTop:8}}>
                 <div className="orgd-section-label">Services</div>
-                <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                <div style={{display:'flex',flexDirection:'column',gap:12}}>
                   {(pr.services as any[]).map((svc: any, i: number) => (
-                    <div key={i} style={{padding:'18px 20px',background:'var(--card)',border:'1px solid var(--card-border)',borderRadius:10}}>
-                      <div style={{fontSize:15,fontWeight:700,color:'var(--ink)',marginBottom:6}}>{svc.name}</div>
-                      <p style={{fontSize:13,color:'var(--ink-2)',lineHeight:1.6,margin:'0 0 10px'}}>{svc.description}</p>
+                    <div key={i} style={{background:'var(--card)',border:'1px solid var(--card-border)',borderRadius:10,overflow:'hidden'}}>
+                      {/* Header */}
+                      <div style={{padding:'16px 20px 12px',borderBottom: (svc.sub_services?.length || svc.capabilities?.length) ? '1px solid var(--card-border)' : 'none'}}>
+                        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:4}}>
+                          <div style={{fontSize:15,fontWeight:700,color:'var(--ink)'}}>{svc.name}</div>
+                          {svc.url && (
+                            <a href={svc.url} target="_blank" rel="noopener noreferrer" style={{fontFamily:'IBM Plex Mono',fontSize:10,fontWeight:600,color:'var(--accent)',textDecoration:'none',whiteSpace:'nowrap',flexShrink:0,marginTop:2}}>
+                              Learn more ↗
+                            </a>
+                          )}
+                        </div>
+                        {svc.tagline && <div style={{fontFamily:'IBM Plex Mono',fontSize:11,color:'var(--ink-3)',marginBottom:6}}>{svc.tagline}</div>}
+                        <p style={{fontSize:13,color:'var(--ink-2)',lineHeight:1.6,margin:0}}>{svc.description}</p>
+                      </div>
+                      {/* Sub-services */}
+                      {svc.sub_services && svc.sub_services.length > 0 && (
+                        <div style={{display:'flex',flexDirection:'column'}}>
+                          {(svc.sub_services as any[]).map((sub: any, j: number) => (
+                            <div key={j} style={{padding:'11px 20px',borderBottom:'1px solid var(--card-border)',display:'flex',gap:12,alignItems:'flex-start'}}>
+                              <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0,marginTop:5}}/>
+                              <div>
+                                <div style={{fontSize:12.5,fontWeight:600,color:'var(--ink)',marginBottom:2}}>{sub.name}</div>
+                                <div style={{fontSize:12,color:'var(--ink-3)',lineHeight:1.55}}>{sub.description}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* Platform capabilities tags */}
                       {svc.capabilities && svc.capabilities.length > 0 && (
-                        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                        <div style={{padding:'12px 20px',display:'flex',flexWrap:'wrap',gap:6}}>
                           {(svc.capabilities as string[]).map((cap: string) => (
                             <span key={cap} style={{padding:'3px 10px',borderRadius:20,fontFamily:'IBM Plex Mono',fontSize:10,fontWeight:600,background:'var(--canvas)',border:'1px solid var(--card-border)',color:'var(--ink-2)'}}>{cap}</span>
                           ))}
