@@ -240,15 +240,15 @@ export async function GET(req: NextRequest) {
           signal_type, source, awardee, canonical_org_id,
           raw_payload
         ) VALUES (
-          ${newId}::uuid,
+          ${newId},
           ${c.id},
           ${c.title},
           ${c.description},
-          ${'Contract Vehicle'},
-          ${c.source},
-          ${c.recipient},
-          ${c.org_id},
-          ${'{}'}::jsonb
+          'Contract Vehicle',
+          'carahsoft',
+          'Carahsoft Technology Corp',
+          'granicus',
+          '{}'
         )
       `;
       inserted++;
