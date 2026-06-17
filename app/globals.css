@@ -385,24 +385,9 @@ body[data-page="account"] .main { overflow-y: auto; }
   width: 100%;
 }
 
-/* Multi-child rows: space above for connector bar */
+/* Multi-child rows: no extra padding — horizontal bracket removed */
 .oct-row.multi {
-  padding-top: 28px;
   position: relative;
-}
-
-/* Horizontal bar — only shown when container is wide enough for cards to fit on one line */
-@container (min-width: 700px) {
-  .oct-row.multi::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 105px;
-    right: 105px;
-    height: 2px;
-    background: var(--line);
-    pointer-events: none;
-  }
 }
 
 /* Each card column */
@@ -411,25 +396,6 @@ body[data-page="account"] .main { overflow-y: auto; }
   flex-direction: column;
   align-items: center;
   position: relative;
-}
-
-/* Vertical drop — only when horizontal bar is showing */
-@container (min-width: 700px) {
-  .oct-row.multi .oct-col::before {
-    content: '';
-    position: absolute;
-    top: -28px;
-    left: calc(50% - 1px);
-    width: 2px;
-    height: 28px;
-    background: var(--line);
-    pointer-events: none;
-  }
-}
-
-/* When wrapping (small container): remove top padding on multi rows */
-@container (max-width: 699px) {
-  .oct-row.multi { padding-top: 0; }
 }
 
 /* Card sizing via container queries */
@@ -467,10 +433,13 @@ body[data-page="account"] .main { overflow-y: auto; }
   padding: 10px 12px 9px;
   border-bottom: 1px solid var(--card-border);
   line-height: 1.3;
+  /* Fixed 2-line height: 2 × 13px × 1.3 + 10px + 9px = ~53px */
+  height: 53px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* Person row: avatar + name/sub */
