@@ -417,18 +417,26 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
           <div className="orgd-main">
 
             {/* Logo + Name */}
-            <div className="orgd-identity">
-              {(company.logo_url || pr?.logo_url)
-                ? <img src={company.logo_url ?? pr?.logo_url} alt="" className="orgd-logo" />
-                : <div className="orgd-orgmark" style={{background:color,width:64,height:64,fontSize:22,borderRadius:14}}>{ini}</div>
-              }
-              <div>
-                <div className="orgd-type">
-                  PRIME · {(company.sources??[]).join(' · ').replace('usaspending','USASpending').replace('sam_gov','SAM.gov')}
+            <div className="orgd-identity" style={{justifyContent:'space-between',alignItems:'flex-start'}}>
+              <div style={{display:'flex',alignItems:'flex-start',gap:22,flex:1,minWidth:0}}>
+                {(company.logo_url || pr?.logo_url)
+                  ? <img src={company.logo_url ?? pr?.logo_url} alt="" className="orgd-logo" />
+                  : <div className="orgd-orgmark" style={{background:color,width:64,height:64,fontSize:22,borderRadius:14}}>{ini}</div>
+                }
+                <div style={{minWidth:0}}>
+                  <div className="orgd-type">
+                    PRIME · {(company.sources??[]).join(' · ').replace('usaspending','USASpending').replace('sam_gov','SAM.gov')}
+                  </div>
+                  <h1 className="orgd-title">{company.display_name ?? displayName}</h1>
+                  {pr?.mission && <p className="orgd-mission">"{pr.mission}"</p>}
                 </div>
-                <h1 className="orgd-title">{company.display_name ?? displayName}</h1>
-                {pr?.mission && <p className="orgd-mission">"{pr.mission}"</p>}
               </div>
+              {company.total_value > 0 && (
+                <div style={{flexShrink:0,textAlign:'right',paddingLeft:16}}>
+                  <div style={{fontFamily:'IBM Plex Mono',fontSize:10,letterSpacing:'1.2px',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:4}}>Total Awarded</div>
+                  <div style={{fontSize:22,fontWeight:800,letterSpacing:'-.5px',color:'var(--teal)',fontFamily:'Archivo,sans-serif'}}>{fmtMoney(company.total_value)}</div>
+                </div>
+              )}
             </div>
 
             {/* Description */}
@@ -446,16 +454,6 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
                   {(company.focus_areas as string[]).map((f: string) => (
                     <span key={f} style={{padding:'3px 10px',borderRadius:20,fontFamily:'IBM Plex Mono',fontSize:10,fontWeight:600,background:'rgba(40,58,107,.07)',border:'1px solid rgba(40,58,107,.2)',color:'#283a6b'}}>{f}</span>
                   ))}
-                </div>
-              </div>
-            )}
-
-            {/* Contract Vehicles */}
-            {vehicles.length > 0 && (
-              <div className="orgd-section">
-                <div className="orgd-section-label">Contract Vehicles</div>
-                <div className="orgd-cv-list">
-                  {vehicles.map((v: any, i: number) => <CompanyVehicleRow key={i} v={v} />)}
                 </div>
               </div>
             )}
@@ -481,27 +479,23 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
               </div>
             )}
 
-            {/* Stats strip */}
-            <div className="orgd-metas" style={{margin:'0 0 4px',borderTop:'1px solid var(--card-border)',borderBottom:'none'}}>
-              <div className="orgd-meta">
-                <div className="mlbl">Total Awarded</div>
-                <div className="mval" style={{color:'var(--teal)'}}>{fmtMoney(company.total_value) ?? '—'}</div>
+            {/* Stats strip — Contracts count + Top Agencies only */}
+            {(company.contract_count > 0 || (company.agencies && company.agencies.length > 0)) && (
+              <div className="orgd-metas" style={{margin:'0 0 4px',borderTop:'1px solid var(--card-border)',borderBottom:'none'}}>
+                {company.contract_count > 0 && (
+                  <div className="orgd-meta">
+                    <div className="mlbl">Contracts</div>
+                    <div className="mval">{Number(company.contract_count).toLocaleString()}</div>
+                  </div>
+                )}
+                {company.agencies && company.agencies.length > 0 && (
+                  <div className="orgd-meta">
+                    <div className="mlbl">Top Agencies</div>
+                    <div className="mval sm">{(company.agencies as string[]).slice(0,2).join(', ')}</div>
+                  </div>
+                )}
               </div>
-              <div className="orgd-meta">
-                <div className="mlbl">Contracts</div>
-                <div className="mval">{Number(company.contract_count).toLocaleString()}</div>
-              </div>
-              <div className="orgd-meta">
-                <div className="mlbl">Executives</div>
-                <div className="mval">{loadingP ? '…' : people.length}</div>
-              </div>
-              {company.agencies && company.agencies.length > 0 && (
-                <div className="orgd-meta">
-                  <div className="mlbl">Top Agencies</div>
-                  <div className="mval sm">{(company.agencies as string[]).slice(0,2).join(', ')}</div>
-                </div>
-              )}
-            </div>
+            )}
 
             {/* Tabs */}
             <div className="orgd-tabs">
@@ -650,6 +644,16 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
               )}
             </div>
           )}
+            {/* Contract Vehicles — below org chart */}
+            {vehicles.length > 0 && (
+              <div className="orgd-section" style={{marginTop:8}}>
+                <div className="orgd-section-label">Contract Vehicles</div>
+                <div className="orgd-cv-list">
+                  {vehicles.map((v: any, i: number) => <CompanyVehicleRow key={i} v={v} />)}
+                </div>
+              </div>
+            )}
+
           </div>{/* orgd-main */}
 
           {/* ── Right sidebar ────────────────────────────────────────── */}
@@ -1511,7 +1515,7 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
       <div className="wr-hbody">
 
         {/* ── Left index ── */}
-        <aside className={`wr-hindex${mobileSidebarOpen ? ' mobile-open' : ''}${seg === 'ind' && (selectedCompany || selectedSub) ? ' ind-hidden' : ''}`}>
+        <aside className={`wr-hindex${mobileSidebarOpen ? ' mobile-open' : ''}`}>
 
           {/* GOV sidebar */}
           {seg === 'gov' && <>
@@ -1677,11 +1681,7 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
         {seg === 'gov' ? (
           <Directory groups={groups} activeSection={activeSection} />
         ) : selectedCompany ? (
-          <div className="ind-detail-wrap ind-detail-enter">
-            <div className="ind-detail-inner">
-              <CompanyDetail company={selectedCompany} onBack={() => { setSelectedCompany(null); }} />
-            </div>
-          </div>
+          <CompanyDetail company={selectedCompany} onBack={() => { setSelectedCompany(null); }} />
         ) : selectedSub ? (
           <SubDetail sub={selectedSub} onBack={() => setSelectedSub(null)} />
         ) : indRole === 'subs' ? (
