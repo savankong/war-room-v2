@@ -232,6 +232,7 @@ export async function GET(req: NextRequest) {
   await db`DELETE FROM contracts WHERE source = 'carahsoft' AND canonical_org_id = 'granicus'`;
 
   for (const c of CONTRACTS) {
+    const newId = crypto.randomUUID();
     try {
       await db`
         INSERT INTO contracts (
@@ -239,15 +240,15 @@ export async function GET(req: NextRequest) {
           signal_type, source, awardee, canonical_org_id,
           raw_payload
         ) VALUES (
-          gen_random_uuid(),
+          ${newId}::uuid,
           ${c.id},
           ${c.title},
           ${c.description},
-          'Contract Vehicle',
+          ${'Contract Vehicle'},
           ${c.source},
           ${c.recipient},
           ${c.org_id},
-          '{}'
+          ${'{}'}::jsonb
         )
       `;
       inserted++;
