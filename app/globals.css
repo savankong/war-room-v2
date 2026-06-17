@@ -281,6 +281,86 @@ body[data-page="account"] .main { overflow-y: auto; }
 }
 .orgd-desc { font-size: 14px; color: var(--ink-2); line-height: 1.6; }
 
+/* ── New two-column layout ── */
+.orgd-layout {
+  display: grid; grid-template-columns: 1fr 320px; gap: 32px;
+  padding: 28px 34px 60px; width: 100%; box-sizing: border-box; align-items: start;
+}
+.orgd-main { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+
+/* Identity block */
+.orgd-identity { display: flex; align-items: flex-start; gap: 22px; }
+.orgd-logo {
+  height: 52px; max-width: 180px; object-fit: contain;
+  filter: var(--logo-filter, none); flex-shrink: 0;
+}
+.orgd-mission {
+  font-size: 14px; color: var(--ink-3); font-style: italic;
+  margin-top: 5px; line-height: 1.5;
+}
+
+/* Section wrapper */
+.orgd-section { display: flex; flex-direction: column; gap: 12px; }
+.orgd-section-label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1.6px;
+  text-transform: uppercase; color: var(--ink-3); font-weight: 600;
+}
+.orgd-body-text { font-size: 14px; color: var(--ink-2); line-height: 1.7; margin: 0; }
+
+/* Contract vehicle accordion */
+.orgd-cv-list { display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--card-border); border-radius: 10px; overflow: hidden; }
+.orgd-cv-row { background: var(--card); }
+.orgd-cv-row + .orgd-cv-row { border-top: 1px solid var(--card-border); }
+.orgd-cv-hd {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; gap: 12px; cursor: pointer; background: none; border: none;
+  text-align: left;
+}
+.orgd-cv-hd:hover { background: var(--canvas); }
+.orgd-cv-hd-left { display: flex; flex-direction: column; gap: 4px; }
+.orgd-cv-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+.orgd-cv-num {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--accent); background: var(--accent-muted);
+  border: 1px solid rgba(37,99,184,.2); border-radius: 4px;
+  padding: 2px 7px; display: inline-block; width: fit-content;
+}
+.orgd-cv-chev { color: var(--ink-3); flex-shrink: 0; transition: transform .2s; }
+.orgd-cv-row.open .orgd-cv-chev { transform: rotate(180deg); }
+.orgd-cv-body { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 14px; }
+.orgd-cv-desc { font-size: 13.5px; color: var(--ink-2); line-height: 1.65; margin: 0; }
+.orgd-cv-domains { font-size: 13px; color: var(--ink-2); margin: 0; }
+.orgd-cv-sins { display: flex; flex-direction: column; gap: 10px; }
+.orgd-cv-sin {
+  background: var(--canvas); border: 1px solid var(--card-border);
+  border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;
+}
+.orgd-cv-sin-hd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.orgd-cv-sin-code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 700;
+  background: var(--navy); color: #fff; border-radius: 4px; padding: 2px 7px;
+}
+.orgd-cv-sin-name { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.orgd-cv-sin-desc { font-size: 12.5px; color: var(--ink-2); line-height: 1.6; margin: 0; }
+
+/* Sidebar */
+.orgd-sidebar { position: sticky; top: 16px; }
+.orgd-sidebar-card {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 12px; overflow: hidden;
+}
+.orgd-fact-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 18px; border-bottom: 1px solid var(--card-border);
+}
+.orgd-fact-row:last-child { border-bottom: none; }
+.orgd-fact-icon { color: var(--ink-3); margin-top: 2px; flex-shrink: 0; width: 16px; }
+.orgd-fact-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.orgd-fact-val { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.orgd-fact-lbl { font-size: 11px; color: var(--ink-3); font-family: 'IBM Plex Mono', monospace; }
+.orgd-fact-link { color: var(--accent); text-decoration: none; font-weight: 600; }
+.orgd-fact-link:hover { text-decoration: underline; }
+
 /* hero right action buttons */
 .orgd-flw { font-size: 12px; color: var(--ink-3); font-family: 'IBM Plex Mono', monospace; }
 .orgd-acts { margin-left: auto; display: flex; gap: 8px; align-items: flex-start; flex-shrink: 0; }
@@ -3142,6 +3222,12 @@ textarea.adm-input { resize:vertical; }
   /* Tabs scroll horizontally */
   .orgd-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .orgd-tab { white-space: nowrap; }
+
+  /* New layout collapses to single column */
+  .orgd-layout { grid-template-columns: 1fr; padding: 16px 16px 40px; gap: 24px; }
+  .orgd-sidebar { position: static; }
+  .orgd-identity { flex-direction: row; align-items: center; gap: 14px; }
+  .orgd-logo { height: 36px; max-width: 140px; }
 
   /* Org section cards — single column */
   .child-org-grid { grid-template-columns: 1fr !important; }

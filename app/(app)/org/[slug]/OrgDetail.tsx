@@ -370,6 +370,70 @@ function OrgChartBroad({ contacts, onSelect }: { contacts: Contact[]; onSelect: 
   );
 }
 
+/* ── Fact row for sidebar ─────────────────────────────────────────────── */
+function FactRow({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: React.ReactNode; href?: string }) {
+  return (
+    <div className="orgd-fact-row">
+      <span className="orgd-fact-icon">{icon}</span>
+      <div className="orgd-fact-body">
+        <div className="orgd-fact-val">{href
+          ? <a href={href} target="_blank" rel="noopener noreferrer" className="orgd-fact-link">{value}</a>
+          : value}
+        </div>
+        <div className="orgd-fact-lbl">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Contract vehicle accordion item ─────────────────────────────────── */
+function VehicleRow({ v }: { v: NonNullable<NonNullable<OrgProfile['profile']>['contract_vehicles']>[number] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={`orgd-cv-row${open ? ' open' : ''}`}>
+      <button className="orgd-cv-hd" onClick={() => setOpen(o => !o)}>
+        <div className="orgd-cv-hd-left">
+          <span className="orgd-cv-name">{v.name}</span>
+          <span className="orgd-cv-num">{v.number}</span>
+        </div>
+        <svg className="orgd-cv-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="orgd-cv-body">
+          <p className="orgd-cv-desc">{v.description}</p>
+          {v.domains && <p className="orgd-cv-domains"><strong>Domains:</strong> {v.domains}</p>}
+          {v.sins && v.sins.length > 0 && (
+            <div className="orgd-cv-sins">
+              {v.sins.map(sin => (
+                <div key={sin.code} className="orgd-cv-sin">
+                  <div className="orgd-cv-sin-hd">
+                    <span className="orgd-cv-sin-code">SIN {sin.code}</span>
+                    <span className="orgd-cv-sin-name">{sin.name}</span>
+                  </div>
+                  <p className="orgd-cv-sin-desc">{sin.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Icons for sidebar ────────────────────────────────────────────────── */
+const IcBuilding  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M9 21V7l6-4v18M9 12h6M9 16h6M9 8h.01"/></svg>;
+const IcBriefcase = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>;
+const IcAward2    = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>;
+const IcGlobe     = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;
+const IcDollar    = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
+const IcUsers     = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+const IcCompany   = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>;
+const IcMapPin    = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
+const IcCalendar  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+
 /* ── Main component ──────────────────────────────────────────────────── */
 interface Props {
   org: OrgProfile;
@@ -386,11 +450,24 @@ export default function OrgDetail({ org, navOrgs, childOrgs, contacts, contracts
 
   const color = colorFor(org.name);
   const ini = initials(org.name);
+  const p = org.profile;
+  const vehicles = p?.contract_vehicles ?? [];
 
   const TABS = [
-    { key: 'chart', label: 'Chart' },
-    { key: 'contracts', label: 'Contracts', count: contracts.length },
+    { key: 'chart', label: `People (${contacts.length})` },
+    { key: 'contracts', label: `Contracts (${contracts.length})` },
   ];
+
+  /* Breadcrumb builder */
+  const crumbs: { id: string; name: string }[] = [];
+  let pid = org.parent_id;
+  const navMap = new Map(navOrgs.map(o => [o.id, o]));
+  while (pid && crumbs.length < 3) {
+    const par = navMap.get(pid);
+    if (!par) break;
+    crumbs.unshift({ id: par.id, name: par.name });
+    pid = par.parent_id;
+  }
 
   return (
     <>
@@ -398,156 +475,161 @@ export default function OrgDetail({ org, navOrgs, childOrgs, contacts, contracts
         {/* Breadcrumb */}
         <div className="orgd-sub">
           <Link href="/" className="orgd-back">←</Link>
-          {(() => {
-            const crumbs: { id: string; name: string }[] = [];
-            let pid = org.parent_id;
-            const navMap = new Map(navOrgs.map(o => [o.id, o]));
-            while (pid && crumbs.length < 3) {
-              const p = navMap.get(pid);
-              if (!p) break;
-              crumbs.unshift({ id: p.id, name: p.name });
-              pid = p.parent_id;
-            }
-            return crumbs.map(c => (
-              <span key={c.id} style={{display:'flex',alignItems:'center',gap:4}}>
-                <span className="orgd-sname" style={{color:'var(--ink-3)'}}>›</span>
-                <Link href={`/org/${c.id}`} prefetch={false} className="orgd-sname" style={{textDecoration:'none',maxWidth:140,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                  {c.name}
-                </Link>
-              </span>
-            ));
-          })()}
-          {org.abs_hierarchy_level != null && (
-            <span className="orgd-level-badge">L{org.abs_hierarchy_level}</span>
-          )}
+          {crumbs.map(c => (
+            <span key={c.id} style={{display:'flex',alignItems:'center',gap:4}}>
+              <span className="orgd-sname" style={{color:'var(--ink-3)'}}>›</span>
+              <Link href={`/org/${c.id}`} prefetch={false} className="orgd-sname" style={{textDecoration:'none',maxWidth:140,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                {c.name}
+              </Link>
+            </span>
+          ))}
           <span className="orgd-sname" style={{color:'var(--ink-3)'}}>›</span>
-          <span className="orgd-sname" style={{color:'var(--ink)',fontWeight:600,maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{org.name}</span>
+          <span className="orgd-sname" style={{color:'var(--ink)',fontWeight:600}}>{org.name}</span>
         </div>
 
-        <div className="org-detail-body">
-          {/* Hero */}
-          <div className="orgd-hero-top">
-            <div
-              className="orgd-orgmark"
-              style={{background:color}}
-            >{ini}</div>
-            <div style={{flex:1,minWidth:0}}>
-              {org.branch && <div className="orgd-type">{org.branch}</div>}
-              <div className="orgd-title">{org.name}</div>
-              {org.description && (
-                <p className="orgd-desc">
-                  {org.description.split(/(https?:\/\/[^\s]+)/).map((part, i) =>
-                    /^https?:\/\//.test(part)
-                      ? <a key={i} href={part} target="_blank" rel="noopener noreferrer">{part}</a>
-                      : part
-                  )}
-                </p>
-              )}
-            </div>
-          </div>
+        <div className="orgd-layout">
 
-          {/* Stats strip */}
-          <div className="orgd-metas">
-            <div className="orgd-meta">
-              <div className="mlbl">HQ</div>
-              <div className="mval sm">{org.hq_address ?? '—'}</div>
-            </div>
-            <div className="orgd-meta">
-              <div className="mlbl">DoD Level</div>
-              <div className="mval">{org.abs_hierarchy_level != null ? `L${org.abs_hierarchy_level}` : '—'}</div>
-            </div>
-            <div className="orgd-meta">
-              <div className="mlbl">Contacts</div>
-              <div className="mval">{org.contact_count}</div>
-            </div>
-            <div className="orgd-meta">
-              <div className="mlbl">Sub-orgs</div>
-              <div className="mval">{childOrgs.length}</div>
-            </div>
-            <div className="orgd-meta">
-              <div className="mlbl">Contracts</div>
-              <div className="mval">{contracts.length}</div>
-            </div>
-          </div>
+          {/* ── Left column ─────────────────────────────────────────── */}
+          <div className="orgd-main">
 
-          {/* Tabs */}
-          <div className="orgd-tabs">
-            {TABS.map(t => (
-              <button key={t.key} onClick={() => setTab(t.key)} className={`orgd-tab${tab===t.key?' on':''}`}>
-                {t.label}{t.count !== undefined && t.count > 0 ? ` (${t.count})` : ''}
-              </button>
-            ))}
-          </div>
+            {/* Logo + Name header */}
+            <div className="orgd-identity">
+              {p?.logo_url
+                ? <img src={p.logo_url} alt={org.name} className="orgd-logo" />
+                : <div className="orgd-orgmark" style={{background:color,width:64,height:64,fontSize:22,borderRadius:14}}>{ini}</div>
+              }
+              <div>
+                {org.branch && <div className="orgd-type">{org.branch}</div>}
+                <h1 className="orgd-title">{org.name}</h1>
+                {p?.mission && <p className="orgd-mission">"{p.mission}"</p>}
+              </div>
+            </div>
 
-          {/* Chart tab */}
-          {tab === 'chart' && (
-            <div className="oc-chart-wrap">
-              <OrgChartBroad contacts={contacts} onSelect={setPanel} />
+            {/* Description */}
+            {(p?.full_description || org.description) && (
+              <div className="orgd-section">
+                <div className="orgd-section-label">Description</div>
+                <p className="orgd-body-text">{p?.full_description ?? org.description}</p>
+              </div>
+            )}
 
-              {childOrgs.length > 0 && (
-                <div className="child-orgs-section">
-                  <div className="child-orgs-label">SUBORDINATE ORGANIZATIONS ({childOrgs.length})</div>
-                  <div className="ohier-row">
-                    {childOrgs.map(child => (
-                      <Link key={child.id} href={`/org/${child.id}`} prefetch={false} className="child-org-card">
-                        <div className="child-org-card-name">{child.name}</div>
-                        <div className="child-org-card-meta">
-                          {child.contact_count > 0 && <span>{child.contact_count} contacts</span>}
-                          {child.contact_count > 0 && child.contract_count > 0 && <span> · </span>}
-                          {child.contract_count > 0 && <span>{child.contract_count} contracts</span>}
-                          {child.contact_count === 0 && child.contract_count === 0 && <span>{child.organization_type ?? '—'}</span>}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+            {/* Contract Vehicles */}
+            {vehicles.length > 0 && (
+              <div className="orgd-section">
+                <div className="orgd-section-label">Contract Vehicles</div>
+                <div className="orgd-cv-list">
+                  {vehicles.map((v, i) => <VehicleRow key={i} v={v} />)}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
-          {/* Contracts tab */}
-          {tab === 'contracts' && (
-            <div style={{paddingTop:16}}>
-              {contracts.length === 0 ? (
-                <div className="oc-empty">No contracts linked to this org</div>
-              ) : (
-                <div style={{display:'flex',flexDirection:'column'}}>
-                  {contracts.map(c => {
-                    const typeColor = c.signal_type==='Opportunity' ? 'var(--teal)' : c.signal_type==='Award' ? 'var(--navy)' : 'var(--amber)';
-                    const badgeCls = c.signal_type==='Opportunity' ? 'sig-badge-opp' : c.signal_type==='Award' ? 'sig-badge-award' : 'sig-badge-budget';
-                    return (
-                      <div key={c.id} className="sv-sig-row">
-                        <div className="sv-sig-dot" style={{background:typeColor}} />
-                        <div className="sv-sig-body">
-                          <div className="sv-sig-title">{c.title}</div>
-                          <div className="sv-sig-meta-row">
-                            <span className={`sig-badge ${badgeCls}`}>{c.signal_type ?? 'Signal'}</span>
-                            <span className="sv-sig-val" style={{color:typeColor}}>{fmtMoney(c.value)}</span>
-                            {c.award_date && (
-                              <span className="sig-deadline">
-                                {new Date(c.award_date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
-                              </span>
-                            )}
-                            <span className="sig-set-aside">{c.source?.replace('_','.')}</span>
-                          </div>
-                        </div>
+            {/* Tabs + org chart / contracts */}
+            <div className="orgd-section" style={{marginTop:8}}>
+              <div className="orgd-tabs">
+                {TABS.map(t => (
+                  <button key={t.key} onClick={() => setTab(t.key)} className={`orgd-tab${tab===t.key?' on':''}`}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {tab === 'chart' && (
+                <div className="oc-chart-wrap">
+                  <OrgChartBroad contacts={contacts} onSelect={setPanel} />
+                  {childOrgs.length > 0 && (
+                    <div className="child-orgs-section">
+                      <div className="child-orgs-label">SUBORDINATE ORGANIZATIONS ({childOrgs.length})</div>
+                      <div className="ohier-row">
+                        {childOrgs.map(child => (
+                          <Link key={child.id} href={`/org/${child.id}`} prefetch={false} className="child-org-card">
+                            <div className="child-org-card-name">{child.name}</div>
+                            <div className="child-org-card-meta">
+                              {child.contact_count > 0 && <span>{child.contact_count} contacts</span>}
+                              {child.contact_count > 0 && child.contract_count > 0 && <span> · </span>}
+                              {child.contract_count > 0 && <span>{child.contract_count} contracts</span>}
+                              {child.contact_count === 0 && child.contract_count === 0 && <span>{child.organization_type ?? '—'}</span>}
+                            </div>
+                          </Link>
+                        ))}
                       </div>
-                    );
-                  })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {tab === 'contracts' && (
+                <div style={{paddingTop:12}}>
+                  {contracts.length === 0
+                    ? <div className="oc-empty">No contracts linked to this org</div>
+                    : contracts.map(c => {
+                        const typeColor = c.signal_type==='Opportunity' ? 'var(--teal)' : c.signal_type==='Award' ? 'var(--navy)' : 'var(--amber)';
+                        const badgeCls  = c.signal_type==='Opportunity' ? 'sig-badge-opp' : c.signal_type==='Award' ? 'sig-badge-award' : 'sig-badge-budget';
+                        return (
+                          <div key={c.id} className="sv-sig-row">
+                            <div className="sv-sig-dot" style={{background:typeColor}} />
+                            <div className="sv-sig-body">
+                              <div className="sv-sig-title">{c.title}</div>
+                              <div className="sv-sig-meta-row">
+                                <span className={`sig-badge ${badgeCls}`}>{c.signal_type ?? 'Signal'}</span>
+                                <span className="sv-sig-val" style={{color:typeColor}}>{fmtMoney(c.value)}</span>
+                                {c.award_date && <span className="sig-deadline">{new Date(c.award_date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>}
+                                <span className="sig-set-aside">{c.source?.replace('_','.')}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                  }
                 </div>
               )}
             </div>
-          )}
+          </div>
+
+          {/* ── Right sidebar ────────────────────────────────────────── */}
+          <aside className="orgd-sidebar">
+            <div className="orgd-sidebar-card">
+              {p?.offices != null && (
+                <FactRow icon={<IcBuilding />} label="Offices" value={`${p.offices} Offices`} />
+              )}
+              {(p?.industry || org.branch) && (
+                <FactRow icon={<IcBriefcase />} label="Industry" value={p?.industry ?? org.branch ?? ''} />
+              )}
+              {p?.awards && (
+                <FactRow icon={<IcAward2 />} label="Awards" value={p.awards} />
+              )}
+              {org.website && (
+                <FactRow icon={<IcGlobe />} label="Website" value="View site" href={org.website} />
+              )}
+              {p?.revenue && (
+                <FactRow icon={<IcDollar />} label="Revenue" value={p.revenue} />
+              )}
+              {p?.employees && (
+                <FactRow icon={<IcUsers />} label="Employees" value={`${p.employees} Employees`} />
+              )}
+              {p?.company_type && (
+                <FactRow icon={<IcCompany />} label="Company" value={p.company_type} />
+              )}
+              {org.hq_address && (
+                <FactRow icon={<IcMapPin />} label="Headquarters" value={org.hq_address} />
+              )}
+              {p?.founded && (
+                <FactRow icon={<IcCalendar />} label="Founded" value={p.founded} />
+              )}
+              {!p && (
+                <>
+                  {org.hq_address && <FactRow icon={<IcMapPin />} label="Headquarters" value={org.hq_address} />}
+                  {org.abs_hierarchy_level != null && <FactRow icon={<IcBuilding />} label="DoD Level" value={`L${org.abs_hierarchy_level}`} />}
+                  {org.website && <FactRow icon={<IcGlobe />} label="Website" value="View site" href={org.website} />}
+                  <FactRow icon={<IcUsers />} label="Contacts" value={`${org.contact_count}`} />
+                </>
+              )}
+            </div>
+          </aside>
         </div>
       </div>
 
       {panel && (
-        <PersonPanel
-          contact={panel}
-          org={org}
-          allContacts={contacts}
-          onClose={() => setPanel(null)}
-        />
+        <PersonPanel contact={panel} org={org} allContacts={contacts} onClose={() => setPanel(null)} />
       )}
     </>
   );

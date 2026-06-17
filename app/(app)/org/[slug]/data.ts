@@ -9,6 +9,26 @@ export interface OrgProfile {
   follower_count: number; contact_count: number;
   branch: string | null; parent_id: string | null;
   abs_hierarchy_level: number | null;
+  website: string | null;
+  profile: {
+    logo_url?: string;
+    mission?: string;
+    industry?: string;
+    revenue?: string;
+    employees?: string;
+    company_type?: string;
+    founded?: string;
+    offices?: number;
+    awards?: string;
+    full_description?: string;
+    contract_vehicles?: Array<{
+      name: string;
+      number: string;
+      description: string;
+      domains?: string;
+      sins?: Array<{ code: string; name: string; description: string }>;
+    }>;
+  } | null;
 }
 
 export interface NavOrg {
@@ -50,11 +70,13 @@ export const getOrgProfile = unstable_cache(
         o.description, NULL::text AS sector, o.loc AS hq_address,
         NULL::int AS personnel_count, 0::int AS follower_count,
         COUNT(DISTINCT c.id)::int AS contact_count,
-        o.branch, o.parent_id, o.hierarchy_level AS abs_hierarchy_level
+        o.branch, o.parent_id, o.hierarchy_level AS abs_hierarchy_level,
+        o.website, o.profile
       FROM orgs o
       LEFT JOIN contacts c ON c.org_id = o.id
       WHERE o.id = ${slug}
-      GROUP BY o.id
+      GROUP BY o.id, o.full_name, o.sub, o.organization_type, o.description,
+               o.loc, o.branch, o.parent_id, o.hierarchy_level, o.website, o.profile
     `;
     return (rows[0] as OrgProfile) ?? null;
   },
