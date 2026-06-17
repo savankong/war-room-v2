@@ -610,7 +610,7 @@ export default function PeopleClient({ people, topOrgs }: Props) {
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(p =>
-        p.full_name.toLowerCase().includes(q) ||
+        (p.full_name ?? '').toLowerCase().includes(q) ||
         (p.role_title ?? '').toLowerCase().includes(q) ||
         (p.org_full ?? '').toLowerCase().includes(q)
       );

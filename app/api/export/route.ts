@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
         canonical_org_id, raw_payload
       FROM contracts
       WHERE signal_type IS NOT NULL OR canonical_org_id IS NOT NULL
-      ORDER BY award_date DESC NULLS LAST
+      ORDER BY (canonical_org_id IS NOT NULL) DESC, award_date DESC NULLS LAST
       LIMIT 10000
     `;
     if (format === 'json') return NextResponse.json(rows);
