@@ -239,7 +239,7 @@ export async function GET(req: NextRequest) {
         INSERT INTO contracts (
           id, canonical_org_id, external_id, signal_type, title, awardee, description, raw_payload
         ) VALUES (
-          ${newId}, 'granicus', ${c.id}, 'Contract Vehicle', ${c.title}, 'Carahsoft Technology Corp', ${c.description}, '{}'
+          ${newId}, 'granicus', ${c.id}, 'Contract Vehicle', ${c.title}, 'Carahsoft Technology Corp', ${c.description}, ${'{}'}::jsonb
         )
       `;
       inserted++;
