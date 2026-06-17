@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { getWriteDb } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -170,5 +171,6 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  revalidateTag('org-contacts');
   return NextResponse.json({ ok: true, inserted, errors });
 }
