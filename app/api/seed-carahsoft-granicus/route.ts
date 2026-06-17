@@ -231,15 +231,19 @@ export async function GET(req: NextRequest) {
   // Wipe previous carahsoft/granicus vehicles (identified by external_id prefix)
   await wdb`DELETE FROM contracts WHERE external_id LIKE 'carah-gran-%'`;
 
+  const orgId = 'granicus';
+  const signalType = 'Contract Vehicle';
+  const awardee = 'Carahsoft Technology Corp';
+  const rawPayload = '{}';
+
   for (const c of CONTRACTS) {
     const newId = crypto.randomUUID();
     try {
-      // Interleave literals between params — Neon client breaks when literals trail after last param
       await wdb`
         INSERT INTO contracts (
           id, canonical_org_id, external_id, signal_type, title, awardee, description, raw_payload
         ) VALUES (
-          ${newId}, 'granicus', ${c.id}, 'Contract Vehicle', ${c.title}, 'Carahsoft Technology Corp', ${c.description}, ${'{}'}
+          ${newId}, ${orgId}, ${c.id}, ${signalType}, ${c.title}, ${awardee}, ${c.description}, ${rawPayload}
         )
       `;
       inserted++;
