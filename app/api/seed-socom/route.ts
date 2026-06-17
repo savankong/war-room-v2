@@ -150,22 +150,18 @@ export async function GET(req: NextRequest) {
 
   for (const p of contacts) {
     try {
-      // Pass tags as a PostgreSQL text-array literal string and cast with ::text[].
-      // This avoids db.array() which is not exposed on @netlify/database's sql client.
-      const tagsLiteral = `{${p.tags.join(',')}}`;
       await db`
-        INSERT INTO contacts (id, name, title, org_id, org_full, tags, hierarchy_order)
+        INSERT INTO contacts (id, name, title, org_id, org_full, hierarchy_order)
         VALUES (
           ${p.id}, ${p.name}, ${p.title},
           'socom', 'US Special Operations Command',
-          ${tagsLiteral}::text[], ${p.hierarchy_order}
+          ${p.hierarchy_order}
         )
         ON CONFLICT (id) DO UPDATE SET
           name             = EXCLUDED.name,
           title            = EXCLUDED.title,
           org_id           = EXCLUDED.org_id,
           org_full         = EXCLUDED.org_full,
-          tags             = EXCLUDED.tags,
           hierarchy_order  = EXCLUDED.hierarchy_order
       `;
       inserted++;
