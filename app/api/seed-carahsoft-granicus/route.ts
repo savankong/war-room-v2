@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getWriteDb } from '@/lib/db';
+import { getDatabase } from '@netlify/database';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -224,7 +224,7 @@ export async function GET(req: NextRequest) {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const wdb = (getWriteDb() as any);
+  const wdb = (getDatabase() as any).sql;
   let inserted = 0;
   const errors: string[] = [];
 
@@ -248,7 +248,7 @@ export async function GET(req: NextRequest) {
       `;
       inserted++;
     } catch (e: any) {
-      errors.push(`${c.id}: ${e?.message?.slice(-120)}`);
+      errors.push(`${c.id}: ${String(e?.message ?? e).slice(0, 300)}`);
     }
   }
 
