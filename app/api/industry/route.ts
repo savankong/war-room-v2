@@ -12,7 +12,7 @@ export async function GET() {
   const [catalog, contractAggs, otherAwardees, industryOrgs] = await Promise.all([
     writeDb`
       SELECT id, legal_name, name, logo_url, ticker, headquarters, website,
-             description, employees, revenue_b, focus_areas, dod_contract_value_b
+             description, employees, revenue_b, focus_areas, dod_contract_value_b, profile
       FROM industry_companies
     `,
     readDb`
@@ -82,7 +82,7 @@ export async function GET() {
       employees:       ic.employees,
       revenue_b:       ic.revenue_b,
       focus_areas:     ic.focus_areas,
-      profile:         null,
+      profile:         ic.profile ?? null,
       contract_count:  agg?.contract_count  ?? 0,
       total_value:     agg?.total_value     ?? Math.round((ic.dod_contract_value_b ?? 0) * 1e9),
       set_aside_count: agg?.set_aside_count ?? 0,
