@@ -122,7 +122,7 @@ async function main() {
 
   const orgNames = new Map((await sql<{id:string;full_name:string}[]>`SELECT id, full_name FROM orgs`).map(o => [o.id, o.full_name]));
 
-  let inserted = 0, updated = 0, skipped = 0;
+  let inserted = 0, skipped = 0;
 
   for (let i = 1; i < lines.length; i++) {
     // Simple CSV parse (no quoted commas in this dataset)

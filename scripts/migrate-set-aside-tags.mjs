@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 /**
  * Migration: adds set_aside_tags TEXT[] column to contracts and backfills from set_aside VARCHAR.
- * Run once: node scripts/migrate-set-aside-tags.js
+ * Run once: node scripts/migrate-set-aside-tags.mjs
  */
 
-const postgres = require('postgres');
-
+import postgres from 'postgres';
 const DB = process.env.DATABASE_URL;
 if (!DB) { console.error('DATABASE_URL not set'); process.exit(1); }
 

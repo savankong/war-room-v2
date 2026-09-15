@@ -1,10 +1,9 @@
 /**
  * Seed industry executive contacts from top defense contractors.
  * Sources: SEC DEF 14A proxy filings, company investor relations pages.
- * Run: node scripts/seed-industry-execs.js
+ * Run: node scripts/seed-industry-execs.mjs
  */
-const postgres = require('postgres');
-
+import postgres from 'postgres';
 const DB = process.env.DATABASE_URL;
 if (!DB) { console.error('DATABASE_URL not set'); process.exit(1); }
 

@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Pagination from '@/app/components/Pagination';
+import { useResetOn } from '@/lib/use-reset-on';
 
 /* ── Combobox — free-text input with dropdown of existing values ──── */
 function Combobox({ value, onChange, options, placeholder, className }: {
@@ -13,7 +14,7 @@ function Combobox({ value, onChange, options, placeholder, className }: {
   const [query, setQuery] = useState(value);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setQuery(value); }, [value]);
+  useResetOn(value, () => setQuery(value));
 
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -104,7 +105,7 @@ function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm():
   return (
     <div className="adm-modal-bg" onClick={onCancel}>
       <div className="adm-modal" onClick={e => e.stopPropagation()}>
-        <div className="adm-modal-title">Delete "{name}"?</div>
+        <div className="adm-modal-title">Delete &quot;{name}&quot;?</div>
         <div className="adm-modal-body">This action cannot be undone.</div>
         <div className="adm-modal-actions">
           <button className="adm-btn ghost" onClick={onCancel}>Cancel</button>
@@ -714,11 +715,14 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
 
   /* Pagination */
   const [page, setPage] = useState(1);
-  useEffect(() => setPage(1), [tab, search, noOrgFilter, inboxFilter, branchFilter, indTierFilter, indCompanyFilter]);
+  useResetOn(
+    `${tab}|${search}|${noOrgFilter}|${inboxFilter}|${branchFilter}|${indTierFilter}|${indCompanyFilter}`,
+    () => setPage(1),
+  );
 
   /* Sorting */
   const [sort, setSort] = useState<{ field: string; dir: 'asc' | 'desc' } | null>(null);
-  useEffect(() => setSort(null), [tab]);
+  useResetOn(tab, () => setSort(null));
   function toggleSort(field: string) {
     setSort(s => s?.field === field ? { field, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { field, dir: 'asc' });
     setPage(1);

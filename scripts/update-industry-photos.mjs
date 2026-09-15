@@ -1,10 +1,9 @@
 /**
  * Updates photo_url and linkedin for seeded industry executives.
  * Sources: official company leadership/IR pages, LinkedIn public profiles.
- * Run: node scripts/update-industry-photos.js
+ * Run: node scripts/update-industry-photos.mjs
  */
-const postgres = require('../node_modules/postgres');
-
+import postgres from 'postgres';
 const DB = process.env.DATABASE_URL;
 if (!DB) { console.error('DATABASE_URL not set'); process.exit(1); }
 

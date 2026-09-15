@@ -4,6 +4,7 @@ import Pagination from '@/app/components/Pagination';
 
 const PEOPLE_PER_PAGE = 50;
 import Link from 'next/link';
+import { useResetOn } from '@/lib/use-reset-on';
 
 /* ── contract helpers ────────────────────────────────────────────── */
 function fmtMoney(v: number | string | null) {
@@ -245,15 +246,22 @@ function ProfilePanel({ p, onClose, orgPeers = [] }: { p: Person; onClose: () =>
 
   /* Fetch contracts for this person's org */
   const [contracts, setContracts] = useState<any[]>([]);
-  const [contractsLoading, setContractsLoading] = useState(false);
+  // Loading is derived from which org the loaded contracts belong to, rather
+  // than a flag set synchronously at the top of the effect. That avoids the
+  // extra render the flag caused, and the cancelled guard stops a slow
+  // response for a previous person overwriting a newer one.
+  const [loadedOrgId, setLoadedOrgId] = useState<string | null>(null);
+  const contractsLoading = Boolean(p.org_id) && hasSam && loadedOrgId !== p.org_id;
+
   useEffect(() => {
     if (!p.org_id || !hasSam) return;
-    setContractsLoading(true);
+    let cancelled = false;
     fetch(`/api/org-contracts?orgId=${encodeURIComponent(p.org_id)}`)
       .then(r => r.json())
-      .then(data => { setContracts(Array.isArray(data) ? data : []); })
-      .catch(() => setContracts([]))
-      .finally(() => setContractsLoading(false));
+      .then(data => { if (!cancelled) setContracts(Array.isArray(data) ? data : []); })
+      .catch(() => { if (!cancelled) setContracts([]); })
+      .finally(() => { if (!cancelled) setLoadedOrgId(p.org_id); });
+    return () => { cancelled = true; };
   }, [p.org_id, hasSam]);
 
   return (
@@ -658,9 +666,14 @@ export default function PeopleClient({ people, topOrgs }: Props) {
   }, [segPeople, seg, search, focusFilters, orgFilter, seniorityFilter, contractFilter, agencyFilter, titleFilter, indTagFilter, sort]);
 
   const [page, setPage] = useState(1);
-  useEffect(() => { setPage(1); }, [search, focusFilters, orgFilter, seniorityFilter, contractFilter, agencyFilter, titleFilter, indTagFilter, sort, seg]);
+  useResetOn(
+    `${seg}|${search}|${focusFilters.join(',')}|${orgFilter}|${seniorityFilter}` +
+      `|${contractFilter}|${agencyFilter}|${titleFilter}|${indTagFilter}|${sort}`,
+    () => setPage(1),
+  );
+
   /* Reset industry filters when switching to gov and vice versa */
-  useEffect(() => {
+  useResetOn(seg, () => {
     setAgencyFilter(null);
     setTitleFilter(null);
     setIndTagFilter(null);
@@ -668,7 +681,7 @@ export default function PeopleClient({ people, topOrgs }: Props) {
     setOrgFilter(null);
     setSeniorityFilter(null);
     setContractFilter(false);
-  }, [seg]);
+  });
 
   const paged = useMemo(
     () => filtered.slice((page - 1) * PEOPLE_PER_PAGE, page * PEOPLE_PER_PAGE),

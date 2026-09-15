@@ -4,17 +4,16 @@
  *
  * Prerequisites:
  *   npm install postgres csv-parse
- *   Run migrate-set-aside-tags.js first.
+ *   Run migrate-set-aside-tags.mjs first.
  *
  * Usage:
- *   node scripts/import-sbir-csv.js ~/Desktop/War_Room_v2/award_data.csv
+ *   node scripts/import-sbir-csv.mjs ~/Desktop/War_Room_v2/award_data.csv
  */
 
-const postgres = require('postgres');
-const { parse } = require('csv-parse');
-const fs = require('fs');
-const path = require('path');
-
+import postgres from 'postgres';
+import {parse} from 'csv-parse';
+import fs from 'fs';
+import path from 'path';
 const CSV_PATH = process.argv[2];
 if (!CSV_PATH) { console.error('Usage: node import-sbir-csv.js <path-to-csv>'); process.exit(1); }
 

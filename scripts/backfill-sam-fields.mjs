@@ -5,11 +5,10 @@
  * agency, sub_agency from existing raw_payload JSONB for SAM.gov records.
  *
  * Run from War_Room_v2/ root (where node_modules lives):
- *   node scripts/backfill-sam-fields.js
+ *   node scripts/backfill-sam-fields.mjs
  */
 
-const postgres = require('postgres');
-
+import postgres from 'postgres';
 const DB = process.env.DATABASE_URL;
 if (!DB) { console.error('DATABASE_URL not set'); process.exit(1); }
 

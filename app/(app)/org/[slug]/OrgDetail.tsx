@@ -482,7 +482,7 @@ export default function OrgDetail({ org, navOrgs, childOrgs, contacts, contracts
               <div>
                 {org.branch && <div className="orgd-type">{org.branch}</div>}
                 <h1 className="orgd-title">{org.name}</h1>
-                {p?.mission && <p className="orgd-mission">"{p.mission}"</p>}
+                {p?.mission && <p className="orgd-mission">&quot;{p.mission}&quot;</p>}
               </div>
             </div>
 

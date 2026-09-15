@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 /**
  * Backfills USASpending records from existing raw_payload JSONB.
- * Run: node scripts/backfill-usaspending-fields.js
+ * Run: node scripts/backfill-usaspending-fields.mjs
  */
 
-const postgres = require('postgres');
-
+import postgres from 'postgres';
 const DB = process.env.DATABASE_URL;
 if (!DB) { console.error('DATABASE_URL not set'); process.exit(1); }
 

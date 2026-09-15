@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { AegisMark } from './Aegis';
+import { useResetOn } from '@/lib/use-reset-on';
 
 export default function Nav() {
   const path   = usePathname();
@@ -20,7 +21,7 @@ export default function Nav() {
   }, []);
 
   /* close mobile menu on nav */
-  useEffect(() => { setMobileOpen(false); }, [path]);
+  useResetOn(path, () => setMobileOpen(false));
 
   function signOut() {
     localStorage.removeItem('wr_token');

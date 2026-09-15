@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Pagination from '@/app/components/Pagination';
+import { useResetOn } from '@/lib/use-reset-on';
 
 const ORGS_PER_PAGE = 25;
 const IND_PER_PAGE  = 50;
@@ -173,6 +174,31 @@ function OcNodeDisc({ p, tierIdx, onPerson, canDrill, isDrill, onDrill }: {
   );
 }
 
+/**
+ * Defined at module scope, not inside OrgTree. A component declared in another
+ * component's body is a new type on every render, so React unmounts and
+ * remounts it — losing its DOM state and any focus in it — rather than
+ * updating it. Both are pure, so hoisting is behaviour preserving.
+ */
+function MoreBtn({ count, onClick }: { count: number; onClick(): void }) {
+  return (
+    <div className="oct-col">
+      <button className="oct-more" onClick={onClick}>
+        <span className="oct-more-n">+{count}</span>
+        <span className="oct-more-l">more</span>
+      </button>
+    </div>
+  );
+}
+
+function LessBtn({ onClick }: { onClick(): void }) {
+  return (
+    <div className="oct-col">
+      <button className="oct-collapse" onClick={onClick}>↑ less</button>
+    </div>
+  );
+}
+
 function OrgTree({ tier1, tier2, tier3, onPerson }: {
   tier1: any[]; tier2: any[]; tier3: any[];
   onPerson(p: any): void;
@@ -185,25 +211,6 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
   const visT2 = showAllT2 ? tier2 : tier2.slice(0, T2_INIT);
   const visT3 = showAllT3 ? tier3 : tier3.slice(0, T3_INIT);
   const t1Person = tier1[0];
-
-  function MoreBtn({ count, onClick }: { count: number; onClick(): void }) {
-    return (
-      <div className="oct-col">
-        <button className="oct-more" onClick={onClick}>
-          <span className="oct-more-n">+{count}</span>
-          <span className="oct-more-l">more</span>
-        </button>
-      </div>
-    );
-  }
-
-  function LessBtn({ onClick }: { onClick(): void }) {
-    return (
-      <div className="oct-col">
-        <button className="oct-collapse" onClick={onClick}>↑ less</button>
-      </div>
-    );
-  }
 
   return (
     <div className="oct-wrap">
@@ -348,38 +355,60 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
   const [contracts, setContracts] = useState<any[]>([]);
   const [people, setPeople]     = useState<any[]>([]);
   const [subs, setSubs]         = useState<any[]>([]);
-  const [loadingC, setLoadingC] = useState(false);
-  const [loadingP, setLoadingP] = useState(true);
-  const [loadingS, setLoadingS] = useState(false);
+  // Each of these is derived from what has been loaded rather than a flag set
+  // synchronously at the top of an effect: the flag forced a second render on
+  // every load, and left no way to tell a stale response from a current one.
+  const [peopleFor, setPeopleFor]       = useState<string | null>(null);
+  const [contractsFor, setContractsFor] = useState<string | null>(null);
+  const [subsFor, setSubsFor]           = useState<string | null>(null);
+  const loadingP = peopleFor !== company.name;
   const [panelPerson, setPanelPerson] = useState<any|null>(null);
 
   useEffect(() => {
-    setLoadingP(true);
+    let cancelled = false;
     fetch(`/api/industry/people?company=${encodeURIComponent(company.name)}`)
       .then(r => r.json())
-      .then(d => { setPeople(Array.isArray(d) ? d : []); setLoadingP(false); });
+      .then(d => {
+        if (cancelled) return;
+        setPeople(Array.isArray(d) ? d : []);
+        setPeopleFor(company.name);
+      });
+    return () => { cancelled = true; };
   }, [company.name]);
 
   const isSbirOnly = (company.sources ?? []).includes('SBIR') && !(company.sources ?? []).some((s: string) => s !== 'SBIR');
 
   useEffect(() => {
     if (tab !== 'contracts' || contracts.length > 0) return;
-    setLoadingC(true);
     const url = isSbirOnly
       ? `/api/industry/sbir-awards?org_id=${encodeURIComponent(company.name)}`
       : `/api/industry/contracts?recipient=${encodeURIComponent(company.name)}`;
+    let cancelled = false;
     fetch(url)
       .then(r => r.json())
-      .then(d => { setContracts(Array.isArray(d) ? d : []); setLoadingC(false); });
+      .then(d => {
+        if (cancelled) return;
+        setContracts(Array.isArray(d) ? d : []);
+        setContractsFor(company.name);
+      });
+    return () => { cancelled = true; };
   }, [tab, company.name, contracts.length, isSbirOnly]);
+  const loadingC = tab === 'contracts' && contracts.length === 0 && contractsFor !== company.name;
 
   useEffect(() => {
     if (tab !== 'subs' || subs.length > 0 || !company.legal_name) return;
-    setLoadingS(true);
+    let cancelled = false;
     fetch(`/api/industry/subawards?prime=${encodeURIComponent(company.legal_name)}`)
       .then(r => r.json())
-      .then(d => { setSubs(Array.isArray(d) ? d : []); setLoadingS(false); });
-  }, [tab, company.legal_name, subs.length]);
+      .then(d => {
+        if (cancelled) return;
+        setSubs(Array.isArray(d) ? d : []);
+        setSubsFor(company.name);
+      });
+    return () => { cancelled = true; };
+  }, [tab, company.legal_name, company.name, subs.length]);
+  const loadingS = tab === 'subs' && Boolean(company.legal_name)
+    && subs.length === 0 && subsFor !== company.name;
 
   const color = colorFor(company.name);
   const ini   = initials(company.name);
@@ -432,7 +461,7 @@ function CompanyDetail({ company, onBack }: { company: any; onBack(): void }) {
                   PRIME · {(company.sources??[]).join(' · ').replace('usaspending','USASpending').replace('sam_gov','SAM.gov')}
                 </div>
                 <h1 className="orgd-title">{company.display_name ?? displayName}</h1>
-                {pr?.mission && <p className="orgd-mission">"{pr.mission}"</p>}
+                {pr?.mission && <p className="orgd-mission">&quot;{pr.mission}&quot;</p>}
               </div>
             </div>
 
@@ -1059,6 +1088,18 @@ function Directory({ groups, activeSection }: { groups: { label: string; rows: O
 }
 
 /* ── Industry list (table view) ──────────────────────────────────────── */
+/**
+ * Hoisted for the same reason as MoreBtn: it was declared twice, once inside
+ * IndustryList and once inside SubList. It closed over each parent's sortCol
+ * and sortDir, so those are props now.
+ */
+function SortArrow({ col, sortCol, sortDir }: {
+  col: string; sortCol: string; sortDir: 'asc' | 'desc';
+}) {
+  if (sortCol !== col) return <span style={{ opacity:0.25, fontSize:9 }}>↕</span>;
+  return <span style={{ fontSize:9 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
+}
+
 function IndustryList({
   companies, search, valueTier, agency, sbirOnly, sbirPhase, desig, page, onPageChange, onSelectCompany,
 }: {
@@ -1073,11 +1114,6 @@ function IndustryList({
     if (sortCol === col) { setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }
     else { setSortCol(col); setSortDir(col === 'name' ? 'asc' : 'desc'); }
     onPageChange(1);
-  };
-
-  const SortArrow = ({ col }: { col: string }) => {
-    if (sortCol !== col) return <span style={{ opacity:0.25, fontSize:9 }}>↕</span>;
-    return <span style={{ fontSize:9 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
   };
 
   const filtered = useMemo(() => {
@@ -1136,10 +1172,10 @@ function IndustryList({
 
       {/* Column headers */}
       <div className="wr-dhead" style={{ gridTemplateColumns:'1fr 80px 80px 130px 260px' }}>
-        <div onClick={() => sortBy('name')} style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>Company <SortArrow col="name" /></div>
+        <div onClick={() => sortBy('name')} style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>Company <SortArrow col="name" sortCol={sortCol} sortDir={sortDir} /></div>
         <div>Role</div>
-        <div className="r" onClick={() => sortBy('contracts')} style={{ cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}><SortArrow col="contracts" /> Contracts</div>
-        <div className="r" onClick={() => sortBy('value')} style={{ cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}><SortArrow col="value" /> Total Awarded</div>
+        <div className="r" onClick={() => sortBy('contracts')} style={{ cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}><SortArrow col="contracts" sortCol={sortCol} sortDir={sortDir} /> Contracts</div>
+        <div className="r" onClick={() => sortBy('value')} style={{ cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}><SortArrow col="value" sortCol={sortCol} sortDir={sortDir} /> Total Awarded</div>
         <div>Awarding Agencies</div>
       </div>
 
@@ -1206,11 +1242,6 @@ function SubList({ subs, search, page, onPageChange, onSelectSub, loaded }: {
     onPageChange(1);
   };
 
-  const SortArrow = ({ col }: { col: string }) => {
-    if (sortCol !== col) return <span style={{ opacity:0.25, fontSize:9 }}>↕</span>;
-    return <span style={{ fontSize:9 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
-  };
-
   const filtered = useMemo(() => {
     if (!search.trim()) return subs;
     const q = search.toLowerCase();
@@ -1244,10 +1275,10 @@ function SubList({ subs, search, page, onPageChange, onSelectSub, loaded }: {
         </div>
       </div>
       <div className="wr-dhead" style={{ gridTemplateColumns:'1fr 70px 130px 80px' }}>
-        <div onClick={() => sortBy('name')} style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>Subcontractor <SortArrow col="name" /></div>
+        <div onClick={() => sortBy('name')} style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>Subcontractor <SortArrow col="name" sortCol={sortCol} sortDir={sortDir} /></div>
         <div>Primes</div>
-        <div className="r" onClick={() => sortBy('value')} style={{ cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}><SortArrow col="value" /> Total Value</div>
-        <div className="r" onClick={() => sortBy('awards')} style={{ cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}><SortArrow col="awards" /> Awards</div>
+        <div className="r" onClick={() => sortBy('value')} style={{ cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}><SortArrow col="value" sortCol={sortCol} sortDir={sortDir} /> Total Value</div>
+        <div className="r" onClick={() => sortBy('awards')} style={{ cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:4 }}><SortArrow col="awards" sortCol={sortCol} sortDir={sortDir} /> Awards</div>
       </div>
       <div className="wr-dscroll">
         {!loaded && <div style={{ padding:'40px 26px', color:'var(--ink-3)', fontFamily:'IBM Plex Mono', fontSize:11 }}>Loading subcontractors…</div>}
@@ -1285,7 +1316,8 @@ function SubList({ subs, search, page, onPageChange, onSelectSub, loaded }: {
 /* ── SubDetail ───────────────────────────────────────────────────────── */
 function SubDetail({ sub, onBack }: { sub: any; onBack(): void }) {
   const [primeRels, setPrimeRels] = useState<any[]>([]);
-  const [loadingP, setLoadingP]   = useState(false);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loadingP = loadedFor !== sub.name;
 
   const displayName = (sub.display_name ?? sub.name)
     .toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())
@@ -1294,10 +1326,15 @@ function SubDetail({ sub, onBack }: { sub: any; onBack(): void }) {
   const ini   = initials(displayName);
 
   useEffect(() => {
-    setLoadingP(true);
+    let cancelled = false;
     fetch(`/api/industry/subawards?sub=${encodeURIComponent(sub.name)}`)
       .then(r => r.json())
-      .then(d => { setPrimeRels(Array.isArray(d) ? d : []); setLoadingP(false); });
+      .then(d => {
+        if (cancelled) return;
+        setPrimeRels(Array.isArray(d) ? d : []);
+        setLoadedFor(sub.name);
+      });
+    return () => { cancelled = true; };
   }, [sub.name]);
 
   return (
@@ -1429,7 +1466,10 @@ export default function DiscoverClient({ orgs }: { orgs: Org[] }) {
   }, [indRole, subsLoaded]);
 
   /* Reset page when industry filters change */
-  useEffect(() => { setIndPage(1); setSelectedCompany(null); setSelectedSub(null); }, [indSearch, indValueTier, indRole, indAgency, indSbirOnly, indSbirPhase, indDesig]);
+  useResetOn(
+    `${indSearch}|${indValueTier}|${indRole}|${indAgency}|${indSbirOnly}|${indSbirPhase}|${indDesig}`,
+    () => { setIndPage(1); setSelectedCompany(null); setSelectedSub(null); },
+  );
 
   /* Gov org data */
   const filtered = useMemo(() => {

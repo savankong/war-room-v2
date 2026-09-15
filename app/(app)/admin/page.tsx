@@ -63,16 +63,22 @@ async function getAdminData() {
 }
 
 export default async function AdminPage() {
+  // Only the data fetch is guarded. Returning the JSX from inside the try
+  // implied that render errors were caught too, which they are not — the
+  // element is only rendered after this function returns.
+  let data: Awaited<ReturnType<typeof getAdminData>>;
   try {
-    const data = await getAdminData();
-    return <AdminClient {...data} />;
-  } catch (e: any) {
+    data = await getAdminData();
+  } catch (e) {
+    const error = e instanceof Error ? e : new Error(String(e));
     return (
       <div style={{ padding: '2rem', color: 'red', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
         <h2>Admin Error</h2>
-        <p>{e?.message ?? String(e)}</p>
-        <p>{e?.stack}</p>
+        <p>{error.message}</p>
+        <p>{error.stack}</p>
       </div>
     );
   }
+
+  return <AdminClient {...data} />;
 }

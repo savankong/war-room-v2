@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Pagination from '@/app/components/Pagination';
 import SignalDetailPanel from './SignalDetailPanel';
+import { useResetOn } from '@/lib/use-reset-on';
 
 const GOV_PER_PAGE = 50;
 const IND_PER_PAGE = 50;
@@ -309,8 +310,10 @@ export default function SignalsClient({ contracts, orgs, stats, indStats, indFil
   }, [contracts, search, typeFilters, orgFilter, sourceFilter, govSort]);
 
   /* ── Page resets ─────────────────────────────────────────────── */
-  useEffect(() => setGovPage(1), [search, typeFilters, orgFilter, sourceFilter, govSort]);
-  useEffect(() => setGovPage(1), [seg]);
+  useResetOn(
+    `${seg}|${search}|${typeFilters.join(',')}|${orgFilter}|${sourceFilter}|${govSort}`,
+    () => setGovPage(1),
+  );
 
   const govPaged = useMemo(
     () => govFiltered.slice((govPage-1)*GOV_PER_PAGE, govPage*GOV_PER_PAGE),
