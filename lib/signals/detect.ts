@@ -125,7 +125,10 @@ export async function signalsForCompany(
     WHERE s.detected_at >= ${since}
       AND (
         s.canonical_org_id IN (SELECT id FROM lineage)
-        OR s.payload->>'naics_code' = ANY((SELECT naics_codes FROM profile))
+        -- unnest, not = ANY(SELECT naics_codes ...): that subquery returns a
+        -- single text[] value, so Postgres compares text to text[] and errors
+        -- with "operator does not exist".
+        OR s.payload->>'naics_code' IN (SELECT unnest(naics_codes) FROM profile)
       )
     ORDER BY s.occurred_at DESC
     LIMIT ${limit}
