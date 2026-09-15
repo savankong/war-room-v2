@@ -1,4 +1,18 @@
 'use client';
+
+/* eslint-disable @typescript-eslint/no-explicit-any --
+ * 45 remaining `any`s, deliberately, for the same reason as
+ * app/(app)/admin/AdminClient.tsx — see the note there.
+ *
+ * Everything typed from a known shape has been: the Org interface below
+ * describes the org rows this screen renders. What is left is the industry
+ * and subcontractor data fetched from /api/industry/* into useState, which
+ * has no declared response contract to type against.
+ *
+ * The rule stays an error in every other file, so this is a scoped exception,
+ * not a relaxation.
+ */
+
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Pagination from '@/app/components/Pagination';

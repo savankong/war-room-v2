@@ -1,5 +1,28 @@
 'use client';
 
+/* eslint-disable @typescript-eslint/no-explicit-any --
+ * 56 remaining `any`s, deliberately. Not a blanket exemption: everything in
+ * this file that could be typed from a known shape has been. The Props rows
+ * (AdminOrg, AdminContact, AdminContract) are declared in ./types.ts and
+ * mirror the SELECTs in ./page.tsx column for column, and the filters over
+ * them infer without annotation.
+ *
+ * What is left is genuinely dynamic:
+ *
+ *   - The edit modal is one form over eight entity types, keyed by `tab`.
+ *     Its state is Record<string, any> because the union of those eight row
+ *     shapes is what it edits. Typing it properly means a discriminated union
+ *     across all eight plus a narrowing at every field read.
+ *   - The industry tabs fetch from /api/industry/* into useState, and those
+ *     endpoints have no declared response contract to type against.
+ *
+ * Both are worth fixing when these screens are rewritten — the v3 surfaces
+ * replaced Today, Brief, Onboarding and Settings, and this admin screen is
+ * next. Until then this comment is the record of why the rule is off here,
+ * and it is off HERE only: no-explicit-any is still an error everywhere else,
+ * so new code cannot drift.
+ */
+
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Pagination from '@/app/components/Pagination';
@@ -813,18 +836,18 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
 
   /* Branches for org filter */
   const branches = useMemo(() =>
-    ['All', ...Array.from(new Set(localOrgs.map((o:any) => o.branch).filter(Boolean))).sort()],
+    ['All', ...Array.from(new Set(localOrgs.map(o => o.branch).filter(Boolean))).sort()],
     [localOrgs]
   );
 
   /* Filtered lists — gov people excludes INDUSTRY-tagged contacts */
-  const filteredOrgs = useMemo(() => localOrgs.filter((o: any) => {
+  const filteredOrgs = useMemo(() => localOrgs.filter(o => {
     const q = search.toLowerCase();
     return (!q || o.name?.toLowerCase().includes(q) || o.id?.toLowerCase().includes(q))
         && (branchFilter === 'All' || o.branch === branchFilter);
   }), [localOrgs, search, branchFilter]);
 
-  const filteredContacts = useMemo(() => localContacts.filter((c: any) => {
+  const filteredContacts = useMemo(() => localContacts.filter(c => {
     if (Array.isArray(c.tags) ? c.tags.includes('INDUSTRY') : false) return false;
     if (c.org_type === 'sbir_company') return false;
     const q = search.toLowerCase();
@@ -833,7 +856,7 @@ export default function AdminClient({ orgs, contacts, contracts, stats }: Props)
         && (!inboxFilter || c.is_inbox);
   }), [localContacts, search, noOrgFilter, inboxFilter]);
 
-  const filteredContracts = useMemo(() => localContracts.filter((c: any) => {
+  const filteredContracts = useMemo(() => localContracts.filter(c => {
     const q = search.toLowerCase();
     return !q || c.title?.toLowerCase().includes(q) || c.recipient?.toLowerCase().includes(q);
   }), [localContracts, search]);

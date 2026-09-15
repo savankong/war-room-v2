@@ -5,10 +5,9 @@
 # is not a gate here: a job that is always red teaches people to ignore CI, so
 # every job below is one that passes today and means something when it fails.
 #
-# Deliberately NOT here: `npm run lint`. It reports 217 errors, all in v2-era
-# files (see README-v3.md). Adding it now would make CI permanently red on
-# arrival. Add a lint job in the same change that clears those errors, not
-# before.
+# Lint is a gate as of the change that cleared the last of its 216 errors. It
+# runs with --max-warnings, pinned to the count at that time, so the remaining
+# warnings cannot grow while they are worked off.
 #
 # Runs on every branch push, because work in this repo goes to feature branches
 # directly rather than through pull requests.
@@ -41,6 +40,12 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      # --max-warnings pins the warning count so it can only go down. Errors
+      # fail regardless; this is what stops the 50 remaining warnings turning
+      # into 200 while nobody is looking.
+      - name: Lint
+        run: npm run lint -- --max-warnings=50
 
       # Runs `next typegen` first, so RouteContext and friends resolve from a
       # clean checkout with no .next directory.

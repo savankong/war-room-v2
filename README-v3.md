@@ -111,9 +111,22 @@ Order matters because `contacts.org_id` is a foreign key onto `orgs`;
 It is a job rather than data, and it predates `lib/ingestion/org-resolver.ts` —
 new code should use the resolver.
 
+## Gates
+
+`npm run lint`, `npm run typecheck`, `npm run build` and `npm test` all pass,
+and CI runs every one of them on every push. Lint is pinned at
+`--max-warnings=50`, so the remaining warnings can only go down.
+
 ## Known pre-existing problems
 
-- `npm run lint` does not pass repo-wide: 218 errors in v2-era files, mostly
-  `no-explicit-any`, plus 24 React Compiler errors across six client
-  components. No v3 file is among them. Clearing these is what would let lint
-  become a CI gate, the way typecheck now is.
+- `no-explicit-any` is switched off in two files — `app/(app)/admin/
+  AdminClient.tsx` and `app/(app)/DiscoverClient.tsx` — with the reason written
+  at the top of each. Everything typeable from a known shape in them has been
+  typed; what remains is a generic edit modal over eight entity types and data
+  fetched from `/api/industry/*`, which has no declared response contract. The
+  rule is still an error in every other file. Fix both when those screens are
+  rewritten.
+
+- `scripts/import-sbir-csv.mjs` imports `csv-parse`, which is not a declared
+  dependency, so it cannot run. `scripts/load-sbir-csv.mjs` does the same job
+  without it.
