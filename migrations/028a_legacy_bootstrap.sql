@@ -1,18 +1,19 @@
--- Migration 000: legacy bootstrap
+-- Migration 028a: legacy bootstrap
 --
 -- Engineering spec §2, migration checklist item 4: "Recreate the schema as
 -- numbered migration files so the DB is reproducible from zero."
 --
 -- Four tables reached production without ever appearing in a migration. They
--- were created by hand in the Netlify query editor, or by inline DDL inside a
+-- were created by hand against a database console, or by inline DDL inside a
 -- request handler (app/api/seed-industry-companies and app/api/sync-sbir both
 -- still open with a CREATE TABLE IF NOT EXISTS). The result is that the
 -- migration chain does not run from zero: migration 029 does
 -- `ALTER TABLE industry_companies` against a table nothing ever created, and
 -- fails.
 --
--- Numbered 000 so it runs ahead of the Netlify-era migrations that assume
--- these tables exist. Definitions are copied from the inline DDL that created
+-- Numbered 028a so it runs after 028 and ahead of 029, which is the first
+-- migration to assume these tables exist. Definitions are copied from the
+-- inline DDL that created
 -- them in production, so this is a description of the live schema, not a
 -- redesign of it.
 --

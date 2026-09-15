@@ -57,9 +57,11 @@ npm run typecheck
 
 ### Migrating the existing production database
 
-The Netlify-era migrations 001-040 were applied by hand and are not safe to
-re-run (019 and 020 are data migrations). On the restored DigitalOcean
-database, run the baseline once:
+Migrations 001-040 predate this runner: they were applied by hand and are not
+safe to re-run (019 and 020 are data migrations). They live in
+`migrations/legacy/`, one directory per migration, and load alongside the flat
+`migrations/*.sql` files from 041 on. On the restored DigitalOcean database, run
+the baseline once:
 
 ```bash
 DATABASE_URL_DIRECT=<direct string> npm run migrate -- --baseline 040

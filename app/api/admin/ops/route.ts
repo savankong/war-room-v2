@@ -7,7 +7,7 @@ import { isInternalRequest } from '@/lib/auth';
  *
  * "Ingestion run log, unresolved org queue, brief generation cost, per-company
  *  match counts, job queue health. This replaces the one-off diagnostic
- *  functions from the Netlify era. Expect to live in this screen for the first
+ *  functions it grew out of. Expect to live in this screen for the first
  *  month."
  *
  * Internal only, behind SAM_SYNC_TOKEN. Queue health comes from BullMQ and is

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Run locally: node scripts/sync-sbir.mjs
- * Syncs DoD SBIR/STTR awards from sbir.gov directly into the Netlify DB.
+ * Syncs DoD SBIR/STTR awards from sbir.gov directly into the database named by
+ * DATABASE_URL.
  */
 
 import postgres from 'postgres';

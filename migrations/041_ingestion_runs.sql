@@ -1,7 +1,7 @@
 -- Migration 041: ingestion_runs
 --
--- This table has been written to by lib/ingestion/logger.ts since the Netlify
--- era but was created by hand in the Netlify query editor and never captured in
+-- lib/ingestion/logger.ts has written to this table for a long time, but it was
+-- created by hand against a database console and never captured in
 -- a migration. Recreating it here so the schema is reproducible from zero,
 -- per engineering spec §2 (migration checklist item 4).
 

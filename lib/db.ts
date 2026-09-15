@@ -1,9 +1,9 @@
 /**
  * Database client — engineering spec §2.
  *
- * Migrated off @netlify/database onto the `postgres` (porsager) package. The
- * `db\`...\`` tagged-template call sites throughout app/api port over unchanged,
- * which is why the spec picked this client over an ORM.
+ * Built on the `postgres` (porsager) package. Its tagged-template call style is
+ * why the spec picked this client over an ORM: the `db\`...\`` sites throughout
+ * app/api are written directly against it.
  *
  * Two connections, deliberately:
  *
@@ -68,9 +68,10 @@ export function getDirectDb(): Sql {
 }
 
 /**
- * @deprecated Netlify-era name. Reads and writes now use the same pooled
- * connection — the owner-credential split disappeared with @netlify/database.
- * Kept so the existing app/api call sites compile; prefer getDb() in new code.
+ * @deprecated Legacy name from a schema that issued separate reader and writer
+ * credentials. Reads and writes now use the same pooled connection, so this is
+ * just getDb(). Kept so the existing app/api call sites compile; prefer getDb()
+ * in new code.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getLegacyDb(): any {

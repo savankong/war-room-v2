@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   /* Send email via Resend if configured, else return token directly */
   const resendKey = process.env.RESEND_API_KEY;
   if (resendKey) {
-    const resetUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://warroom-v2.netlify.app'}/forgot-password?token=${token}`;
+    const resetUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.warroomusa.com'}/forgot-password?token=${token}`;
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },

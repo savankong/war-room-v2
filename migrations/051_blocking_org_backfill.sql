@@ -5,7 +5,7 @@
 -- opportunity, and §5 gives org alignment up to 20 of the 100 points.
 --
 -- Most of these rows are already in the database, seeded by the one-off
--- Netlify function seed-orgs-master.mjs. That function set `subtier` to the
+-- orgs-master seed (now seeds/orgs-master.sql). That seed set `subtier` to the
 -- acronym but left `full_name` and `abbreviation` NULL — and
 -- lib/ingestion/org-matcher.ts resolves SAM office codes via
 -- `lower(abbreviation)`, so those NULLs are the reason acronym-keyed notices

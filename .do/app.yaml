@@ -9,7 +9,7 @@
 #
 # Staging is a second app pointed at a staging database (§2): copy this file,
 # change `name`, and point DATABASE_URL at the staging cluster. DO has no
-# per-deploy preview equivalent to Netlify's.
+# per-deploy preview environments, so staging is a real long-lived app.
 #
 # Secrets are set as encrypted env vars in the DO dashboard or with
 # `doctl apps update --spec`, never committed. Values below marked EV[1:...]

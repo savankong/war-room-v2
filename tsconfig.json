@@ -30,16 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  // netlify/functions is Netlify's build target, not Next's — Next never
-  // compiles it, and tsc only sees it because "**/*.ts" is greedy. Every file
-  // in there imports @netlify/database, which v3 removed from package.json, so
-  // the whole directory has been non-functional since that migration; its data
-  // now lives in seeds/ where CI applies and re-applies it on every push.
-  //
-  // It stays on disk rather than being deleted because netlify.toml still
-  // points at it and DNS has not moved off Netlify yet (§2 checklist item 5).
-  // Delete the directory, this exclusion, netlify.toml, and the @netlify/*
-  // dependencies together in the cutover. netlify/database/migrations is NOT
-  // part of this — scripts/migrate.ts reads migrations 001-040 from there.
-  "exclude": ["node_modules", "netlify/functions"]
+  "exclude": ["node_modules"]
 }

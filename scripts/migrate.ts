@@ -2,7 +2,8 @@
  * Migration runner — engineering spec §2.
  *
  * "Numbered .sql files in migrations/, run by a committed runner script
- *  against the direct connection string. No more Netlify query editor."
+ *  against the direct connection string." Every schema change goes through a
+ * file in this repo — never a query run by hand against a console.
  *
  * Connection: always the DIRECT string, never the pooled one. DO's managed
  * Postgres puts PgBouncer in transaction mode on the pooled port, which breaks
@@ -16,11 +17,11 @@
  *   npm run migrate -- --baseline 040
  *                                   mark 001-040 applied WITHOUT running them
  *
- * The baseline flag exists for exactly one job: the existing production
- * database already had 001-040 applied through the Netlify query editor, and
- * re-running them is not safe (019 and 020 are data migrations, not just
- * IF NOT EXISTS DDL). Run the baseline once against the restored database, then
- * migrate normally forever after. A database restored from zero skips it.
+ * The baseline flag exists for exactly one job: the production database that
+ * predates this runner already had 001-040 applied by hand, and re-running them
+ * is not safe (019 and 020 are data migrations, not just IF NOT EXISTS DDL).
+ * Run the baseline once against the restored database, then migrate normally
+ * forever after. A database built from zero skips it.
  */
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -36,10 +37,13 @@ const ROOT = resolve(__dirname, '..');
 const MIGRATIONS_DIR = join(ROOT, 'migrations');
 
 /**
- * The Netlify-era migrations 001-040, kept in place so a from-zero restore
- * still reproduces the whole schema. Directory-per-migration layout.
+ * Migrations 001-040, kept so a from-zero build still reproduces the whole
+ * schema. They use a directory-per-migration layout because that is how the
+ * tool that created them wrote them; 041+ are flat files. Both are loaded, and
+ * version numbers are what order them, so the two layouts coexist without
+ * anything needing to be rewritten.
  */
-const LEGACY_DIR = join(ROOT, 'netlify', 'database', 'migrations');
+const LEGACY_DIR = join(MIGRATIONS_DIR, 'legacy');
 
 /**
  * Three digits, plus an optional lowercase letter for a migration inserted
