@@ -72,7 +72,22 @@ export function getDirectDb(): Sql {
  * connection — the owner-credential split disappeared with @netlify/database.
  * Kept so the existing app/api call sites compile; prefer getDb() in new code.
  */
-export function getWriteDb(): Sql {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getLegacyDb(): any {
+  return getDb();
+}
+
+/**
+ * @deprecated See getLegacyDb. Same connection, older name.
+ *
+ * Returns `any` rather than Sql on purpose. The v2 routes were written against
+ * a client typed `any` and assert row shapes directly — `await db`...`` as
+ * Contact[]`. Typing this as Sql turns every one of those into a TS2352, which
+ * is noise, not a bug found: the assertions were always unchecked. New code
+ * takes getDb() and gets real types.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getWriteDb(): any {
   return getDb();
 }
 

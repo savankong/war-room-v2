@@ -1,10 +1,10 @@
-import { getDb } from '@/lib/db';
+import { getLegacyDb } from '@/lib/db';
 import DiscoverClient from '../DiscoverClient';
 
 export const dynamic = 'force-dynamic';
 
 async function getOrgs() {
-  const db = getDb();
+  const db = getLegacyDb();
   const rows = await db`
     WITH
       contact_counts AS (

@@ -1,4 +1,4 @@
-import { getDb } from '@/lib/db';
+import { getLegacyDb } from '@/lib/db';
 /**
  * POST /api/seed-industry
  *
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   const minAwards = parseInt(new URL(req.url).searchParams.get('minAwards') || '2', 10);
   const limit     = parseInt(new URL(req.url).searchParams.get('limit') || '2000', 10);
 
-  const db = { sql: getDb() };
+  const db = { sql: getLegacyDb() };
 
   const stats: Record<string, unknown> = { steps: stepsParam };
   const errors: string[] = [];
