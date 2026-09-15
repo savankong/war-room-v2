@@ -16,10 +16,6 @@ export const dynamic = 'force-dynamic';
  * parameters, with nothing in the response to say which step failed. The codes
  * below are stable and safe to read from the address bar; the detail stays in
  * the logs, because an error string can carry a connection URL.
- *
- * Note for whoever reads this next: getWriteDb() tries @netlify/database and
- * falls back to getDb(), which itself throws when DATABASE_URL is unset. Both
- * halves failing is a single `database_unavailable` here rather than a 500.
  */
 export async function GET(req: NextRequest) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.warroomusa.com';
@@ -118,6 +114,8 @@ export async function GET(req: NextRequest) {
         user = rows[0] as typeof user;
       }
     } catch (err) {
+      // Covers both an unset DATABASE_URL, which getDb() throws on, and any
+      // connection or query failure once it is set.
       return fail('database_unavailable', err);
     }
 

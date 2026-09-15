@@ -218,7 +218,7 @@ function OrgTree({ tier1, tier2, tier3, onPerson }: {
                 onDrill={() => {
                   const next = !t1Open;
                   setT1Open(next);
-                  if (!next) { setT2OpenId(null); setShowAllT2(false); setShowAllT3(false); }
+                  if (!next) { setT2Open(false); setShowAllT2(false); setShowAllT3(false); }
                 }} />
             </div>
           ))}

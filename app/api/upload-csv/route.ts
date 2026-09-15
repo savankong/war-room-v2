@@ -1,3 +1,4 @@
+import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -77,9 +78,7 @@ export async function POST(req: NextRequest) {
   const rows = parseCsv(csvText);
   if (!rows.length) return NextResponse.json({ error: 'CSV is empty or has no data rows' }, { status: 400 });
 
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { getDatabase } = require('@netlify/database');
-  const db = getDatabase();
+  const db = { sql: getDb() };
 
   let inserted = 0;
   const errors: string[] = [];

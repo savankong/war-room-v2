@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { getDb } from '@/lib/db';
+import { getLegacyDb } from '@/lib/db';
 
 export interface OrgProfile {
   id: string; name: string; slug: string;
@@ -60,7 +60,7 @@ export interface Contract {
 
 export const getOrgProfile = unstable_cache(
   async (slug: string): Promise<OrgProfile | null> => {
-    const db = getDb();
+    const db = getLegacyDb();
     const rows = await db`
       SELECT
         o.id,
@@ -86,7 +86,7 @@ export const getOrgProfile = unstable_cache(
 
 export const getNavOrgs = unstable_cache(
   async (): Promise<NavOrg[]> => {
-    const db = getDb();
+    const db = getLegacyDb();
     const rows = await db`
       SELECT o.id, COALESCE(o.full_name, o.sub, o.id) AS name, o.parent_id,
         COALESCE(o.hierarchy_level, 2)::int AS hierarchy_level,
@@ -107,7 +107,7 @@ export const getNavOrgs = unstable_cache(
 
 export const getChildOrgs = unstable_cache(
   async (orgId: string): Promise<ChildOrg[]> => {
-    const db = getDb();
+    const db = getLegacyDb();
     const rows = await db`
       SELECT o.id, COALESCE(o.full_name, o.sub, o.id) AS name, o.branch, o.organization_type,
         COUNT(DISTINCT c.id)::int  AS contact_count,
@@ -127,7 +127,7 @@ export const getChildOrgs = unstable_cache(
 
 export const getOrgContacts = unstable_cache(
   async (orgId: string): Promise<Contact[]> => {
-    const db = getDb();
+    const db = getLegacyDb();
     const rows = await db`
       SELECT id, COALESCE(name, org_full, 'Unknown') AS name, title,
              NULL::text AS avatar_color, photo_url,
@@ -146,7 +146,7 @@ export const getOrgContacts = unstable_cache(
 
 export const getOrgContracts = unstable_cache(
   async (orgId: string): Promise<Contract[]> => {
-    const db = getDb();
+    const db = getLegacyDb();
     const rows = await db`
       SELECT id, title,
              value,

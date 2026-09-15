@@ -40,6 +40,7 @@ export default function Nav() {
 
         {/* Desktop links */}
         <div className="nav-links">
+          <Link href="/today"    className={`nav-link${isActive('/today')    ? ' on' : ''}`}>Today</Link>
           <Link href="/discover" className={`nav-link${isActive('/discover') ? ' on' : ''}`}>Discover</Link>
           <Link href="/people"   className={`nav-link${isActive('/people')   ? ' on' : ''}`}>People</Link>
           <Link href="/signals"  className={`nav-link${isActive('/signals')  ? ' on' : ''}`}>Signals</Link>
@@ -69,6 +70,13 @@ export default function Nav() {
             </button>
             {acctOpen && (
               <div className="nav-acct-drop">
+                <Link href="/settings" className="nav-drop-item" onClick={() => setAcctOpen(false)}>
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                    <circle cx="6.5" cy="6.5" r="2.2" stroke="currentColor" strokeWidth="1.1"/>
+                    <path d="M6.5 1v1.3M6.5 10.7V12M1 6.5h1.3M10.7 6.5H12M2.5 2.5l.9.9M9.6 9.6l.9.9M10.5 2.5l-.9.9M3.4 9.6l-.9.9" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+                  </svg>
+                  Company settings
+                </Link>
                 <Link href="/account" className="nav-drop-item" onClick={() => setAcctOpen(false)}>
                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
                     <circle cx="6.5" cy="4.5" r="2.2" stroke="currentColor" strokeWidth="1.1"/>
@@ -117,10 +125,12 @@ export default function Nav() {
             </svg>
             <input placeholder="Search…" />
           </div>
+          <Link href="/today"    className={`nav-mobile-link${isActive('/today')    ? ' on' : ''}`}>Today</Link>
           <Link href="/discover" className={`nav-mobile-link${isActive('/discover') ? ' on' : ''}`}>Discover</Link>
           <Link href="/people"   className={`nav-mobile-link${isActive('/people')   ? ' on' : ''}`}>People</Link>
           <Link href="/signals"  className={`nav-mobile-link${isActive('/signals')  ? ' on' : ''}`}>Signals</Link>
           <div className="nav-mobile-div" />
+          <Link href="/settings" className="nav-mobile-link">Company settings</Link>
           <Link href="/account"  className="nav-mobile-link">My account</Link>
           <Link href="/admin"    className="nav-mobile-link">Admin</Link>
           <button className="nav-mobile-link nav-mobile-signout" onClick={signOut}>Sign out</button>

@@ -1,0 +1,138 @@
+# Continuous integration.
+#
+# This replaces the SAM.gov Daily Sync workflow, which ran 93 times and failed
+# 93 times before being deleted. The lesson from that is baked into what is and
+# is not a gate here: a job that is always red teaches people to ignore CI, so
+# every job below is one that passes today and means something when it fails.
+#
+# Deliberately NOT here: `npm run lint`. It reports 217 errors, all in v2-era
+# files (see README-v3.md). Adding it now would make CI permanently red on
+# arrival. Add a lint job in the same change that clears those errors, not
+# before.
+#
+# Runs on every branch push, because work in this repo goes to feature branches
+# directly rather than through pull requests.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Next.js 16 requires >=20.9. Node 20 is deprecated on GitHub runners, and
+  # local development is on 22.
+  NODE_VERSION: '22'
+
+jobs:
+  check:
+    name: Typecheck and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      # Runs `next typegen` first, so RouteContext and friends resolve from a
+      # clean checkout with no .next directory.
+      - name: Typecheck
+        run: npm run typecheck
+
+      # The build type-checks again for real: next.config.ts no longer carries
+      # ignoreBuildErrors, so this fails on a type error rather than shipping it.
+      # It needs no environment variables — if that changes, this step is where
+      # it will show up.
+      - name: Build
+        run: npm run build
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        # -U postgres matters: without it the probe connects as root, which the
+        # server rejects, and every run's container log carries four
+        # `FATAL: role "root" does not exist` lines that look like a failure and
+        # are not. The probe still reported the server up either way.
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      # Two databases so the seed round-trip and the test suites cannot disturb
+      # each other: the DB-backed suites truncate tables between cases.
+      - name: Create databases
+        run: |
+          psql -c 'CREATE DATABASE warroom_test;'
+          psql -c 'CREATE DATABASE warroom_seed;'
+
+      - name: Migrate from zero
+        env:
+          DATABASE_URL_DIRECT: postgres://postgres:postgres@localhost:5432/warroom_test
+        run: npm run migrate
+
+      # Without TEST_DATABASE_URL the DB-backed suites skip themselves and the
+      # run still reports success — 118 tests instead of 178. Setting it is what
+      # makes this job guard the acceptance criteria in §10 of the spec.
+      - name: Test
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/warroom_test
+        run: npm test
+
+      # The seed files are ~6,300 generated SQL statements. scripts/seed.test.ts
+      # parses them; only executing them proves they still apply. seed.ts exits
+      # non-zero if any statement fails.
+      - name: Seed applies from zero
+        env:
+          DATABASE_URL_DIRECT: postgres://postgres:postgres@localhost:5432/warroom_seed
+        run: |
+          npm run migrate
+          npm run seed
+
+      # Every seed statement is an idempotent upsert, so a second run must also
+      # apply cleanly and must not change any row counts.
+      - name: Seed is idempotent
+        env:
+          DATABASE_URL_DIRECT: postgres://postgres:postgres@localhost:5432/warroom_seed
+        run: |
+          before=$(psql -d warroom_seed -tAc 'SELECT count(*) FROM orgs')
+          before_contacts=$(psql -d warroom_seed -tAc 'SELECT count(*) FROM contacts')
+          npm run seed
+          after=$(psql -d warroom_seed -tAc 'SELECT count(*) FROM orgs')
+          after_contacts=$(psql -d warroom_seed -tAc 'SELECT count(*) FROM contacts')
+          echo "orgs $before -> $after, contacts $before_contacts -> $after_contacts"
+          if [ "$before" != "$after" ] || [ "$before_contacts" != "$after_contacts" ]; then
+            echo "::error::Re-running the seed changed row counts; it is not idempotent."
+            exit 1
+          fi

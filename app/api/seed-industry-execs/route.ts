@@ -1,5 +1,5 @@
+import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@netlify/database';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = (getDatabase() as any).sql;
+  const db = getDb();
 
   // Remove existing industry exec entries (ind-* prefix) then re-insert
   const del = await db`DELETE FROM contacts WHERE id LIKE 'ind-%' RETURNING id`;

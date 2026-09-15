@@ -3,67 +3,38 @@ import { AegisMark } from '@/components/Aegis';
 
 export const metadata = {
   title: 'Pricing — War Room',
-  description: 'Simple, transparent pricing for defense BD teams. Start free and upgrade when you need more.',
+  description: 'One price. Your AI capture analyst for DoD contracting. $149/month, 14 day trial.',
 };
 
+/**
+ * Product spec §9: one tier at launch.
+ *
+ * "we don't yet know which features carry the value, so a ladder would be
+ *  guesswork. One price, one promise, and the feedback tells us where the
+ *  tiers actually belong."
+ *
+ * The Scout / Team / Enterprise ladder is sketched in §9 but explicitly out of
+ * scope for v1 (§14), along with the free tier. It comes back after the first
+ * ~20 paying customers, and §9 says to verify competitor pricing before
+ * publishing any of it rather than anchoring on remembered numbers.
+ */
 const TIERS = [
   {
-    name: 'Scout',
-    price: 'Free',
-    period: 'forever',
-    desc: 'Explore the platform and get a feel for the data.',
-    cta: 'Get started free',
-    ctaHref: '/register',
-    primary: false,
-    features: [
-      'Access to org hierarchy',
-      'Browse 575+ organizations',
-      'View up to 50 stakeholder profiles',
-      'View up to 100 contract signals',
-      'Basic search and filter',
-    ],
-    limits: [
-      'No CSV export',
-      'No admin data editing',
-      'No team seats',
-    ],
-  },
-  {
-    name: 'Operator',
+    name: 'Capture',
     price: '$149',
-    period: 'per user / month',
-    desc: 'Full access for active BD professionals who need the complete picture.',
+    period: 'per month',
+    desc: 'Your AI capture analyst for DoD contracting. Every week, what changed, what is worth pursuing, and what to do next.',
     cta: 'Start 14-day trial',
-    ctaHref: '/register?plan=operator',
+    ctaHref: '/register',
     primary: true,
     features: [
-      'Unlimited org browsing',
-      'All 6,700+ stakeholder profiles',
-      'Full contract signal feed',
-      'CSV export (orgs, contacts, contracts)',
-      'Advanced search and filters',
-      'Admin data editing',
-      '3 team seats included',
-      'Priority support',
-    ],
-    limits: [],
-  },
-  {
-    name: 'Team',
-    price: '$399',
-    period: 'per month',
-    desc: 'For BD teams that need collaborative intelligence and expanded seats.',
-    cta: 'Contact us',
-    ctaHref: '/contact',
-    primary: false,
-    features: [
-      'Everything in Operator',
-      'Up to 10 team seats',
-      'Role-based access control',
-      'Admin user management',
-      'Custom data fields',
-      'Dedicated onboarding call',
-      'Monthly strategy call with Savan',
+      'Personalized matches scored against your capability profile',
+      'Fit with the evidence behind it — never a made-up percentage',
+      'Capture brief per opportunity: incumbent, prior contract, people, next action',
+      'Recompete timing so you position before the RFP, not after',
+      'Decision makers at the program and contracting office',
+      'Briefing Monday, Wednesday and Friday — never more than three opportunities',
+      'Cancel anytime',
     ],
     limits: [],
   },
@@ -77,8 +48,8 @@ export default function PricingPage() {
       <section className="page-hero">
         <div className="mkt-container">
           <div className="mkt-eyebrow">Pricing</div>
-          <h1 className="page-h1">Simple pricing.<br /><span className="mkt-h1-accent">Serious intelligence.</span></h1>
-          <p className="page-sub">Start free and upgrade when your pipeline demands it.</p>
+          <h1 className="page-h1">One price.<br /><span className="mkt-h1-accent">Serious intelligence.</span></h1>
+          <p className="page-sub">Everything included. 14 day trial, cancel anytime.</p>
         </div>
       </section>
 
@@ -131,12 +102,16 @@ export default function PricingPage() {
           <div className="faq-grid">
             {[
               {
-                q: 'What counts as a "team seat"?',
-                a: 'Each person who logs in to War Room counts as one seat. Scout is single-user only. Operator includes 3 seats. Team includes up to 10.',
+                q: 'Why only one plan?',
+                a: 'Because we do not yet know which part of this you will value most, and guessing at a ladder would just be guessing. One price, one promise. Tiers come later, shaped by what early customers actually use.',
               },
               {
                 q: 'Is the data updated in real time?',
-                a: 'Contract signals are synced daily from SAM.gov and USASpending. Org and stakeholder profiles are curated and updated regularly.',
+                a: 'DoD opportunities are ingested from SAM.gov every morning and awards from USASpending nightly. Org and stakeholder profiles are curated and updated regularly.',
+              },
+              {
+                q: 'Why only three opportunities per briefing?',
+                a: 'Because volume is the problem, not the solution. You already have access to every notice on SAM.gov. What you do not have is someone telling you which three deserve your week.',
               },
               {
                 q: 'Can I cancel anytime?',
@@ -148,11 +123,11 @@ export default function PricingPage() {
               },
               {
                 q: 'What is the consulting add-on?',
-                a: 'The Team plan includes a monthly strategy call with Savan Kong. For deeper BD strategy work, visit light-lux.com for the full consulting offering.',
+                a: 'For deeper BD strategy work, visit light-lux.com for the full consulting offering.',
               },
               {
                 q: 'How accurate is the data?',
-                a: 'Org hierarchy and stakeholder profiles are curated by hand and enriched from public sources. Signals come directly from SAM.gov and USASpending via daily sync.',
+                a: 'Org hierarchy and stakeholder profiles are curated by hand and enriched from public sources. Opportunities and awards come directly from SAM.gov and USASpending. Where we cannot identify something — an incumbent, a contracting officer — the brief says so rather than guessing. That rule matters more to us than looking complete.',
               },
             ].map((faq, i) => (
               <div key={i} className="faq-item">

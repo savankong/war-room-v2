@@ -1,3 +1,4 @@
+import { getLegacyDb } from '@/lib/db';
 /**
  * POST /api/seed-industry
  *
@@ -54,9 +55,7 @@ export async function POST(req: NextRequest) {
   const minAwards = parseInt(new URL(req.url).searchParams.get('minAwards') || '2', 10);
   const limit     = parseInt(new URL(req.url).searchParams.get('limit') || '2000', 10);
 
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { getDatabase } = require('@netlify/database');
-  const db = getDatabase();
+  const db = { sql: getLegacyDb() };
 
   const stats: Record<string, unknown> = { steps: stepsParam };
   const errors: string[] = [];
