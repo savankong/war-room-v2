@@ -87,13 +87,31 @@ Scout / Team / Enterprise tiers.
    default and `?scope=full` for the whole hierarchy, so the decision can be
    made from real onboarding sessions.
 
+## Reference data
+
+The DoD org graph, its abbreviations and metadata, and ~4,200 leadership
+contacts are plain SQL in `seeds/`, loaded by `npm run seed`. This is reference
+data, not schema: it is deliberately **not** part of `npm run migrate`, so a bad
+row can never block a deploy. Statements are idempotent upserts run one at a
+time, and a failure on one is reported without stopping the rest.
+
+```
+npm run seed                  every seed, in dependency order
+npm run seed -- --list        what exists, and how many statements each
+npm run seed -- --dry-run     parse and count, execute nothing
+npm run seed -- orgs-master   just one
+```
+
+Order matters because `contacts.org_id` is a foreign key onto `orgs`;
+`scripts/seed.ts` encodes the order that applies cleanly from zero.
+
+`npm run link-offices` resolves `contracts.contracting_office` strings to orgs.
+It is a job rather than data, and it predates `lib/ingestion/org-resolver.ts` —
+new code should use the resolver.
+
 ## Known pre-existing problems
 
-- `app/api/seed/[fn]/route.ts` is a 6,956-line request handler that trips
-  TypeScript's TS2563 limit and degrades inference project-wide. It is
-  quarantined in `tsconfig.typecheck.json`; the fix is to move that seed data
-  out of a handler and into migrations or a data file.
-- `app/(app)/DiscoverClient.tsx:221` references an undefined `setT2OpenId` and
-  will throw when that path runs.
-- `app/api/import/route.ts` and `app/api/seed-socom/route.ts` call a function
-  with the wrong arity.
+- `npm run lint` does not pass repo-wide: 218 errors in v2-era files, mostly
+  `no-explicit-any`, plus 24 React Compiler errors across six client
+  components. No v3 file is among them. Clearing these is what would let lint
+  become a CI gate, the way typecheck now is.

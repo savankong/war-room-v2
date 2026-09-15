@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
         inserted++;
       } catch (e: any) { errors.push(`contact ${c.id}: ${getErr(e)}`); }
     }
-    revalidateTag('org-contacts');
+    revalidateTag('org-contacts', 'max');
   } else if (type === 'contracts') {
     for (const c of records) {
       try {
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
         inserted++;
       } catch (e: any) { errors.push(`contract ${c.id}: ${getErr(e)}`); }
     }
-    revalidateTag('org-contracts');
+    revalidateTag('org-contracts', 'max');
   } else if (type === 'org_types') {
     // Insert industry (or any) org_type rows
     for (const t of records) {

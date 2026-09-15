@@ -170,6 +170,6 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  revalidateTag('org-contacts');
+  revalidateTag('org-contacts', 'max');
   return NextResponse.json({ ok: true, inserted, errors });
 }
