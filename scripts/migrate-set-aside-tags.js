@@ -6,8 +6,8 @@
 
 const postgres = require('postgres');
 
-const DB = process.env.DATABASE_URL ||
-  'postgresql://netlifydb_owner:npg_r3FGVA1pbSWY@ep-mute-dream-aj877gn6.c-3.us-east-2.db.netlify.com/netlifydb?sslmode=require';
+const DB = process.env.DATABASE_URL;
+if (!DB) { console.error('DATABASE_URL not set'); process.exit(1); }
 
 const db = postgres(DB, { ssl: 'require', max: 1, prepare: false });
 
