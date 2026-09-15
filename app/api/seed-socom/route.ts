@@ -165,8 +165,9 @@ export async function GET(req: NextRequest) {
           hierarchy_order  = EXCLUDED.hierarchy_order
       `;
       inserted++;
-    } catch (e: any) {
-      errors.push(`${p.id}: ${e.message?.slice(0, 120)}`);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      errors.push(`${p.id}: ${message.slice(0, 120)}`);
     }
   }
 

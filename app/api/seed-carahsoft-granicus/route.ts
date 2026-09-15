@@ -244,8 +244,9 @@ export async function GET(req: NextRequest) {
         ON CONFLICT (id) DO NOTHING
       `;
       inserted++;
-    } catch (e: any) {
-      errors.push(`${c.id}: ${String(e?.message ?? e).slice(0, 300)}`);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      errors.push(`${c.id}: ${message.slice(0, 300)}`);
     }
   }
 

@@ -5,9 +5,14 @@ import { revalidateTag } from 'next/cache';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-function getErr(e: any): string {
-  let c = e; let last = '';
-  for (let i = 0; i < 6 && c; i++) { last = c?.message || String(c); c = c?.cause; }
+function getErr(e: unknown): string {
+  let c: unknown = e;
+  let last = '';
+  for (let i = 0; i < 6 && c; i++) {
+    const withMessage = c as { message?: unknown; cause?: unknown };
+    last = typeof withMessage.message === 'string' ? withMessage.message : String(c);
+    c = withMessage.cause;
+  }
   return last.slice(0, 500);
 }
 
@@ -53,7 +58,7 @@ export async function POST(req: NextRequest) {
             website         = COALESCE(EXCLUDED.website, orgs.website)
         `;
         inserted++;
-      } catch (e: any) { errors.push(`org ${o.id}: ${getErr(e)}`); }
+      } catch (e) { errors.push(`org ${o.id}: ${getErr(e)}`); }
     }
   } else if (type === 'contacts') {
     for (const c of records) {
@@ -89,7 +94,7 @@ export async function POST(req: NextRequest) {
             hierarchy_order = COALESCE(EXCLUDED.hierarchy_order, contacts.hierarchy_order)
         `;
         inserted++;
-      } catch (e: any) { errors.push(`contact ${c.id}: ${getErr(e)}`); }
+      } catch (e) { errors.push(`contact ${c.id}: ${getErr(e)}`); }
     }
     revalidateTag('org-contacts', 'max');
   } else if (type === 'contracts') {
@@ -122,7 +127,7 @@ export async function POST(req: NextRequest) {
           `;
         }
         inserted++;
-      } catch (e: any) { errors.push(`contract ${c.id}: ${getErr(e)}`); }
+      } catch (e) { errors.push(`contract ${c.id}: ${getErr(e)}`); }
     }
     revalidateTag('org-contracts', 'max');
   } else if (type === 'org_types') {
@@ -135,7 +140,7 @@ export async function POST(req: NextRequest) {
           ON CONFLICT (id) DO NOTHING
         `;
         inserted++;
-      } catch (e: any) { errors.push(`org_type ${t.id}: ${getErr(e)}`); }
+      } catch (e) { errors.push(`org_type ${t.id}: ${getErr(e)}`); }
     }
   } else if (type === 'link_contracts') {
     // records: [{ awardee: string, org_id: string }]
@@ -148,7 +153,7 @@ export async function POST(req: NextRequest) {
             AND (canonical_org_id IS NULL OR canonical_org_id <> ${r.org_id})
         `;
         inserted += (result as any).rowCount ?? 1;
-      } catch (e: any) { errors.push(`link ${r.awardee}: ${getErr(e)}`); }
+      } catch (e) { errors.push(`link ${r.awardee}: ${getErr(e)}`); }
     }
   } else if (type === 'patch_contracts') {
     // records: [{ id, title?, award_date?, naics_code?, service_branch?, agency_or_lab?, description? }]
@@ -165,7 +170,7 @@ export async function POST(req: NextRequest) {
           WHERE id = ${r.id}::uuid
         `;
         inserted++;
-      } catch (e: any) { errors.push(`patch ${r.id}: ${getErr(e)}`); }
+      } catch (e) { errors.push(`patch ${r.id}: ${getErr(e)}`); }
     }
   } else if (type === 'delete_contacts_by_id_prefix') {
     const prefix = body.prefix;

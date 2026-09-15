@@ -165,9 +165,44 @@ function FilterSection({ label, isOpen, onToggle, onClear, showClear, children }
 }
 
 /* ── Main ───────────────────────────────────────────────────────── */
+/** One row of the contracts SELECT in ./page.tsx. */
+export interface SignalRow {
+  id: string;
+  external_id: string | null;
+  title: string | null;
+  value: string | number | null;
+  status: string | null;
+  signal_type: string | null;
+  award_date: string | null;
+  source: string | null;
+  set_aside: string | null;
+  deadline: string | null;
+  org_id: string | null;
+  recipient: string | null;
+  award_amt: string | number | null;
+  poc_name: string | null;
+  poc_email: string | null;
+  alt_poc_name: string | null;
+  alt_poc_email: string | null;
+  naics: string | null;
+  sub_agency: string | null;
+  org_name: string | null;
+  org_slug: string | null;
+  badge_text: string | null;
+  badge_color: string | null;
+}
+
+/** One row of the orgs SELECT in ./page.tsx. */
+export interface SignalOrg {
+  id: string;
+  name: string | null;
+  slug: string;
+  sub: string | null;
+}
+
 interface Props {
-  contracts: any[];
-  orgs: any[];
+  contracts: SignalRow[];
+  orgs: SignalOrg[];
   stats: { total: number; opps: number; awards: number; total_value: number };
   indStats: { total: number; companies: number; total_value: number };
   indFilterOptions: {
@@ -273,7 +308,7 @@ export default function SignalsClient({ contracts, orgs, stats, indStats, indFil
   const sourceCounts = useMemo(() => {
     const m: Record<string, number> = {};
     contracts.forEach(c => {
-      const s = SOURCE_LABEL[c.source] ?? c.source ?? 'Other';
+      const s = (c.source ? SOURCE_LABEL[c.source] : null) ?? c.source ?? 'Other';
       m[s] = (m[s]??0)+1;
     });
     return m;
@@ -301,9 +336,9 @@ export default function SignalsClient({ contracts, orgs, stats, indStats, indFil
       const q = search.toLowerCase();
       list = list.filter(c => (c.title??'').toLowerCase().includes(q) || (c.org_name??'').toLowerCase().includes(q));
     }
-    if (typeFilters.length > 0) list = list.filter(c => typeFilters.includes(c.signal_type));
+    if (typeFilters.length > 0) list = list.filter(c => c.signal_type !== null && typeFilters.includes(c.signal_type));
     if (orgFilter)    list = list.filter(c => c.org_id === orgFilter);
-    if (sourceFilter) list = list.filter(c => (SOURCE_LABEL[c.source] ?? c.source) === sourceFilter);
+    if (sourceFilter) list = list.filter(c => ((c.source ? SOURCE_LABEL[c.source] : null) ?? c.source) === sourceFilter);
     if (govSort === 'Highest Value') list = [...list].sort((a,b) => (Number(b.value)||0)-(Number(a.value)||0));
     if (govSort === 'Title A–Z')     list = [...list].sort((a,b) => (a.title??'').localeCompare(b.title??''));
     return list;

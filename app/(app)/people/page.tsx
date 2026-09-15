@@ -1,12 +1,13 @@
 import { getDb } from '@/lib/db';
 import PeopleClient from './PeopleClient';
+import type { Person, TopOrg } from './PeopleClient';
 
 export const dynamic = 'force-dynamic';
 
 async function getPeopleData() {
   const db = getDb();
   const [people, topOrgs] = await Promise.all([
-    db`
+    db<Person[]>`
       SELECT
         c.id,
         c.name           AS full_name,
@@ -47,7 +48,7 @@ async function getPeopleData() {
       ORDER BY c.hierarchy_order NULLS LAST, c.name
     `,
     /* only top 2 absolute levels for the org filter */
-    db`
+    db<TopOrg[]>`
       SELECT id::text, full_name AS name, hierarchy_level AS abs_hierarchy_level
       FROM orgs
       WHERE is_active = true
@@ -58,8 +59,8 @@ async function getPeopleData() {
   ]);
 
   return {
-    people: people as any[],
-    topOrgs: topOrgs as any[],
+    people,
+    topOrgs,
   };
 }
 

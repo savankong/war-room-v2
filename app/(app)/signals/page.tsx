@@ -1,5 +1,6 @@
 import { getDb } from '@/lib/db';
 import SignalsClient from './SignalsClient';
+import type { SignalRow, SignalOrg } from './SignalsClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,7 @@ async function getSignalsData() {
 
   const [contracts, orgs, stats, indStats, [indCompanies, indAgencies]] = await Promise.all([
     // Gov contracts: only contracts linked to gov orgs (branch != 'Industry') or unlinked
-    db`
+    db<SignalRow[]>`
       SELECT
         c.id, c.external_id, c.title, c.value, c.status, c.signal_type,
         COALESCE(c.award_date, c.created_at::date) AS award_date,
@@ -27,7 +28,7 @@ async function getSignalsData() {
       LIMIT 10000
     `,
     // Only gov orgs for the Organization filter
-    db`
+    db<SignalOrg[]>`
       SELECT id::text, full_name AS name, id::text AS slug, sub
       FROM orgs
       WHERE is_active = true
@@ -35,7 +36,7 @@ async function getSignalsData() {
       ORDER BY full_name
     `,
     // Gov stats matching same filter
-    db`
+    db<{ total: number; opps: number; awards: number; total_value: string }[]>`
       SELECT
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE c.signal_type = 'Opportunity')::int AS opps,
@@ -47,7 +48,7 @@ async function getSignalsData() {
         AND (o.id IS NULL OR o.branch IS DISTINCT FROM 'Industry')
     `,
     // Industry stats (lightweight — no contract rows loaded here)
-    db`
+    db<{ total: number; companies: number; total_value: string }[]>`
       SELECT
         COUNT(*)::int AS total,
         COUNT(DISTINCT o.id)::int AS companies,
@@ -58,7 +59,7 @@ async function getSignalsData() {
     `,
     // Industry filter options: top companies + top agencies
     Promise.all([
-      db`
+      db<{ name: string; cnt: number }[]>`
         SELECT o.full_name AS name, COUNT(*)::int AS cnt
         FROM contracts c
         JOIN orgs o ON o.id = c.canonical_org_id AND o.branch = 'Industry'
@@ -67,7 +68,7 @@ async function getSignalsData() {
         ORDER BY cnt DESC
         LIMIT 20
       `,
-      db`
+      db<{ name: string; cnt: number }[]>`
         SELECT c.service_branch AS name, COUNT(*)::int AS cnt
         FROM contracts c
         JOIN orgs o ON o.id = c.canonical_org_id AND o.branch = 'Industry'
@@ -81,13 +82,23 @@ async function getSignalsData() {
   ]);
 
   return {
-    contracts: contracts as any[],
-    orgs: orgs as any[],
-    stats: (stats[0] ?? { total: 0, opps: 0, awards: 0, total_value: 0 }) as any,
-    indStats: (indStats[0] ?? { total: 0, companies: 0, total_value: 0 }) as any,
+    contracts,
+    orgs,
+    // ::bigint arrives as a string from the driver; Props declares number.
+    stats: {
+      total:       stats[0]?.total  ?? 0,
+      opps:        stats[0]?.opps   ?? 0,
+      awards:      stats[0]?.awards ?? 0,
+      total_value: Number(stats[0]?.total_value ?? 0),
+    },
+    indStats: {
+      total:       indStats[0]?.total     ?? 0,
+      companies:   indStats[0]?.companies ?? 0,
+      total_value: Number(indStats[0]?.total_value ?? 0),
+    },
     indFilterOptions: {
-      companies: (indCompanies as any[]).map(r => [r.name, r.cnt] as [string, number]),
-      agencies:  (indAgencies  as any[]).map(r => [r.name, r.cnt] as [string, number]),
+      companies: indCompanies.map(r => [r.name, r.cnt] as [string, number]),
+      agencies:  indAgencies.map(r => [r.name, r.cnt] as [string, number]),
     },
   };
 }

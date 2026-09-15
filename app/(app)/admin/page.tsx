@@ -1,5 +1,6 @@
 import { getDb } from '@/lib/db';
 import AdminClient from './AdminClient';
+import type { AdminOrg, AdminContact, AdminContract } from './types';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,7 +8,7 @@ async function getAdminData() {
   const db = getDb();
 
   const [orgs, contacts, contracts, statsRaw] = await Promise.all([
-    db`
+    db<AdminOrg[]>`
       SELECT o.id, o.full_name AS name, o.abbreviation, o.branch,
              ot.name AS type, ot.name AS organization_type,
              o.description, o.website, o.parent_id,
@@ -20,7 +21,7 @@ async function getAdminData() {
       LEFT JOIN contracts ct ON ct.canonical_org_id = o.id
       GROUP BY o.id, ot.name ORDER BY o.full_name
     `,
-    db`
+    db<AdminContact[]>`
       SELECT c.id, c.name, c.title, c.org_id, c.org_full,
              c.email, c.phone, c.linkedin,
              c.hierarchy_order, c.is_inbox,
@@ -31,7 +32,7 @@ async function getAdminData() {
       LEFT JOIN org_types ot ON ot.id = o.org_type_id
       ORDER BY c.hierarchy_order NULLS LAST, c.name
     `,
-    db`
+    db<AdminContract[]>`
       SELECT id, title, signal_type, value, award_date,
              org_id, source, awardee AS recipient,
              naics_code AS naics, description
@@ -39,7 +40,7 @@ async function getAdminData() {
       ORDER BY created_at DESC NULLS LAST
       LIMIT 2000
     `,
-    db`
+    db<{ org_count: number; contact_count: number; contract_count: number; active_orgs: number }[]>`
       SELECT
         (SELECT COUNT(*) FROM orgs)::int      AS org_count,
         (SELECT COUNT(*) FROM contacts)::int  AS contact_count,
@@ -48,16 +49,16 @@ async function getAdminData() {
     `,
   ]);
 
-  const s = statsRaw[0] ?? {};
+  const s = statsRaw[0];
   return {
-    orgs:      orgs      as any[],
-    contacts:  contacts  as any[],
-    contracts: contracts as any[],
+    orgs,
+    contacts,
+    contracts,
     stats: {
-      orgCount:      s.org_count      ?? 0,
-      contactCount:  s.contact_count  ?? 0,
-      contractCount: s.contract_count ?? 0,
-      activeOrgs:    s.active_orgs    ?? 0,
+      orgCount:      s?.org_count      ?? 0,
+      contactCount:  s?.contact_count  ?? 0,
+      contractCount: s?.contract_count ?? 0,
+      activeOrgs:    s?.active_orgs    ?? 0,
     },
   };
 }

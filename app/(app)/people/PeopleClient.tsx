@@ -100,7 +100,7 @@ const SENIORITY_GROUPS = [
 ];
 
 /* ── interfaces ─────────────────────────────────────────────────────── */
-interface Person {
+export interface Person {
   id: string; full_name: string; role_title: string | null;
   avatar_color: string | null; photo_url: string | null;
   email: string | null; phone: string | null; linkedin: string | null;
@@ -111,7 +111,7 @@ interface Person {
   org_contracts: number; org_awards_3yr: number; org_open_opps: number;
   org_type: string | null;
 }
-interface TopOrg { id: string; name: string; abs_hierarchy_level: number | null; }
+export interface TopOrg { id: string; name: string; abs_hierarchy_level: number | null; }
 interface Props { people: Person[]; topOrgs: TopOrg[]; }
 
 /* ── SVG icons ──────────────────────────────────────────────────────── */

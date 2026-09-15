@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Pagination from '@/app/components/Pagination';
 import { useResetOn } from '@/lib/use-reset-on';
+import type { AdminOrg, AdminContact, AdminContract, AdminRow } from './types';
 
 /* ── Combobox — free-text input with dropdown of existing values ──── */
 function Combobox({ value, onChange, options, placeholder, className }: {
@@ -94,9 +95,9 @@ const BRANCHES     = ['Army','Navy','Air Force','Marine Corps','Space Force','OS
 const PER_PAGE = 50;
 
 interface Props {
-  orgs: any[];
-  contacts: any[];
-  contracts: any[];
+  orgs: AdminOrg[];
+  contacts: AdminContact[];
+  contracts: AdminContract[];
   stats: { orgCount: number; contactCount: number; contractCount: number; activeOrgs: number };
 }
 
