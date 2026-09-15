@@ -316,10 +316,24 @@ export async function buildBriefing(
   if (!company) return null;
 
   const { chosen, totalAvailable } = await selectOpportunities(sql, input.userCompanyId);
-  const [recompete, signals] = await Promise.all([
+  const [recompete, rawSignals] = await Promise.all([
     selectRecompete(sql, input.userCompanyId),
-    signalsForCompany(sql, input.userCompanyId, { since: input.periodStart, limit: MAX_SIGNALS }),
+    // Over-fetch so deduplication below still fills the four lines §9 allows.
+    signalsForCompany(sql, input.userCompanyId, { since: input.periodStart, limit: MAX_SIGNALS * 4 }),
   ]);
+
+  // Two signals can render to the same sentence — the same requirement
+  // re-posted under a new notice id, or an award that is also an expiry. A
+  // repeated line is worse than a missing one when the cap is four.
+  const seenLines = new Set<string>();
+  const signals: BriefingSignal[] = [];
+  for (const signal of rawSignals) {
+    const line = signalLine(signal);
+    if (seenLines.has(line)) continue;
+    seenLines.add(line);
+    signals.push({ type: signal.type, line });
+    if (signals.length >= MAX_SIGNALS) break;
+  }
 
   const people = await selectPeople(
     sql,
@@ -335,7 +349,7 @@ export async function buildBriefing(
     totalAvailable,
     recompete,
     people,
-    signals: signals.map((s) => ({ type: s.type, line: signalLine(s) })),
+    signals,
   };
 }
 

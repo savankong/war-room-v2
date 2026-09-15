@@ -306,7 +306,12 @@ async function persistMatches(
       opportunity_id: r.opportunityId,
       score: r.score,
       fit: r.fit,
-      evidence: JSON.stringify(r.evidence),
+      // sql.json, not JSON.stringify: postgres.js serializes values bound to a
+      // jsonb column itself, so a pre-stringified array is encoded a second
+      // time and the column ends up holding a JSON *string* rather than an
+      // array. Everything downstream then gets a string where it expects
+      // evidence lines.
+      evidence: sql.json(r.evidence as never),
       profile_version: profileVersion,
     }));
 

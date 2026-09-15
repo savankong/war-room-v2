@@ -1,0 +1,27 @@
+{
+  // Type gate for `npm run typecheck`.
+  //
+  // app/api/seed/[fn]/route.ts is a single 6,956-line request handler of
+  // hardcoded Netlify-era seed data. TypeScript reports
+  //
+  //   TS2563: The containing function or module body is too large for
+  //           control flow analysis
+  //
+  // and then degrades inference for the rest of the program: with that file in
+  // the graph the project reports ~1,207 errors, and most of them are phantom
+  // "implicitly has an any type" on correctly-typed code in unrelated files.
+  // Take it out and the count drops to 780, of which 776 are inside that file
+  // itself. The remaining four are real and pre-existing.
+  //
+  // That is why next.config.ts carries `typescript: { ignoreBuildErrors: true }`
+  // — the build could not pass otherwise. This config is the narrower
+  // quarantine: everything else gets a genuine type check, so new code cannot
+  // regress behind the noise.
+  //
+  // The fix is to move that seed data out of a request handler and into
+  // migrations or a data file. §13 parks the remaining org backlog, so it is
+  // not being done as part of the v3 pivot — but it should be done, and then
+  // this file should be deleted.
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "app/api/seed/[fn]/route.ts"]
+}

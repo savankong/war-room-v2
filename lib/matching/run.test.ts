@@ -147,6 +147,30 @@ describe('scoreCompany', { skip: TEST_DB ? false : 'TEST_DATABASE_URL not set' }
     }
   });
 
+  test('evidence round-trips out of jsonb as an array, not a string', async () => {
+    // Regression: persistMatches used to JSON.stringify the array before
+    // handing it to a jsonb column, which postgres.js then encoded again. The
+    // column held a JSON string, and every reader — Today, the briefing —
+    // got a string where it expected evidence lines. The in-memory assertions
+    // in this file all passed while the stored value was wrong.
+    await seedOpportunity();
+    await scoreCompany(sql, companyId);
+
+    const [row] = await sql<{ evidence: unknown }[]>`
+      SELECT evidence FROM matches WHERE user_company_id = ${companyId}
+    `;
+    assert.ok(Array.isArray(row.evidence), `evidence came back as ${typeof row.evidence}`);
+
+    const evidence = row.evidence as Array<{ factor: string; points: number; line: string }>;
+    assert.ok(evidence.length > 0);
+    for (const line of evidence) {
+      assert.equal(typeof line.line, 'string');
+      assert.equal(typeof line.points, 'number');
+    }
+    // The shape the API and the briefing actually call.
+    assert.doesNotThrow(() => evidence.slice(0, 2).map((e) => e.line));
+  });
+
   test('rescoring is idempotent — one row per opportunity', async () => {
     await seedOpportunity();
 
