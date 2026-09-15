@@ -1,6 +1,50 @@
 import { NextResponse } from 'next/server';
 import { getDb, getWriteDb } from '@/lib/db';
 
+/** industry_companies catalog row. profile is free-form JSONB. */
+interface CatalogRow {
+  id: string; legal_name: string | null; name: string | null;
+  logo_url: string | null; ticker: string | null; headquarters: string | null;
+  website: string | null; description: string | null;
+  employees: number | null; revenue_b: number | null;
+  focus_areas: string[] | null; dod_contract_value_b: number | null;
+  profile: { logo_url?: string | null; full_description?: string | null } | null;
+}
+
+/** Contract aggregate grouped by awardee. ::bigint arrives as a string. */
+interface AggRow {
+  awardee: string;
+  contract_count: number;
+  total_value: string | null;
+  set_aside_count: number;
+  agencies: string[] | null;
+}
+
+/** Same aggregate, aliased to `name`, plus the distinct sources. */
+interface AwardeeRow {
+  name: string;
+  contract_count: number;
+  total_value: string | null;
+  set_aside_count: number;
+  agencies: string[] | null;
+  sources: string[] | null;
+}
+
+/** An orgs row seeded with branch='Industry'. */
+interface IndustryOrgRow {
+  id: string;
+  legal_name: string | null;
+  display_name: string | null;
+  headquarters: string | null;
+  website: string | null;
+  profile: { logo_url?: string | null; full_description?: string | null } | null;
+  contract_count: number;
+  total_value: string | null;
+  agencies: string[] | null;
+  sources: string[] | null;
+}
+
+
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
@@ -15,7 +59,7 @@ export async function GET() {
              description, employees, revenue_b, focus_areas, dod_contract_value_b, profile
       FROM industry_companies
     `,
-    readDb`
+    readDb<AggRow[]>`
       SELECT
         c.awardee,
         COUNT(*)::int                                            AS contract_count,
@@ -27,7 +71,7 @@ export async function GET() {
       WHERE c.awardee IS NOT NULL AND c.signal_type = 'Award' AND c.value > 0
       GROUP BY c.awardee
     `,
-    readDb`
+    readDb<AwardeeRow[]>`
       SELECT
         c.awardee                                              AS name,
         COUNT(*)::int                                          AS contract_count,
@@ -43,7 +87,7 @@ export async function GET() {
       GROUP BY c.awardee
     `,
     // Arm 3: orgs seeded directly with branch='Industry' (e.g. Granicus)
-    readDb`
+    readDb<IndustryOrgRow[]>`
       SELECT
         o.id, o.full_name AS legal_name, o.full_name AS display_name,
         o.loc AS headquarters, o.website, o.profile,
@@ -60,16 +104,16 @@ export async function GET() {
   ]);
 
   // Build a lookup map of contract aggregates by awardee name
-  const aggMap = new Map<string, any>();
+  const aggMap = new Map<string, AggRow>();
   for (const row of contractAggs) aggMap.set(row.awardee, row);
 
   // Build case-insensitive sets of known names for deduplication
-  const primeNamesLower   = new Set(catalog.map((ic: any) => (ic.legal_name ?? '').toLowerCase()));
-  const orgLegalNamesLower = new Set((industryOrgs as any[]).map((o: any) => (o.legal_name ?? '').toLowerCase()));
+  const primeNamesLower   = new Set((catalog as CatalogRow[]).map(ic => (ic.legal_name ?? '').toLowerCase()));
+  const orgLegalNamesLower = new Set(industryOrgs.map(o => (o.legal_name ?? '').toLowerCase()));
 
   // Arm 1: known catalog primes merged with contract data
-  const primes = catalog.map((ic: any) => {
-    const agg = aggMap.get(ic.legal_name);
+  const primes = (catalog as CatalogRow[]).map(ic => {
+    const agg = ic.legal_name ? aggMap.get(ic.legal_name) : undefined;
     return {
       name:            ic.legal_name,
       display_name:    ic.name,
@@ -96,9 +140,9 @@ export async function GET() {
   });
 
   // Arm 2: industry orgs from orgs table not already in catalog
-  const orgRows = (industryOrgs as any[])
-    .filter((o: any) => !primeNamesLower.has((o.legal_name ?? '').toLowerCase()))
-    .map((o: any) => ({
+  const orgRows = industryOrgs
+    .filter(o => !primeNamesLower.has((o.legal_name ?? '').toLowerCase()))
+    .map(o => ({
       name:            o.legal_name,
       display_name:    o.display_name,
       legal_name:      o.legal_name,
@@ -123,9 +167,9 @@ export async function GET() {
     }));
 
   // Arm 3: other awardees not in catalog or orgs table (case-insensitive dedup)
-  const others = (otherAwardees as any[])
-    .filter((r: any) => !primeNamesLower.has((r.name ?? '').toLowerCase()) && !orgLegalNamesLower.has((r.name ?? '').toLowerCase()))
-    .map((r: any) => ({
+  const others = otherAwardees
+    .filter(r => !primeNamesLower.has((r.name ?? '').toLowerCase()) && !orgLegalNamesLower.has((r.name ?? '').toLowerCase()))
+    .map(r => ({
       name:            r.name,
       display_name:    null,
       legal_name:      null,

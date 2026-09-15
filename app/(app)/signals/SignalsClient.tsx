@@ -64,13 +64,13 @@ const IcDoc     = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="no
 const IcFactory = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V8l5 3V8l5 3V5l4 2v14"/></svg>;
 
 /* ── Gov Signal card ────────────────────────────────────────────── */
-function SignalCard({ sig, onOpen }: { sig: any; onOpen: () => void }) {
-  const typeColor = TYPE_COLOR[sig.signal_type] ?? '#4A5666';
-  const typeBg    = TYPE_BG[sig.signal_type]    ?? 'rgba(74,86,102,.1)';
+function SignalCard({ sig, onOpen }: { sig: SignalRow; onOpen: () => void }) {
+  const typeColor = (sig.signal_type ? TYPE_COLOR[sig.signal_type] : null) ?? '#4A5666';
+  const typeBg    = (sig.signal_type ? TYPE_BG[sig.signal_type] : null) ?? 'rgba(74,86,102,.1)';
   const money  = fmtMoney(sig.value);
   const date   = fmtDate(sig.award_date);
   const orgColor = sig.org_name ? colorFor(sig.org_name) : '#8995A4';
-  const src = SOURCE_LABEL[sig.source] ?? sig.source ?? '';
+  const src = (sig.source ? SOURCE_LABEL[sig.source] : null) ?? sig.source ?? '';
 
   return (
     <div className="wr-scard">
@@ -103,12 +103,12 @@ function SignalCard({ sig, onOpen }: { sig: any; onOpen: () => void }) {
 }
 
 /* ── Industry Award card ─────────────────────────────────────────── */
-function IndCard({ sig, onOpen }: { sig: any; onOpen: () => void }) {
+function IndCard({ sig, onOpen }: { sig: SignalRow; onOpen: () => void }) {
   const company = sig.org_name ?? sig.recipient ?? '';
   const companyColor = colorFor(company);
   const money = fmtMoney(sig.award_amt);
   const date  = fmtDate(sig.award_date);
-  const agency = sig.sub_agency ?? sig.agency ?? null;
+  const agency = sig.sub_agency ?? null;
 
   return (
     <div className="wr-scard">
@@ -186,6 +186,7 @@ export interface SignalRow {
   alt_poc_email: string | null;
   naics: string | null;
   sub_agency: string | null;
+  description: string | null;
   org_name: string | null;
   org_slug: string | null;
   badge_text: string | null;
@@ -233,7 +234,7 @@ export default function SignalsClient({ contracts, orgs, stats, indStats, indFil
   const [indSort,      setIndSort]      = useState('Highest Value');
 
   /* Industry server-paginated data */
-  const [indContracts, setIndContracts] = useState<any[]>([]);
+  const [indContracts, setIndContracts] = useState<SignalRow[]>([]);
   const [indTotal,     setIndTotal]     = useState(0);
   const [indPage,      setIndPage]      = useState(1);
   const [indLoading,   setIndLoading]   = useState(false);
@@ -247,7 +248,7 @@ export default function SignalsClient({ contracts, orgs, stats, indStats, indFil
   const [valueSectionOpen,  setValueSectionOpen]  = useState(true);
   const [agencySectionOpen, setAgencySectionOpen] = useState(true);
 
-  const [openSignal, setOpenSignal] = useState<any>(null);
+  const [openSignal, setOpenSignal] = useState<SignalRow | null>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   /* "Show more" toggles for filter lists */

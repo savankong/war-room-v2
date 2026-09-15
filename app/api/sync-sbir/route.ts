@@ -1,6 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
+/** The fields this route reads off an award from the SBIR API. */
+interface SbirAward {
+  firm?: string | null;
+  uei?: string | null;
+  phase?: string | null;
+  award_title?: string | null;
+  agency?: string | null;
+  branch?: string | null;
+  program?: string | null;
+  award_year?: string | null;
+  award_amount?: string | null;
+  research_keywords?: string | null;
+  research_area_keywords?: string | null;
+  abstract?: string | null;
+  hubzone_owned?: boolean | null;
+  women_owned?: boolean | null;
+  socially_economically_disadvantaged?: boolean | null;
+  poc_name?: string | null;
+  poc_email?: string | null;
+}
+
+/** The orgs columns this route reads back when matching. */
+interface OrgSbirRow {
+  id: number;
+  sbir_phase: string | null;
+  sbir_capabilities: string[] | null;
+  sbir_designations: string[] | null;
+  sbir_award_count: number | null;
+}
+
+
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5-minute timeout for large syncs
 
@@ -89,7 +120,7 @@ export async function POST(req: NextRequest) {
 
   while (true) {
     const url = `${SBIR_BASE}?agency=DOD&rows=${BATCH}&start=${start}`;
-    let awards: any[];
+    let awards: SbirAward[];
     try {
       const res = await fetch(url, { headers: { Accept: 'application/json' } });
       if (!res.ok) break;
@@ -114,15 +145,15 @@ export async function POST(req: NextRequest) {
 
         /* Match existing org */
         let orgId: number | null = null;
-        let existing: any = null;
+        let existing: OrgSbirRow | null = null;
 
         if (uei) {
-          const rows = await db`SELECT id, sbir_phase, sbir_capabilities, sbir_designations, sbir_award_count FROM orgs WHERE uei = ${uei} LIMIT 1`;
+          const rows = await db<OrgSbirRow[]>`SELECT id, sbir_phase, sbir_capabilities, sbir_designations, sbir_award_count FROM orgs WHERE uei = ${uei} LIMIT 1`;
           if (rows.length) existing = rows[0];
         }
         if (!existing && firm) {
           const norm = normalizeFirm(firm);
-          const rows = await db`
+          const rows = await db<OrgSbirRow[]>`
             SELECT id, sbir_phase, sbir_capabilities, sbir_designations, sbir_award_count
             FROM orgs
             WHERE LOWER(REGEXP_REPLACE(COALESCE(full_name, id), '[,.]?\\s*(inc\\.?|llc\\.?|corp\\.?|co\\.?|ltd\\.?)\\s*$', '', 'i')) = ${norm}

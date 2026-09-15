@@ -17,7 +17,7 @@ async function getSignalsData() {
         c.canonical_org_id AS org_id, c.awardee AS recipient,
         NULL::numeric AS award_amt,
         c.poc AS poc_name, c.poc_email, c.alt_poc AS alt_poc_name, c.alt_poc_email,
-        c.naics_code AS naics, c.agency_or_lab AS sub_agency,
+        c.naics_code AS naics, c.agency_or_lab AS sub_agency, c.description,
         o.full_name AS org_name, o.id::text AS org_slug,
         o.org_type_id AS badge_text, NULL::text AS badge_color
       FROM contracts c

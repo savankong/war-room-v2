@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { SignalRow } from './SignalsClient';
 
 function fmtMoney(v: number | string | null) {
   const n = v == null ? null : Number(v);
@@ -51,7 +52,7 @@ interface Contact {
 }
 
 interface Props {
-  signal: any;
+  signal: SignalRow;
   onClose: () => void;
 }
 
@@ -98,8 +99,8 @@ export default function SignalDetailPanel({ signal, onClose }: Props) {
       .catch(() => {});
   }, [signal?.org_id]);
 
-  const typeColor = TYPE_COLOR[signal.signal_type] ?? '#4A5666';
-  const src = SOURCE_LABEL[signal.source] ?? signal.source ?? '';
+  const typeColor = (signal.signal_type ? TYPE_COLOR[signal.signal_type] : null) ?? '#4A5666';
+  const src = (signal.source ? SOURCE_LABEL[signal.source] : null) ?? signal.source ?? '';
 
   const hasPoc = signal.poc_name || signal.poc_email || signal.alt_poc_name || signal.alt_poc_email;
 

@@ -1,6 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWriteDb } from '@/lib/db';
 
+/** The USASpending search request body this route builds. */
+interface UsaSpendingRequest {
+  filters: Record<string, unknown>;
+  fields: string[];
+  /** Paging fields are added after construction, so the shape stays open. */
+  [key: string]: unknown;
+}
+
+/**
+ * One award row from the USASpending search response. The keys are the display
+ * names the API returns, which is why they are quoted.
+ */
+interface UsaSpendingAward {
+  generated_internal_id?: string | null;
+  'Award ID'?: string | null;
+  'Award Amount'?: number | string | null;
+  'Awarding Sub Agency'?: string | null;
+  'Description'?: string | null;
+  'Recipient Name'?: string | null;
+  'NAICS Code'?: string | null;
+  'Award Date'?: string | null;
+}
+
+
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
@@ -51,7 +75,7 @@ export async function GET(req: NextRequest) {
   const minAmount   = parseInt(req.nextUrl.searchParams.get('minAmount') ?? '100000', 10);
 
   // Build USASpending request body
-  const body: Record<string, any> = {
+  const body: UsaSpendingRequest = {
     filters: {
       award_type_codes: ['A', 'B', 'C', 'D'],  // contract types
       agencies: [{ type: 'awarding', tier: 'toptier', name: 'Department of Defense' }],
@@ -88,7 +112,7 @@ export async function GET(req: NextRequest) {
   }
 
   const data = await usa.json();
-  const results: any[] = data.results ?? [];
+  const results: UsaSpendingAward[] = data.results ?? [];
   const meta = data.page_metadata ?? {};
 
   const db = getWriteDb();
@@ -102,12 +126,12 @@ export async function GET(req: NextRequest) {
   const errors: string[] = [];
 
   for (const r of results) {
-    const uid: string = r['generated_internal_id'] ?? r['Award ID'];
+    const uid = r['generated_internal_id'] ?? r['Award ID'];
     if (!uid) continue;
 
     const amount = Math.round(Number(r['Award Amount'] ?? 0));
-    const { service_branch, agency_or_lab } = mapAgency(r['Awarding Sub Agency']);
-    const rawDesc = (r['Description'] ?? '') as string;
+    const { service_branch, agency_or_lab } = mapAgency(r['Awarding Sub Agency'] ?? null);
+    const rawDesc = r['Description'] ?? '';
     const title = rawDesc.slice(0, 200) || (r['Award ID'] ?? uid);
 
     try {

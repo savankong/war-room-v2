@@ -7,6 +7,28 @@
 
 import postgres from 'postgres';
 
+/** The fields this script reads off a SAM.gov opportunity. */
+interface SamOpportunity {
+  noticeId?: string | null;
+  title?: string | null;
+  type?: string | null;
+  description?: string | null;
+  department?: string | null;
+  subTier?: string | null;
+  organizationName?: string | null;
+  naicsCode?: string | null;
+  postedDate?: string | null;
+  responseDeadLine?: string | null;
+  typeOfSetAside?: string | null;
+  typeOfSetAsideDescription?: string | null;
+  uiLink?: string | null;
+  awardee?: string | null;
+  awardAmount?: string | number | null;
+  baseAndAllOptionsValue?: string | number | null;
+  pointOfContact?: Array<{ fullName?: string | null; email?: string | null }> | null;
+}
+
+
 const DB_URL    = process.env.DATABASE_URL!;
 const SAM_KEY   = process.env.SAM_GOV_API_KEY!;
 
@@ -41,7 +63,7 @@ function fmtSamDate(d: Date): string {
   return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
 }
 
-async function fetchSamPage(offset: number, limit: number, postedFrom: string): Promise<{ opportunities: any[]; totalRecords: number }> {
+async function fetchSamPage(offset: number, limit: number, postedFrom: string): Promise<{ opportunities: SamOpportunity[]; totalRecords: number }> {
   const params = new URLSearchParams({
     api_key:    SAM_KEY,
     limit:      String(limit),
@@ -56,7 +78,7 @@ async function fetchSamPage(offset: number, limit: number, postedFrom: string): 
     const text = await res.text();
     throw new Error(`SAM.gov ${res.status}: ${text.slice(0, 300)}`);
   }
-  const data = await res.json() as any;
+  const data = (await res.json()) as { opportunitiesData?: SamOpportunity[]; totalRecords?: number };
   return {
     opportunities: data.opportunitiesData ?? [],
     totalRecords:  data.totalRecords ?? 0,
@@ -64,7 +86,7 @@ async function fetchSamPage(offset: number, limit: number, postedFrom: string): 
 }
 
 /* ── Determine signal type from SAM.gov opportunity ─────────────── */
-function signalType(opp: any): 'Opportunity' | 'Award' {
+function signalType(opp: SamOpportunity): 'Opportunity' | 'Award' {
   const t = (opp.type ?? '').toLowerCase();
   if (t.includes('award') || t === 'a') return 'Award';
   return 'Opportunity';
@@ -75,8 +97,8 @@ async function main() {
   const orgMap = await buildOrgMap();
   console.log(`Loaded ${orgMap.size} orgs for matching`);
 
-  const existing = await sql`SELECT external_id FROM contracts WHERE source = 'sam_gov' AND external_id IS NOT NULL`;
-  const existingIds = new Set(existing.map((r: any) => r.external_id as string));
+  const existing = await sql<{ external_id: string }[]>`SELECT external_id FROM contracts WHERE source = 'sam_gov' AND external_id IS NOT NULL`;
+  const existingIds = new Set(existing.map(r => r.external_id));
   console.log(`${existingIds.size} existing SAM.gov records`);
 
   // SAM.gov range must be UNDER 1 year — pull the last 11 months
@@ -142,7 +164,7 @@ async function main() {
           ${row.deadline}, ${row.recipient}, ${row.agency}, ${row.sub_agency},
           ${row.set_aside}, ${row.poc_email}, ${row.poc}, ${row.naics},
           ${row.description}, ${row.sam_url}, ${row.org_id},
-          ${sql.json(row.raw_payload)}
+          ${sql.json(row.raw_payload as never)}
         )
         ON CONFLICT (id) DO NOTHING
       `;

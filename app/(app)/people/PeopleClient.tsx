@@ -111,6 +111,20 @@ export interface Person {
   org_contracts: number; org_awards_3yr: number; org_open_opps: number;
   org_type: string | null;
 }
+/** A contract row as /api/org-contracts returns it, column for column. */
+export interface PersonContract {
+  id: string;
+  title: string | null;
+  signal_type: string | null;
+  value: number | string | null;
+  award_date: string | null;
+  award_amt: number | string | null;
+  recipient: string | null;
+  poc_email: string | null;
+  set_aside: string | null;
+  source: string | null;
+}
+
 export interface TopOrg { id: string; name: string; abs_hierarchy_level: number | null; }
 interface Props { people: Person[]; topOrgs: TopOrg[]; }
 
@@ -245,7 +259,7 @@ function ProfilePanel({ p, onClose, orgPeers = [] }: { p: Person; onClose: () =>
   }
 
   /* Fetch contracts for this person's org */
-  const [contracts, setContracts] = useState<any[]>([]);
+  const [contracts, setContracts] = useState<PersonContract[]>([]);
   // Loading is derived from which org the loaded contracts belong to, rather
   // than a flag set synchronously at the top of the effect. That avoids the
   // extra render the flag caused, and the cancelled guard stops a slow
@@ -464,11 +478,11 @@ function ProfilePanel({ p, onClose, orgPeers = [] }: { p: Person; onClose: () =>
               {!contractsLoading && contracts.length > 0 && (
                 <div className="wr-pf-clist">
                   {contracts.map(c => {
-                    const tc = CONTRACT_TYPE_COLOR[c.signal_type] ?? '#4A5666';
-                    const tb = CONTRACT_TYPE_BG[c.signal_type]    ?? 'rgba(74,86,102,.08)';
+                    const tc = (c.signal_type ? CONTRACT_TYPE_COLOR[c.signal_type] : null) ?? '#4A5666';
+                    const tb = (c.signal_type ? CONTRACT_TYPE_BG[c.signal_type] : null) ?? 'rgba(74,86,102,.08)';
                     const money = fmtMoney(c.value ?? c.award_amt);
                     const date  = fmtDate(c.award_date);
-                    const src   = SOURCE_LABEL[c.source] ?? c.source ?? '';
+                    const src   = (c.source ? SOURCE_LABEL[c.source] : null) ?? c.source ?? '';
                     return (
                       <div key={c.id} className="wr-pf-crow">
                         <div className="wr-pf-crow-top">
@@ -536,7 +550,7 @@ export default function PeopleClient({ people, topOrgs }: Props) {
   const [roleSectionOpen, setRoleSectionOpen] = useState(true);
   const [tagSectionOpen, setTagSectionOpen] = useState(true);
 
-  const isIndustryPerson = (p: any) =>
+  const isIndustryPerson = (p: Person) =>
     p.tags?.includes('INDUSTRY') || p.org_type === 'sbir_company';
 
   const govPeople = useMemo(() => people.filter(p => !isIndustryPerson(p)), [people]);

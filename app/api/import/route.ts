@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
           WHERE LOWER(TRIM(awardee)) = LOWER(TRIM(${r.awardee}))
             AND (canonical_org_id IS NULL OR canonical_org_id <> ${r.org_id})
         `;
-        inserted += (result as any).rowCount ?? 1;
+        inserted += (result as { rowCount?: number }).rowCount ?? 1;
       } catch (e) { errors.push(`link ${r.awardee}: ${getErr(e)}`); }
     }
   } else if (type === 'patch_contracts') {

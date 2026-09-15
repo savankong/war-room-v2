@@ -7,6 +7,26 @@
 
 import postgres from 'postgres';
 
+/** The USASpending search request this script builds; paging keys are added later. */
+interface UsaRequest {
+  filters: Record<string, unknown>;
+  fields: string[];
+  [key: string]: unknown;
+}
+
+/** One award row; keys are the API's display names, hence the quoting. */
+interface UsaAward {
+  generated_internal_id?: string | null;
+  'Award ID'?: string | null;
+  'Award Amount'?: number | string | null;
+  'Award Date'?: string | null;
+  'Awarding Agency'?: string | null;
+  'Awarding Sub Agency'?: string | null;
+  'NAICS Code'?: string | null;
+  'Recipient Name'?: string | null;
+}
+
+
 const DB_URL = process.env.DATABASE_URL!;
 if (!DB_URL) { console.error('DATABASE_URL not set'); process.exit(1); }
 
@@ -39,8 +59,8 @@ function matchOrg(name: string, orgMap: Map<string, string>): string | null {
 }
 
 /* ── Fetch one page of awards (cursor-based) ─────────────────────── */
-async function fetchAwardsPage(cursor: { lastId?: number; lastVal?: string } | null, pageSize: number): Promise<{ results: any[]; hasNext: boolean; lastId: number | null; lastVal: string | null }> {
-  const body: any = {
+async function fetchAwardsPage(cursor: { lastId?: number; lastVal?: string } | null, pageSize: number): Promise<{ results: UsaAward[]; hasNext: boolean; lastId: number | null; lastVal: string | null }> {
+  const body: UsaRequest = {
     filters: {
       agencies: [{ type: 'awarding', tier: 'toptier', name: 'Department of Defense' }],
       award_type_codes: ['A', 'B', 'C', 'D'],
@@ -68,7 +88,7 @@ async function fetchAwardsPage(cursor: { lastId?: number; lastVal?: string } | n
   });
 
   if (!res.ok) throw new Error(`USASpending ${res.status}: ${await res.text()}`);
-  const data = await res.json() as any;
+  const data = (await res.json()) as { results?: UsaAward[]; page_metadata?: { hasNext?: boolean; last_record_unique_id?: number; last_record_sort_value?: string } };
   const meta = data.page_metadata ?? {};
   return {
     results: data.results ?? [],
@@ -84,8 +104,8 @@ async function main() {
   console.log(`Loaded ${orgMap.size} orgs for matching`);
 
   // Fetch existing external IDs to avoid re-inserting
-  const existing = await sql`SELECT external_id FROM contracts WHERE source = 'usaspending' AND external_id IS NOT NULL`;
-  const existingIds = new Set(existing.map((r: any) => r.external_id));
+  const existing = await sql<{ external_id: string }[]>`SELECT external_id FROM contracts WHERE source = 'usaspending' AND external_id IS NOT NULL`;
+  const existingIds = new Set(existing.map(r => r.external_id));
   console.log(`${existingIds.size} existing USASpending records`);
 
   const PAGE_SIZE = 100;
@@ -128,7 +148,7 @@ async function main() {
           ${awardingSubAgency ?? null},
           ${r['NAICS Code'] ?? null},
           ${orgId},
-          ${sql.json(r)}
+          ${sql.json(r as never)}
         )
         ON CONFLICT (id) DO NOTHING
       `;
