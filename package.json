@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test \"{lib,worker,scripts}/**/*.test.ts\"",
+    "test": "tsx --test --test-concurrency=1 \"{lib,worker,scripts}/**/*.test.ts\"",
     "migrate": "tsx scripts/migrate.ts",
     "worker": "tsx worker/index.ts",
     "ingest": "tsx lib/ingestion/runner.ts",
