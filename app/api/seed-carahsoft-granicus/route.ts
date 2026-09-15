@@ -1,3 +1,4 @@
+import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -223,8 +224,7 @@ export async function GET(req: NextRequest) {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { getDatabase } = require('@netlify/database');
-  const db = getDatabase();
+  const db = { sql: getDb() };
   let inserted = 0;
   const errors: string[] = [];
 

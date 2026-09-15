@@ -1,3 +1,4 @@
+import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 
@@ -18,9 +19,7 @@ export async function POST(req: NextRequest) {
   const { type, records } = body;
   if (!records?.length && !type?.startsWith('delete_')) return NextResponse.json({ inserted: 0 });
 
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { getDatabase } = require('@netlify/database');
-  const db = getDatabase();
+  const db = { sql: getDb() };
 
   let inserted = 0;
   const errors: string[] = [];

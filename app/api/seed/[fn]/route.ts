@@ -1,4 +1,4 @@
-import { getDatabase } from '@netlify/database';
+import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +9,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ fn: string 
   if (req.nextUrl.searchParams.get('token') !== process.env.SAM_SYNC_TOKEN)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const db: any = getDatabase();
+  const db: any = { sql: getDb() };
   const url = req.nextUrl;
   try {
     if (fn === 'orgs-master') {
